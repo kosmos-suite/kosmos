@@ -181,12 +181,13 @@ a:hover {
   background: rgba(145, 132, 217, 0.12);
 }
 .btn-secondary {
-  border-color: var(--border-strong);
-  color: var(--text);
-  background: rgba(233, 233, 237, 0.04);
+  border-color: transparent;
+  color: #b2b6ca;
+  background: transparent;
 }
 .btn-secondary:hover {
-  background: rgba(233, 233, 237, 0.09);
+  background: rgba(233, 233, 237, 0.07);
+  color: var(--text);
 }
 .btn-ghost {
   color: var(--accent-2);
@@ -200,11 +201,14 @@ a:hover {
   height: 36px;
   padding: 0;
   border-radius: var(--radius-md);
-  color: var(--text-muted);
+  background: #1a1c27;
+  border-color: rgba(233, 233, 237, 0.08);
+  color: #b2b6ca;
 }
 .btn-icon:hover {
-  background: rgba(233, 233, 237, 0.07);
+  background: #232532;
   color: var(--text);
+  border-color: rgba(233, 233, 237, 0.16);
 }
 .btn-block {
   width: 100%;
