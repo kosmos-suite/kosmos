@@ -20,6 +20,7 @@ import type {
   LibraryRootFolder,
   LibraryStats,
   MediaDetailExtras,
+  MediaPreview,
   MediaRequest,
   MetadataSearchResult,
   MetadataStatus,
@@ -106,6 +107,8 @@ export const api = {
   listMovieLibraryFiles: (id: string) => request<LibraryFile[]>(`/movies/${id}/library-files`),
 
   getMovieDetailExtras: (id: string) => request<MediaDetailExtras>(`/movies/${id}/detail-extras`),
+
+  getMoviePreview: (externalId: string) => request<MediaPreview>(`/movies/tmdb/${externalId}`),
 
   libraryStats: () => request<LibraryStats>("/library/stats"),
 
@@ -222,6 +225,8 @@ export const api = {
 
   getShowDetailExtras: (id: string) => request<MediaDetailExtras>(`/shows/${id}/detail-extras`),
 
+  getShowPreview: (externalId: string) => request<MediaPreview>(`/shows/tmdb/${externalId}`),
+
   updateShowQualityProfile: (id: string, qualityProfileId: string | null) =>
     request<ShowDetail>(`/shows/${id}/quality-profile`, {
       method: "PUT",
@@ -247,6 +252,8 @@ export const api = {
   getAnime: (id: string) => request<AnimeDetail>(`/anime/${id}`),
 
   getAnimeDetailExtras: (id: string) => request<MediaDetailExtras>(`/anime/${id}/detail-extras`),
+
+  getAnimePreview: (externalId: string) => request<MediaPreview>(`/anime/anilist/${externalId}`),
 
   updateAnimeQualityProfile: (id: string, qualityProfileId: string | null) =>
     request<AnimeDetail>(`/anime/${id}/quality-profile`, {

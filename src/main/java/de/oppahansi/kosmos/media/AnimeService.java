@@ -8,6 +8,7 @@ import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.anilist.AniListAnimeDetails;
 import de.oppahansi.kosmos.metadata.anilist.AniListMetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
+import de.oppahansi.kosmos.metadata.dto.MediaPreview;
 import de.oppahansi.kosmos.metadata.fribb.FribbEntry;
 import de.oppahansi.kosmos.metadata.fribb.FribbMappingProvider;
 import de.oppahansi.kosmos.metadata.thexem.TheXemMappingProvider;
@@ -167,6 +168,47 @@ public class AnimeService {
             extras ->
                 extras.withSimilar(
                     similarEnrichmentService.enrich(extras.similar(), "anilist", "anime")));
+  }
+
+  /**
+   * Same idea as {@link #detailExtras}, but for an AniList entry Kosmos has no {@link Anime} row
+   * for yet — backs the detail screen a not-in-library card links to, so it opens something real
+   * instead of falling back to a search. AniList's by-id lookup carries no backdrop or release year
+   * of its own (see {@link AniListAnimeDetails}), so those are left null here rather than guessed
+   * at — the "First Aired" fact from {@code extras} still surfaces the year in text form.
+   */
+  public Optional<MediaPreview> preview(String externalId) {
+    Optional<AniListAnimeDetails> base = aniListMetadataProvider.fetchById(externalId);
+    if (base.isEmpty()) {
+      return Optional.empty();
+    }
+    AniListAnimeDetails b = base.get();
+    MediaDetailExtras extras =
+        aniListMetadataProvider
+            .fetchDetailExtras(externalId)
+            .map(
+                e ->
+                    e.withSimilar(similarEnrichmentService.enrich(e.similar(), "anilist", "anime")))
+            .orElse(
+                new MediaDetailExtras(
+                    List.of(), List.of(), null, null, null, List.of(), List.of()));
+    return Optional.of(
+        new MediaPreview(
+            externalId,
+            "anilist",
+            "anime",
+            b.title(),
+            null,
+            b.overview(),
+            b.posterPath(),
+            null,
+            extras.genres(),
+            extras.facts(),
+            extras.voteAverage(),
+            extras.voteCount(),
+            extras.certification(),
+            extras.cast(),
+            extras.similar()));
   }
 
   /**

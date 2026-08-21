@@ -80,6 +80,19 @@ public class ShowResource {
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
+  /**
+   * Backs {@code MediaPreviewPage} — a TMDB show not yet in the library, reached from a
+   * not-in-library card instead of falling back to a search.
+   */
+  @GET
+  @Path("/tmdb/{externalId}")
+  public Response preview(@PathParam("externalId") String externalId) {
+    return showService
+        .preview(externalId)
+        .map(preview -> Response.ok(preview).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
   private ShowDetailResponse toDetail(Show show) {
     List<Season> seasons = showService.seasonsFor(show.mediaItemId);
     Map<UUID, List<Episode>> episodesBySeason = new HashMap<>();

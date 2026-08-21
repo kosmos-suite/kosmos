@@ -161,6 +161,25 @@ export interface MediaDetailExtras {
   similar: MetadataSearchResult[];
 }
 
+/** The detail screen for a title Kosmos doesn't own yet — see {@link MediaDetailExtras}. */
+export interface MediaPreview {
+  externalId: string;
+  pluginSlug: string;
+  mediaType: "movie" | "tv" | "anime";
+  title: string;
+  year: number | null;
+  overview: string | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  genres: string[];
+  facts: DetailFact[];
+  voteAverage: number | null;
+  voteCount: number | null;
+  certification: string | null;
+  cast: CastMember[];
+  similar: MetadataSearchResult[];
+}
+
 export interface Indexer {
   id: string;
   name: string;

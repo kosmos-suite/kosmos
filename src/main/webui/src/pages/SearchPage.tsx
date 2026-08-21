@@ -43,10 +43,14 @@ function persistRecentSearches(entries: string[]) {
 }
 
 function resultLink(result: MetadataSearchResult): string {
-  if (!result.mediaItemId) return "#";
-  if (result.mediaType === "tv") return `/shows/${result.mediaItemId}`;
-  if (result.mediaType === "anime") return `/anime/${result.mediaItemId}`;
-  return `/movies/${result.mediaItemId}`;
+  if (result.mediaItemId) {
+    if (result.mediaType === "tv") return `/shows/${result.mediaItemId}`;
+    if (result.mediaType === "anime") return `/anime/${result.mediaItemId}`;
+    return `/movies/${result.mediaItemId}`;
+  }
+  if (result.mediaType === "tv") return `/shows/tmdb/${result.externalId}`;
+  if (result.mediaType === "anime") return `/anime/anilist/${result.externalId}`;
+  return `/movies/tmdb/${result.externalId}`;
 }
 
 const RAIL_ITEMS = [

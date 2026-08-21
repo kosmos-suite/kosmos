@@ -71,6 +71,19 @@ public class MediaResource {
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
+  /**
+   * Backs {@code MediaPreviewPage} — a TMDB movie not yet in the library, reached from a
+   * not-in-library card instead of falling back to a search.
+   */
+  @GET
+  @Path("/tmdb/{externalId}")
+  public Response preview(@PathParam("externalId") String externalId) {
+    return movieService
+        .preview(externalId)
+        .map(preview -> Response.ok(preview).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
   @PUT
   @Path("/{id}/quality-profile")
   public Response updateQualityProfile(

@@ -35,10 +35,14 @@ export function CastRow({ cast }: { cast: CastMember[] }) {
 }
 
 function similarLink(item: MetadataSearchResult): string {
-  if (!item.mediaItemId) return `/search?q=${encodeURIComponent(item.title)}`;
-  if (item.mediaType === "tv") return `/shows/${item.mediaItemId}`;
-  if (item.mediaType === "anime") return `/anime/${item.mediaItemId}`;
-  return `/movies/${item.mediaItemId}`;
+  if (item.mediaItemId) {
+    if (item.mediaType === "tv") return `/shows/${item.mediaItemId}`;
+    if (item.mediaType === "anime") return `/anime/${item.mediaItemId}`;
+    return `/movies/${item.mediaItemId}`;
+  }
+  if (item.mediaType === "tv") return `/shows/tmdb/${item.externalId}`;
+  if (item.mediaType === "anime") return `/anime/anilist/${item.externalId}`;
+  return `/movies/tmdb/${item.externalId}`;
 }
 
 export function SimilarRow({ items }: { items: MetadataSearchResult[] }) {

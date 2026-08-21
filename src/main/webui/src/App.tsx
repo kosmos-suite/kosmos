@@ -1,9 +1,11 @@
 import { Route, Routes } from "react-router-dom";
 import { Layout } from "./components/layout/Layout";
+import { api } from "./api/client";
 import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
 import ActivityPage from "./pages/ActivityPage";
 import AnimeDetailPage from "./pages/AnimeDetailPage";
+import MediaPreviewPage from "./pages/MediaPreviewPage";
 import DiscoverListPage from "./pages/discover/DiscoverListPage";
 import GenreDiscoverPage from "./pages/discover/GenreDiscoverPage";
 import NetworkDiscoverPage from "./pages/discover/NetworkDiscoverPage";
@@ -58,8 +60,20 @@ function App() {
             <Route path="/discover/list/:kind" element={<DiscoverListPage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/movies/:id" element={<MovieDetailPage />} />
+            <Route
+              path="/movies/tmdb/:externalId"
+              element={<MediaPreviewPage mediaType="movie" fetchPreview={api.getMoviePreview} />}
+            />
             <Route path="/shows/:id" element={<ShowDetailPage />} />
+            <Route
+              path="/shows/tmdb/:externalId"
+              element={<MediaPreviewPage mediaType="tv" fetchPreview={api.getShowPreview} />}
+            />
             <Route path="/anime/:id" element={<AnimeDetailPage />} />
+            <Route
+              path="/anime/anilist/:externalId"
+              element={<MediaPreviewPage mediaType="anime" fetchPreview={api.getAnimePreview} />}
+            />
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
 

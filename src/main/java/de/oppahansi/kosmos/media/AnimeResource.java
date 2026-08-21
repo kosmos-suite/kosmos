@@ -78,6 +78,19 @@ public class AnimeResource {
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
+  /**
+   * Backs {@code MediaPreviewPage} — an AniList anime not yet in the library, reached from a
+   * not-in-library card instead of falling back to a search.
+   */
+  @GET
+  @Path("/anilist/{externalId}")
+  public Response preview(@PathParam("externalId") String externalId) {
+    return animeService
+        .preview(externalId)
+        .map(preview -> Response.ok(preview).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
   private AnimeDetailResponse toDetail(Anime anime) {
     List<AnimeEpisode> episodes = animeService.episodesFor(anime.mediaItemId);
     Map<UUID, String> statusByEpisode =

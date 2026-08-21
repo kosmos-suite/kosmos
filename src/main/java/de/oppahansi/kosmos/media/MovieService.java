@@ -6,6 +6,8 @@ import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
+import de.oppahansi.kosmos.metadata.dto.MediaPreview;
+import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import de.oppahansi.kosmos.parsing.QualityProfileService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -88,5 +90,42 @@ public class MovieService {
             extras ->
                 extras.withSimilar(
                     similarEnrichmentService.enrich(extras.similar(), "tmdb", "movie")));
+  }
+
+  /**
+   * Same idea as {@link #detailExtras}, but for a TMDB movie Kosmos has no {@link Movie} row for
+   * yet — backs the detail screen a not-in-library card links to, so it opens something real
+   * instead of falling back to a search.
+   */
+  public Optional<MediaPreview> preview(String externalId) {
+    Optional<MetadataSearchResult> base = tmdbMetadataProvider.fetchMovieById(externalId);
+    if (base.isEmpty()) {
+      return Optional.empty();
+    }
+    MetadataSearchResult b = base.get();
+    MediaDetailExtras extras =
+        tmdbMetadataProvider
+            .fetchMovieDetailExtras(externalId)
+            .map(e -> e.withSimilar(similarEnrichmentService.enrich(e.similar(), "tmdb", "movie")))
+            .orElse(
+                new MediaDetailExtras(
+                    List.of(), List.of(), null, null, null, List.of(), List.of()));
+    return Optional.of(
+        new MediaPreview(
+            externalId,
+            "tmdb",
+            "movie",
+            b.title(),
+            b.year(),
+            b.overview(),
+            b.posterPath(),
+            b.backdropPath(),
+            extras.genres(),
+            extras.facts(),
+            extras.voteAverage(),
+            extras.voteCount(),
+            extras.certification(),
+            extras.cast(),
+            extras.similar()));
   }
 }

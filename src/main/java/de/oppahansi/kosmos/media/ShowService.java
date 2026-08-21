@@ -7,6 +7,7 @@ import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
+import de.oppahansi.kosmos.metadata.dto.MediaPreview;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbShowStructure;
@@ -145,6 +146,43 @@ public class ShowService {
             extras ->
                 extras.withSimilar(
                     similarEnrichmentService.enrich(extras.similar(), "tmdb", "show")));
+  }
+
+  /**
+   * Same idea as {@link #detailExtras}, but for a TMDB show Kosmos has no {@link Show} row for yet
+   * — backs the detail screen a not-in-library card links to, so it opens something real instead of
+   * falling back to a search.
+   */
+  public Optional<MediaPreview> preview(String externalId) {
+    Optional<MetadataSearchResult> base = tmdbMetadataProvider.fetchShowById(externalId);
+    if (base.isEmpty()) {
+      return Optional.empty();
+    }
+    MetadataSearchResult b = base.get();
+    MediaDetailExtras extras =
+        tmdbMetadataProvider
+            .fetchTvDetailExtras(externalId)
+            .map(e -> e.withSimilar(similarEnrichmentService.enrich(e.similar(), "tmdb", "show")))
+            .orElse(
+                new MediaDetailExtras(
+                    List.of(), List.of(), null, null, null, List.of(), List.of()));
+    return Optional.of(
+        new MediaPreview(
+            externalId,
+            "tmdb",
+            "tv",
+            b.title(),
+            b.year(),
+            b.overview(),
+            b.posterPath(),
+            b.backdropPath(),
+            extras.genres(),
+            extras.facts(),
+            extras.voteAverage(),
+            extras.voteCount(),
+            extras.certification(),
+            extras.cast(),
+            extras.similar()));
   }
 
   private void persistStructure(Show show, TmdbShowStructure structure) {
