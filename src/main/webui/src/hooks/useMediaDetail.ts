@@ -19,6 +19,17 @@ export function mediaTypeFor(kind: MediaKind): "movie" | "tv" | "anime" {
   return MEDIA_TYPE_FOR_KIND[kind];
 }
 
+const OWNED_PATH_PREFIX: Record<MediaKind, string> = {
+  movie: "/movies",
+  show: "/shows",
+  anime: "/anime",
+};
+
+/** The owned detail route for a given {@link MediaKind} + id — {@code /movies/{id}} and so on. */
+export function ownedPathFor(kind: MediaKind, id: string): string {
+  return `${OWNED_PATH_PREFIX[kind]}/${id}`;
+}
+
 function fetchOwned(kind: MediaKind, id: string): Promise<OwnedMedia> {
   if (kind === "movie") return api.getMovie(id);
   if (kind === "show") return api.getShow(id);

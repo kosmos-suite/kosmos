@@ -10,7 +10,7 @@ import {
   StarIcon as Star,
   TelevisionIcon as Television,
 } from "@phosphor-icons/react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
 import type { AnimeDetail, AnimeEpisode, EpisodeStatus, Movie, PreviewEpisode, PreviewSeason, Season, ShowDetail } from "../api/types";
 import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
@@ -19,7 +19,7 @@ import { FileStatusCard } from "../components/detail/FileStatusCard";
 import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
-import { mediaTypeFor, type MediaKind, useMediaDetail } from "../hooks/useMediaDetail";
+import { mediaTypeFor, type MediaKind, ownedPathFor, useMediaDetail } from "../hooks/useMediaDetail";
 
 function seasonsFromPreview(seasons: PreviewSeason[]): Season[] {
   return seasons.map((s) => ({
@@ -80,6 +80,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     setQualityProfile,
   } = useMediaDetail(kind);
   const { admin, stateFor, triggerAdd } = useAddToLibrary();
+  const navigate = useNavigate();
 
   const title = ownedMedia?.title ?? preview?.title ?? "";
   const year = ownedMedia?.year ?? preview?.year ?? null;
@@ -321,9 +322,9 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                 className="btn btn-hero"
                 style={kind === "movie" ? { alignSelf: "flex-start" } : { marginTop: 14 }}
                 disabled={addState !== "idle"}
-                onClick={() =>
-                  preview &&
-                  triggerAdd({
+                onClick={async () => {
+                  if (!preview) return;
+                  const createdId = await triggerAdd({
                     externalId: preview.externalId,
                     title: preview.title,
                     year: preview.year,
@@ -331,8 +332,9 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                     posterPath: preview.posterPath,
                     backdropPath: preview.backdropPath,
                     mediaType: mediaTypeFor(kind),
-                  })
-                }
+                  });
+                  if (createdId) navigate(ownedPathFor(kind, createdId));
+                }}
               >
                 {addState === "adding" ? (
                   <Spinner size={16} className="spin" />
