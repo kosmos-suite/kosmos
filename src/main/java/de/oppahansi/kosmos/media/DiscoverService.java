@@ -6,7 +6,7 @@ import de.oppahansi.kosmos.media.dto.GenreTile;
 import de.oppahansi.kosmos.media.dto.StudioTile;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
-import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
+import de.oppahansi.kosmos.metadata.tmdb.TmdbDiscoverClient;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Instant;
@@ -24,7 +24,7 @@ public class DiscoverService {
 
   private static final int RECENT_LIMIT = 12;
 
-  @Inject TmdbMetadataProvider tmdbMetadataProvider;
+  @Inject TmdbDiscoverClient tmdbDiscoverClient;
   @Inject MediaAvailabilityService mediaAvailabilityService;
 
   /**
@@ -109,7 +109,7 @@ public class DiscoverService {
         continue;
       }
       List<MetadataSearchResult> recommendations =
-          tmdbMetadataProvider.fetchMovieRecommendations(link.get().externalId);
+          tmdbDiscoverClient.fetchMovieRecommendations(link.get().externalId);
       if (!recommendations.isEmpty()) {
         return Optional.of(
             new BecauseYouAddedResult(
@@ -131,62 +131,62 @@ public class DiscoverService {
     return switch (mediaType) {
       case "movie" ->
           withLibraryStatus(
-              tmdbMetadataProvider.fetchTrendingMovies(window, page, excludeLanguages), "movie");
+              tmdbDiscoverClient.fetchTrendingMovies(window, page, excludeLanguages), "movie");
       case "tv" ->
           withLibraryStatus(
-              tmdbMetadataProvider.fetchTrendingTv(window, page, excludeLanguages), "show");
+              tmdbDiscoverClient.fetchTrendingTv(window, page, excludeLanguages), "show");
       default ->
           withLibraryStatusMixed(
-              tmdbMetadataProvider.fetchTrendingAll(window, page, excludeLanguages));
+              tmdbDiscoverClient.fetchTrendingAll(window, page, excludeLanguages));
     };
   }
 
   public List<DiscoverItem> popular(int page, String excludeLanguages) {
     return withLibraryStatus(
-        tmdbMetadataProvider.fetchPopularMovies(page, excludeLanguages), "movie");
+        tmdbDiscoverClient.fetchPopularMovies(page, excludeLanguages), "movie");
   }
 
   public List<DiscoverItem> upcomingMovies(int page, String excludeLanguages) {
     return withLibraryStatus(
-        tmdbMetadataProvider.fetchUpcomingMovies(page, excludeLanguages), "movie");
+        tmdbDiscoverClient.fetchUpcomingMovies(page, excludeLanguages), "movie");
   }
 
   public List<DiscoverItem> popularTv(int page, String excludeLanguages) {
-    return withLibraryStatus(tmdbMetadataProvider.fetchPopularTv(page, excludeLanguages), "show");
+    return withLibraryStatus(tmdbDiscoverClient.fetchPopularTv(page, excludeLanguages), "show");
   }
 
   /**
-   * Page 1 reuses {@link TmdbMetadataProvider#fetchUpcomingTv(String)}'s posters-only curation;
-   * later pages (infinite scroll) are raw — see that method's own doc comment for why.
+   * Page 1 reuses {@link TmdbDiscoverClient#fetchUpcomingTv(String)}'s posters-only curation; later
+   * pages (infinite scroll) are raw — see that method's own doc comment for why.
    */
   public List<DiscoverItem> upcomingTv(int page, String excludeLanguages) {
     List<MetadataSearchResult> results =
         page <= 1
-            ? tmdbMetadataProvider.fetchUpcomingTv(excludeLanguages)
-            : tmdbMetadataProvider.fetchUpcomingTv(page, excludeLanguages);
+            ? tmdbDiscoverClient.fetchUpcomingTv(excludeLanguages)
+            : tmdbDiscoverClient.fetchUpcomingTv(page, excludeLanguages);
     return withLibraryStatus(results, "show");
   }
 
   public List<GenreTile> movieGenres() {
-    return tmdbMetadataProvider.fetchMovieGenres().stream()
+    return tmdbDiscoverClient.fetchMovieGenres().stream()
         .map(g -> new GenreTile(g.id(), g.name()))
         .toList();
   }
 
   public List<GenreTile> tvGenres() {
-    return tmdbMetadataProvider.fetchTvGenres().stream()
+    return tmdbDiscoverClient.fetchTvGenres().stream()
         .map(g -> new GenreTile(g.id(), g.name()))
         .toList();
   }
 
   public List<DiscoverItem> moviesByGenre(int genreId, int page, String excludeLanguages) {
     return withLibraryStatus(
-        tmdbMetadataProvider.discoverMoviesByGenre(genreId, page, excludeLanguages), "movie");
+        tmdbDiscoverClient.discoverMoviesByGenre(genreId, page, excludeLanguages), "movie");
   }
 
   public List<DiscoverItem> tvByGenre(int genreId, int page, String excludeLanguages) {
     return withLibraryStatus(
-        tmdbMetadataProvider.discoverTvByGenre(genreId, page, excludeLanguages), "show");
+        tmdbDiscoverClient.discoverTvByGenre(genreId, page, excludeLanguages), "show");
   }
 
   public List<StudioTile> studios() {
@@ -199,12 +199,12 @@ public class DiscoverService {
 
   public List<DiscoverItem> moviesByStudio(int companyId, int page, String excludeLanguages) {
     return withLibraryStatus(
-        tmdbMetadataProvider.discoverMoviesByCompany(companyId, page, excludeLanguages), "movie");
+        tmdbDiscoverClient.discoverMoviesByCompany(companyId, page, excludeLanguages), "movie");
   }
 
   public List<DiscoverItem> tvByNetwork(int networkId, int page, String excludeLanguages) {
     return withLibraryStatus(
-        tmdbMetadataProvider.discoverTvByNetwork(networkId, page, excludeLanguages), "show");
+        tmdbDiscoverClient.discoverTvByNetwork(networkId, page, excludeLanguages), "show");
   }
 
   /**
