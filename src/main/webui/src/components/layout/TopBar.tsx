@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
+import { useAppHistory } from "../../hooks/useAppHistory";
 import { activeDownloadSources } from "../../mocks/mockActivity";
 
 const downloadingCount = activeDownloadSources.filter((d) => d.state === "downloading").length;
@@ -22,6 +23,7 @@ export function TopBar({ scrolled }: TopBarProps) {
   const navigate = useNavigate();
   const inputRef = useRef<HTMLInputElement>(null);
   const { user, logout } = useAuth();
+  const { canGoBack, canGoForward } = useAppHistory();
 
   const initials =
     user?.displayName
@@ -51,10 +53,22 @@ export function TopBar({ scrolled }: TopBarProps) {
 
   return (
     <header className={`topbar${scrolled ? " scrolled" : ""}`}>
-      <button type="button" className="topbar-nav-btn" onClick={() => navigate(-1)} title="Back">
+      <button
+        type="button"
+        className="topbar-nav-btn"
+        onClick={() => navigate(-1)}
+        disabled={!canGoBack}
+        title="Back"
+      >
         <ArrowLeft size={15} />
       </button>
-      <button type="button" className="topbar-nav-btn" disabled title="Forward">
+      <button
+        type="button"
+        className="topbar-nav-btn"
+        onClick={() => navigate(1)}
+        disabled={!canGoForward}
+        title="Forward"
+      >
         <ArrowRight size={15} />
       </button>
 
