@@ -102,7 +102,7 @@ RUN microdnf install -y xz tar gzip && microdnf clean all
 RUN set -eux; \
     ARCH="$(uname -m)"; \
     case "$ARCH" in \
-      x86_64) FF_ARCH="amd64" ;; \
+      x86_64) FF_ARCH="64" ;; \
       aarch64) FF_ARCH="arm64" ;; \
       *) echo "unsupported arch: $ARCH" && exit 1 ;; \
     esac; \
