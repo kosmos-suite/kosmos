@@ -1,7 +1,9 @@
 package de.oppahansi.kosmos.downloads;
 
+import static de.oppahansi.kosmos.downloads.HttpClients.MAPPER;
+import static de.oppahansi.kosmos.downloads.HttpClients.REQUEST_TIMEOUT;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
@@ -10,7 +12,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 
@@ -28,13 +29,8 @@ import java.util.Optional;
  */
 public class NzbgetClient implements TorrentClient {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
-  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
-
   private final String rpcUrl;
-  private final HttpClient httpClient =
-      HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
+  private final HttpClient httpClient = HttpClients.basic();
   private String authHeader;
 
   public NzbgetClient(String baseUrl) {

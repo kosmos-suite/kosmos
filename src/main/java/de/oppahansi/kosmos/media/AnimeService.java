@@ -3,7 +3,6 @@ package de.oppahansi.kosmos.media;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateAnimeRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
-import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.anilist.AniListAnimeDetails;
 import de.oppahansi.kosmos.metadata.anilist.AniListMetadataProvider;
@@ -168,10 +167,9 @@ public class AnimeService {
 
   /** Genres/similar for the detail page — see {@link AniListMetadataProvider#fetchDetailExtras}. */
   public Optional<MediaDetailExtras> detailExtras(UUID animeId) {
-    return MediaItemExternalId.<MediaItemExternalId>find(
-            "mediaItem.id = ?1 and plugin.slug = 'anilist' and supersededAt is null", animeId)
-        .firstResultOptional()
-        .flatMap(link -> aniListMetadataProvider.fetchDetailExtras(link.externalId))
+    return externalIdLinkService
+        .findActiveExternalId(animeId, "anilist")
+        .flatMap(aniListMetadataProvider::fetchDetailExtras)
         .map(
             extras ->
                 extras.withSimilar(

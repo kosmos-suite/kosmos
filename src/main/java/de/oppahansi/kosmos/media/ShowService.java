@@ -4,7 +4,6 @@ import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateShowRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
-import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MediaPreview;
@@ -138,10 +137,9 @@ public class ShowService {
    * Cast/genres/similar for the detail page — see {@link TmdbMetadataProvider#fetchTvDetailExtras}.
    */
   public Optional<MediaDetailExtras> detailExtras(UUID showId) {
-    return MediaItemExternalId.<MediaItemExternalId>find(
-            "mediaItem.id = ?1 and plugin.slug = 'tmdb' and supersededAt is null", showId)
-        .firstResultOptional()
-        .flatMap(link -> tmdbMetadataProvider.fetchTvDetailExtras(link.externalId))
+    return externalIdLinkService
+        .findActiveExternalId(showId, "tmdb")
+        .flatMap(tmdbMetadataProvider::fetchTvDetailExtras)
         .map(
             extras ->
                 extras.withSimilar(

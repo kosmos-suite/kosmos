@@ -1,8 +1,9 @@
 package de.oppahansi.kosmos.downloads;
 
+import static de.oppahansi.kosmos.downloads.HttpClients.MAPPER;
+import static de.oppahansi.kosmos.downloads.HttpClients.REQUEST_TIMEOUT;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -10,9 +11,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Optional;
-import java.util.UUID;
 
 /**
  * Thin client for SABnzbd's classic {@code /api} endpoint — the first genuinely different auth
@@ -27,13 +26,8 @@ import java.util.UUID;
  */
 public class SabnzbdClient implements TorrentClient {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
-  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
-
   private final String baseUrl;
-  private final HttpClient httpClient =
-      HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
+  private final HttpClient httpClient = HttpClients.basic();
   private String apiKey;
 
   public SabnzbdClient(String baseUrl) {
@@ -61,21 +55,22 @@ public class SabnzbdClient implements TorrentClient {
   @Override
   public Optional<String> addTorrentFile(byte[] content, String filename, Optional<String> category)
       throws IOException, InterruptedException {
-    String boundary = "KosmosBoundary" + UUID.randomUUID();
-    ByteArrayOutputStream body = new ByteArrayOutputStream();
-    writeField(body, boundary, "apikey", apiKey);
-    writeField(body, boundary, "mode", "addfile");
-    writeField(body, boundary, "output", "json");
-    writeField(body, boundary, "cat", category.orElse(""));
-    writeFilePart(body, boundary, filename, content);
-    body.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+    // SABnzbd's classic upload form field for the NZB file itself is (still) named "name".
+    MultipartFormBuilder form =
+        new MultipartFormBuilder()
+            .field("apikey", apiKey)
+            .field("mode", "addfile")
+            .field("output", "json")
+            .field("cat", category.orElse(""))
+            .file("name", filename, "application/x-nzb", content);
+    byte[] body = form.build();
 
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api"))
-            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .header("Content-Type", "multipart/form-data; boundary=" + form.boundary())
             .timeout(REQUEST_TIMEOUT)
-            .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body))
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     return firstNzoId(MAPPER.readTree(response.body()));
@@ -128,28 +123,5 @@ public class SabnzbdClient implements TorrentClient {
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     return MAPPER.readTree(response.body());
-  }
-
-  private void writeField(ByteArrayOutputStream body, String boundary, String name, String value)
-      throws IOException {
-    body.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-    body.write(
-        ("Content-Disposition: form-data; name=\"" + name + "\"\r\n\r\n")
-            .getBytes(StandardCharsets.UTF_8));
-    body.write(value.getBytes(StandardCharsets.UTF_8));
-    body.write("\r\n".getBytes(StandardCharsets.UTF_8));
-  }
-
-  /** SABnzbd's classic upload form field for the NZB file itself is (still) named {@code name}. */
-  private void writeFilePart(
-      ByteArrayOutputStream body, String boundary, String filename, byte[] content)
-      throws IOException {
-    body.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-    body.write(
-        ("Content-Disposition: form-data; name=\"name\"; filename=\"" + filename + "\"\r\n")
-            .getBytes(StandardCharsets.UTF_8));
-    body.write("Content-Type: application/x-nzb\r\n\r\n".getBytes(StandardCharsets.UTF_8));
-    body.write(content);
-    body.write("\r\n".getBytes(StandardCharsets.UTF_8));
   }
 }

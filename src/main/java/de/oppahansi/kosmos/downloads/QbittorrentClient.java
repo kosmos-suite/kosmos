@@ -1,8 +1,9 @@
 package de.oppahansi.kosmos.downloads;
 
+import static de.oppahansi.kosmos.downloads.HttpClients.MAPPER;
+import static de.oppahansi.kosmos.downloads.HttpClients.REQUEST_TIMEOUT;
+
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URI;
 import java.net.URLEncoder;
@@ -10,23 +11,13 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
 import java.util.Optional;
-import java.util.UUID;
 
 /** Thin client for qBittorrent's Web API (cookie-session auth, form-encoded requests). */
 public class QbittorrentClient implements TorrentClient {
 
-  private static final ObjectMapper MAPPER = new ObjectMapper();
-  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
-  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
-
   private final String baseUrl;
-  private final HttpClient httpClient =
-      HttpClient.newBuilder()
-          .cookieHandler(new java.net.CookieManager())
-          .connectTimeout(CONNECT_TIMEOUT)
-          .build();
+  private final HttpClient httpClient = HttpClients.withCookieJar();
 
   public QbittorrentClient(String baseUrl) {
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
@@ -44,9 +35,14 @@ public class QbittorrentClient implements TorrentClient {
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     // WebAPI v2.9+ (qBittorrent 5.x) returns 204 No Content on success; older versions returned
-    // 200 with a literal "Ok." body. Live-verified against a real 5.2.3 container on 2026-08-20 —
-    // checking only the legacy 200+"Ok." shape is what made every login attempt silently fail.
-    return response.statusCode() == 200 || response.statusCode() == 204;
+    // 200 with a literal "Ok." body (and, per the WebUI API docs, "Fails." on bad credentials —
+    // still HTTP 200). Live-verified the 204 shape against a real 5.2.3 container on 2026-08-20;
+    // the 200 body check below covers the older shape without needing another container to test
+    // against.
+    if (response.statusCode() == 204) {
+      return true;
+    }
+    return response.statusCode() == 200 && !"Fails.".equals(response.body());
   }
 
   /** qBittorrent's {@code torrents/add} never returns a hash synchronously — always empty. */
@@ -69,56 +65,25 @@ public class QbittorrentClient implements TorrentClient {
 
   /**
    * The multipart-file variant of {@code /api/v2/torrents/add}, for a directly-uploaded {@code
-   * .torrent} file rather than a URL {@link #addTorrent} can fetch. Hand-built rather than pulled
-   * in via a multipart-client library, since this is the one place in the app that needs one.
+   * .torrent} file rather than a URL {@link #addTorrent} can fetch.
    */
   @Override
   public Optional<String> addTorrentFile(byte[] content, String filename, Optional<String> category)
       throws IOException, InterruptedException {
-    String boundary = "KosmosBoundary" + UUID.randomUUID();
-    ByteArrayOutputStream body = new ByteArrayOutputStream();
-    writePart(body, boundary, "torrents", filename, "application/x-bittorrent", content);
-    if (category.isPresent()) {
-      writePart(
-          body, boundary, "category", null, null, category.get().getBytes(StandardCharsets.UTF_8));
-    }
-    body.write(("--" + boundary + "--\r\n").getBytes(StandardCharsets.UTF_8));
+    MultipartFormBuilder form =
+        new MultipartFormBuilder().file("torrents", filename, "application/x-bittorrent", content);
+    category.ifPresent(c -> form.field("category", c));
+    byte[] body = form.build();
 
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api/v2/torrents/add"))
-            .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .header("Content-Type", "multipart/form-data; boundary=" + form.boundary())
             .timeout(REQUEST_TIMEOUT)
-            .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
+            .POST(HttpRequest.BodyPublishers.ofByteArray(body))
             .build();
     httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     return Optional.empty();
-  }
-
-  private void writePart(
-      ByteArrayOutputStream body,
-      String boundary,
-      String fieldName,
-      String filename,
-      String contentType,
-      byte[] content)
-      throws IOException {
-    body.write(("--" + boundary + "\r\n").getBytes(StandardCharsets.UTF_8));
-    String disposition =
-        filename == null
-            ? "Content-Disposition: form-data; name=\"" + fieldName + "\"\r\n"
-            : "Content-Disposition: form-data; name=\""
-                + fieldName
-                + "\"; filename=\""
-                + filename
-                + "\"\r\n";
-    body.write(disposition.getBytes(StandardCharsets.UTF_8));
-    if (contentType != null) {
-      body.write(("Content-Type: " + contentType + "\r\n").getBytes(StandardCharsets.UTF_8));
-    }
-    body.write("\r\n".getBytes(StandardCharsets.UTF_8));
-    body.write(content);
-    body.write("\r\n".getBytes(StandardCharsets.UTF_8));
   }
 
   public String listTorrents() throws IOException, InterruptedException {

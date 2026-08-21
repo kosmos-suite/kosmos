@@ -3,7 +3,6 @@ package de.oppahansi.kosmos.media;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateMovieRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
-import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MediaPreview;
@@ -82,10 +81,9 @@ public class MovieService {
    * TmdbMetadataProvider#fetchMovieDetailExtras}.
    */
   public Optional<MediaDetailExtras> detailExtras(UUID movieId) {
-    return MediaItemExternalId.<MediaItemExternalId>find(
-            "mediaItem.id = ?1 and plugin.slug = 'tmdb' and supersededAt is null", movieId)
-        .firstResultOptional()
-        .flatMap(link -> tmdbMetadataProvider.fetchMovieDetailExtras(link.externalId))
+    return externalIdLinkService
+        .findActiveExternalId(movieId, "tmdb")
+        .flatMap(tmdbMetadataProvider::fetchMovieDetailExtras)
         .map(
             extras ->
                 extras.withSimilar(

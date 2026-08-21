@@ -5,6 +5,7 @@ import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Links a {@link MediaItem} to the external id it was matched from — shared by Movie and Show
@@ -22,6 +23,22 @@ public class ExternalIdLinkService {
             "plugin.slug = ?1 and externalId = ?2 and supersededAt is null", pluginSlug, externalId)
         .firstResultOptional()
         .map(link -> link.mediaItem);
+  }
+
+  /**
+   * The inverse of {@link #findLinkedMediaItem} — a {@link MediaItem}'s current external id on a
+   * given plugin, e.g. the TMDB id a {@code Movie}/{@code Show} row was matched from. Shared by
+   * {@code MovieService}/{@code ShowService}/{@code AnimeService}'s {@code detailExtras(UUID)},
+   * which all previously hand-rolled the same JPQL shape with only the plugin slug literal
+   * differing.
+   */
+  public Optional<String> findActiveExternalId(UUID mediaItemId, String pluginSlug) {
+    return MediaItemExternalId.<MediaItemExternalId>find(
+            "mediaItem.id = ?1 and plugin.slug = ?2 and supersededAt is null",
+            mediaItemId,
+            pluginSlug)
+        .firstResultOptional()
+        .map(link -> link.externalId);
   }
 
   @Transactional
