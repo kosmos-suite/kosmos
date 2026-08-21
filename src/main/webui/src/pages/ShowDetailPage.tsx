@@ -210,10 +210,10 @@ export default function ShowDetailPage() {
             </div>
           </div>
         )}
-      </div>
 
-      <CastRow cast={extras?.cast ?? []} />
-      <SimilarRow items={extras?.similar ?? []} />
+        <CastRow cast={extras?.cast ?? []} />
+        <SimilarRow items={extras?.similar ?? []} />
+      </div>
     </div>
   );
 }

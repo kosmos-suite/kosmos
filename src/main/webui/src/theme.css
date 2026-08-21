@@ -1448,7 +1448,6 @@ a:hover {
 .detail-hero {
   position: relative;
   height: 480px;
-  margin: 0 -34px;
   background: linear-gradient(148deg, #241f33, #6b5273 50%, #1b2836);
 }
 .detail-hero::after {

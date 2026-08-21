@@ -199,9 +199,9 @@ export default function AnimeDetailPage() {
             </div>
           </div>
         )}
-      </div>
 
-      <SimilarRow items={extras?.similar ?? []} />
+        <SimilarRow items={extras?.similar ?? []} />
+      </div>
     </div>
   );
 }
