@@ -30,6 +30,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
   private static final String SEARCH_URL = "https://api.themoviedb.org/3/search/movie";
   private static final String TV_SEARCH_URL = "https://api.themoviedb.org/3/search/tv";
   private static final String MOVIE_URL = "https://api.themoviedb.org/3/movie/";
+  private static final String TV_URL = "https://api.themoviedb.org/3/tv/";
   private static final String TRENDING_MOVIE_URL = "https://api.themoviedb.org/3/trending/movie/";
   private static final String TRENDING_TV_URL = "https://api.themoviedb.org/3/trending/tv/";
   private static final String TRENDING_ALL_URL = "https://api.themoviedb.org/3/trending/all/";
@@ -513,6 +514,33 @@ public class TmdbMetadataProvider implements MetadataProvider {
         return Optional.empty();
       }
       return Optional.of(toSearchResult(objectMapper.readValue(response.body(), TmdbMovie.class)));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Show-level counterpart to {@link #fetchMovieById} — backs {@code JellyfinSyncService}'s show
+   * sync, which (like movies) only has a bare TMDB id from Jellyfin's ProviderIds and needs the
+   * poster/backdrop/overview {@link #fetchShowStructure} doesn't carry.
+   */
+  @CacheResult(cacheName = "tmdb-show-by-id")
+  public Optional<MetadataSearchResult> fetchShowById(String tmdbId) {
+    if (apiKey.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(URI.create(TV_URL + tmdbId + "?api_key=" + apiKey.orElseThrow()))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        return Optional.empty();
+      }
+      return Optional.of(toSearchResult(objectMapper.readValue(response.body(), TmdbTvShow.class)));
     } catch (Exception e) {
       return Optional.empty();
     }

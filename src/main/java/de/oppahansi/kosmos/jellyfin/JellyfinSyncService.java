@@ -6,8 +6,11 @@ import de.oppahansi.kosmos.library.LibraryFile;
 import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.library.ProbeService;
+import de.oppahansi.kosmos.media.Episode;
 import de.oppahansi.kosmos.media.MediaItem;
 import de.oppahansi.kosmos.media.Movie;
+import de.oppahansi.kosmos.media.Show;
+import de.oppahansi.kosmos.media.ShowService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.Plugin;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
@@ -20,9 +23,12 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Reconciles an already-scanned Jellyfin library against Kosmos's own catalog: the
@@ -46,6 +52,7 @@ public class JellyfinSyncService {
   @Inject ProbeService probeService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject LibraryRootFolderService rootFolderService;
+  @Inject ShowService showService;
 
   public JellyfinSyncResult sync(UUID serverId) {
     JellyfinServer server =
@@ -89,6 +96,46 @@ public class JellyfinSyncService {
       }
     }
 
+    List<JellyfinShow> shows;
+    List<JellyfinEpisode> episodes;
+    try {
+      shows = client.listShows(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
+      episodes =
+          client.listEpisodes(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
+    } catch (IOException | InterruptedException e) {
+      throw new BadRequestException("Could not reach Jellyfin server: " + e.getMessage());
+    }
+    Map<String, List<JellyfinEpisode>> episodesBySeriesId =
+        episodes.stream()
+            .filter(e -> e.seriesId() != null)
+            .collect(Collectors.groupingBy(JellyfinEpisode::seriesId));
+
+    int showsLinked = 0;
+    int showsCreated = 0;
+    int showsSkipped = 0;
+    int showsAlreadySynced = 0;
+    int episodeFilesLinked = 0;
+
+    for (JellyfinShow show : shows) {
+      if (show.tmdbId() == null || show.path() == null) {
+        showsSkipped++;
+        continue;
+      }
+      List<JellyfinEpisode> showEpisodes = episodesBySeriesId.getOrDefault(show.id(), List.of());
+      try {
+        ShowSyncOutcome outcome =
+            QuarkusTransaction.requiringNew().call(() -> syncOneShow(show, showEpisodes));
+        switch (outcome.outcome()) {
+          case "linked" -> showsLinked++;
+          case "created" -> showsCreated++;
+          default -> showsAlreadySynced++;
+        }
+        episodeFilesLinked += outcome.episodeFilesLinked();
+      } catch (RuntimeException e) {
+        showsAlreadySynced++; // most likely a race, or this show's TMDB fetch failed; skip for now
+      }
+    }
+
     List<JellyfinUser> jellyfinUsers;
     try {
       jellyfinUsers = client.listUsers(server.apiKey);
@@ -114,7 +161,19 @@ public class JellyfinSyncService {
     }
 
     return new JellyfinSyncResult(
-        movies.size(), linked, created, skipped, alreadySynced, usersCreated, usersUpdated);
+        movies.size(),
+        linked,
+        created,
+        skipped,
+        alreadySynced,
+        shows.size(),
+        showsLinked,
+        showsCreated,
+        showsSkipped,
+        showsAlreadySynced,
+        episodeFilesLinked,
+        usersCreated,
+        usersUpdated);
   }
 
   /**
@@ -148,6 +207,113 @@ public class JellyfinSyncService {
   }
 
   /**
+   * @return "linked", "created", or "already-synced" (mirrors {@link #syncOneMovie}) — plus how
+   *     many new episode files got matched to this show's TMDB-built episode tree.
+   */
+  private ShowSyncOutcome syncOneShow(JellyfinShow show, List<JellyfinEpisode> episodes) {
+    Optional<MediaItemExternalId> existingLink =
+        MediaItemExternalId.find(
+                "plugin.slug = ?1 and externalId = ?2 and mediaItem.contentType = 'show'"
+                    + " and supersededAt is null",
+                TMDB_PLUGIN_SLUG,
+                show.tmdbId())
+            .firstResultOptional();
+
+    MediaItem mediaItem;
+    boolean created;
+    if (existingLink.isPresent()) {
+      mediaItem = existingLink.get().mediaItem;
+      created = false;
+      if (mediaItem.rootFolder == null) {
+        resolveRootFolder(show.path(), "show").ifPresent(folder -> mediaItem.rootFolder = folder);
+      }
+    } else {
+      mediaItem = createShow(show);
+      created = true;
+    }
+
+    int linkedFiles = linkEpisodeFiles(mediaItem, episodes);
+    String outcome = created ? "created" : (linkedFiles > 0 ? "linked" : "already-synced");
+    return new ShowSyncOutcome(outcome, linkedFiles);
+  }
+
+  private MediaItem createShow(JellyfinShow jellyfinShow) {
+    LibraryRootFolder rootFolder = resolveRootFolder(jellyfinShow.path(), "show").orElse(null);
+    Show show =
+        showService.createFromJellyfin(
+            jellyfinShow.name(), jellyfinShow.year(), jellyfinShow.tmdbId(), rootFolder);
+    return show.mediaItem;
+  }
+
+  /**
+   * Matches each Jellyfin episode file to the Kosmos {@link Episode} at the same (season, episode)
+   * number under this show — Jellyfin's own episode-level ProviderIds aren't reliably populated, so
+   * season/episode number is the only stable join key available. An episode Jellyfin has but TMDB's
+   * tree doesn't (e.g. an unindexed special) is silently skipped rather than guessed at.
+   *
+   * <p>Deduplicates by path first: Jellyfin can list the same physical file twice for one show
+   * (e.g. the same folder swept into two overlapping libraries) — without this, two entries for the
+   * same path would both pass the "not already linked" check below (neither is flushed to the DB
+   * yet, so the second can't see the first), and the second insert would fail the {@code
+   * library_file.path} unique constraint and abort this show's whole transaction.
+   */
+  private int linkEpisodeFiles(MediaItem showMediaItem, List<JellyfinEpisode> jellyfinEpisodes) {
+    if (jellyfinEpisodes.isEmpty()) {
+      return 0;
+    }
+    Show show = Show.<Show>findByIdOptional(showMediaItem.id).orElse(null);
+    if (show == null) {
+      return 0;
+    }
+
+    Map<String, JellyfinEpisode> byPath = new LinkedHashMap<>();
+    for (JellyfinEpisode jellyfinEpisode : jellyfinEpisodes) {
+      if (jellyfinEpisode.path() != null) {
+        byPath.putIfAbsent(jellyfinEpisode.path(), jellyfinEpisode);
+      }
+    }
+
+    int linked = 0;
+    for (JellyfinEpisode jellyfinEpisode : byPath.values()) {
+      if (jellyfinEpisode.seasonNumber() == null
+          || jellyfinEpisode.episodeNumber() == null
+          || jellyfinEpisode.path() == null) {
+        continue;
+      }
+      Optional<Episode> episode =
+          Episode.<Episode>find(
+                  "season.show = ?1 and season.seasonNumber = ?2 and episodeNumber = ?3",
+                  show,
+                  jellyfinEpisode.seasonNumber(),
+                  jellyfinEpisode.episodeNumber())
+              .firstResultOptional();
+      if (episode.isEmpty()) {
+        continue;
+      }
+      if (LibraryFile.find("path", jellyfinEpisode.path()).firstResultOptional().isPresent()) {
+        continue;
+      }
+
+      LibraryFile file = new LibraryFile();
+      file.mediaItem = episode.get().mediaItem;
+      file.path = jellyfinEpisode.path();
+      file.sizeBytes = sizeOrZero(jellyfinEpisode.path());
+      file.matchMethod = MATCH_METHOD;
+      file.matchConfidence = 1.0f;
+      file.matchPinned = false;
+      file.matchedAt = Instant.now();
+      file.verified = false;
+      file.importedAt = Instant.now();
+      probeService.tryProbe(file);
+      file.persist();
+      linked++;
+    }
+    return linked;
+  }
+
+  private record ShowSyncOutcome(String outcome, int episodeFilesLinked) {}
+
+  /**
    * Self-healing for rows created before poster/root-folder backfill existed here (or from a run
    * where the TMDB lookup itself failed) — every sync run gets another chance to fill in whatever a
    * previously-linked item is still missing, not just brand-new ones.
@@ -158,7 +324,8 @@ public class JellyfinSyncService {
       enrichFromTmdb(movie, jellyfinMovie.tmdbId());
     }
     if (mediaItem.rootFolder == null) {
-      resolveRootFolder(jellyfinMovie.path()).ifPresent(folder -> mediaItem.rootFolder = folder);
+      resolveRootFolder(jellyfinMovie.path(), "movie")
+          .ifPresent(folder -> mediaItem.rootFolder = folder);
     }
   }
 
@@ -198,7 +365,8 @@ public class JellyfinSyncService {
     mediaItem.title = jellyfinMovie.name();
     mediaItem.year = jellyfinMovie.year();
     mediaItem.addedAt = Instant.now();
-    resolveRootFolder(jellyfinMovie.path()).ifPresent(folder -> mediaItem.rootFolder = folder);
+    resolveRootFolder(jellyfinMovie.path(), "movie")
+        .ifPresent(folder -> mediaItem.rootFolder = folder);
     mediaItem.persist();
 
     Movie movie = new Movie();
@@ -237,12 +405,12 @@ public class JellyfinSyncService {
    * Prefers the registered root folder Jellyfin's own reported path actually falls under (see
    * {@link de.oppahansi.kosmos.library.LibraryRootFolderService#findContaining}) — e.g. a movie
    * under {@code /media/anime-movies} lands under that folder specifically, not just "the movies
-   * default" — falling back to the general movie default only if none of the registered folders
-   * actually contain this path.
+   * default" — falling back to the {@code contentType} default only if none of the registered
+   * folders actually contain this path.
    */
-  private Optional<LibraryRootFolder> resolveRootFolder(String path) {
+  private Optional<LibraryRootFolder> resolveRootFolder(String path, String contentType) {
     Optional<LibraryRootFolder> containing = rootFolderService.findContaining(path);
-    return containing.isPresent() ? containing : rootFolderService.getDefault("movie");
+    return containing.isPresent() ? containing : rootFolderService.getDefault(contentType);
   }
 
   private void createLibraryFile(MediaItem mediaItem, JellyfinMovie jellyfinMovie) {

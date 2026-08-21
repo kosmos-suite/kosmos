@@ -292,6 +292,12 @@ export interface JellyfinSyncResult {
   created: number;
   skippedNoTmdbId: number;
   alreadySynced: number;
+  showsScanned: number;
+  showsLinked: number;
+  showsCreated: number;
+  showsSkippedNoTmdbId: number;
+  showsAlreadySynced: number;
+  episodeFilesLinked: number;
   usersCreated: number;
   usersUpdated: number;
 }

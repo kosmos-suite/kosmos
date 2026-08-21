@@ -26,7 +26,9 @@ export default function JellyfinPage() {
     try {
       const result: JellyfinSyncResult = await api.syncJellyfinServer(serverId);
       showToast(
-        `Synced: ${result.created} added, ${result.linked} already-owned linked, ${result.usersCreated} users added, ${result.usersUpdated} users updated.`,
+        `Synced: ${result.created} movies added, ${result.linked} already-owned linked, ` +
+          `${result.showsCreated} series added, ${result.episodeFilesLinked} episode files linked, ` +
+          `${result.usersCreated} users added, ${result.usersUpdated} users updated.`,
       );
     } catch (e) {
       showToast(e instanceof ApiError ? `Sync failed: ${e.message}` : "Sync failed");

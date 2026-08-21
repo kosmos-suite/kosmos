@@ -1,8 +1,10 @@
 package de.oppahansi.kosmos.media;
 
+import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateShowRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
+import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbShowStructure;
 import de.oppahansi.kosmos.parsing.QualityProfileService;
@@ -75,6 +77,45 @@ public class ShowService {
       externalIdLinkService.link(mediaItem, request.pluginSlug(), request.externalId());
     }
 
+    return show;
+  }
+
+  /**
+   * Used by {@code JellyfinSyncService} — same TMDB-driven season/episode structure as {@link
+   * #create}, but from a server-reported title/year/root-folder rather than a user-submitted
+   * request, and with no quality profile assigned (matches Jellyfin-synced movies, which are also
+   * unmonitored until the user assigns one). Poster/backdrop/overview are a best-effort extra fetch
+   * (Jellyfin's own ProviderIds don't carry them) — unlike the season/episode tree, a failed lookup
+   * here doesn't block creation.
+   */
+  @Transactional
+  public Show createFromJellyfin(
+      String title, Integer year, String tmdbId, LibraryRootFolder rootFolder) {
+    TmdbShowStructure structure = tmdbMetadataProvider.fetchShowStructure(tmdbId);
+
+    MediaItem mediaItem = new MediaItem();
+    mediaItem.contentType = "show";
+    mediaItem.title = title;
+    mediaItem.year = year;
+    mediaItem.addedAt = Instant.now();
+    mediaItem.rootFolder = rootFolder;
+    mediaItem.persist();
+
+    Show show = new Show();
+    show.mediaItem = mediaItem;
+    show.status = structure.status();
+    tmdbMetadataProvider
+        .fetchShowById(tmdbId)
+        .ifPresent(
+            (MetadataSearchResult r) -> {
+              show.overview = r.overview();
+              show.posterPath = r.posterPath();
+              show.backdropPath = r.backdropPath();
+            });
+    show.persist();
+    persistStructure(show, structure);
+
+    externalIdLinkService.link(mediaItem, "tmdb", tmdbId);
     return show;
   }
 

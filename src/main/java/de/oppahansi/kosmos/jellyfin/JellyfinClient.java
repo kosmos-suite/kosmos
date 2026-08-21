@@ -83,6 +83,107 @@ public class JellyfinClient {
     return movies;
   }
 
+  /**
+   * All series items the server has already scanned, with their TMDB id and root folder path when
+   * known. Restricted to the given library ids, or every library when null/empty — same shape as
+   * {@link #listMovies(String, List)}.
+   */
+  public List<JellyfinShow> listShows(String apiKey, List<String> libraryIds)
+      throws IOException, InterruptedException {
+    if (libraryIds == null || libraryIds.isEmpty()) {
+      return listShowsUnder(apiKey, null);
+    }
+    List<JellyfinShow> shows = new ArrayList<>();
+    for (String libraryId : libraryIds) {
+      shows.addAll(listShowsUnder(apiKey, libraryId));
+    }
+    return shows;
+  }
+
+  private List<JellyfinShow> listShowsUnder(String apiKey, String parentId)
+      throws IOException, InterruptedException {
+    String parentParam = parentId == null ? "" : "&ParentId=" + parentId;
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(
+                URI.create(
+                    baseUrl
+                        + "/Items?IncludeItemTypes=Series&Recursive=true&Fields=ProviderIds,Path"
+                        + parentParam))
+            .header("X-Emby-Token", apiKey)
+            .timeout(REQUEST_TIMEOUT)
+            .GET()
+            .build();
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    checkOk(response, "list shows");
+    JsonNode root = MAPPER.readTree(response.body());
+
+    List<JellyfinShow> shows = new ArrayList<>();
+    for (JsonNode item : root.path("Items")) {
+      String tmdbId = item.path("ProviderIds").path("Tmdb").asText(null);
+      Integer year = item.hasNonNull("ProductionYear") ? item.path("ProductionYear").asInt() : null;
+      shows.add(
+          new JellyfinShow(
+              item.path("Id").asText(null),
+              item.path("Name").asText(null),
+              year,
+              tmdbId,
+              item.path("Path").asText(null)));
+    }
+    return shows;
+  }
+
+  /**
+   * All episode items the server has already scanned, with the season/episode number and path
+   * needed to match each file against Kosmos's own TMDB-built episode tree — see {@link
+   * JellyfinEpisode}.
+   */
+  public List<JellyfinEpisode> listEpisodes(String apiKey, List<String> libraryIds)
+      throws IOException, InterruptedException {
+    if (libraryIds == null || libraryIds.isEmpty()) {
+      return listEpisodesUnder(apiKey, null);
+    }
+    List<JellyfinEpisode> episodes = new ArrayList<>();
+    for (String libraryId : libraryIds) {
+      episodes.addAll(listEpisodesUnder(apiKey, libraryId));
+    }
+    return episodes;
+  }
+
+  private List<JellyfinEpisode> listEpisodesUnder(String apiKey, String parentId)
+      throws IOException, InterruptedException {
+    String parentParam = parentId == null ? "" : "&ParentId=" + parentId;
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(
+                URI.create(
+                    baseUrl
+                        + "/Items?IncludeItemTypes=Episode&Recursive=true&Fields=Path,ParentIndexNumber,IndexNumber,SeriesId"
+                        + parentParam))
+            .header("X-Emby-Token", apiKey)
+            .timeout(REQUEST_TIMEOUT)
+            .GET()
+            .build();
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    checkOk(response, "list episodes");
+    JsonNode root = MAPPER.readTree(response.body());
+
+    List<JellyfinEpisode> episodes = new ArrayList<>();
+    for (JsonNode item : root.path("Items")) {
+      Integer season =
+          item.hasNonNull("ParentIndexNumber") ? item.path("ParentIndexNumber").asInt() : null;
+      Integer episodeNumber =
+          item.hasNonNull("IndexNumber") ? item.path("IndexNumber").asInt() : null;
+      episodes.add(
+          new JellyfinEpisode(
+              item.path("SeriesId").asText(null),
+              season,
+              episodeNumber,
+              item.path("Path").asText(null)));
+    }
+    return episodes;
+  }
+
   /** Top-level library folders (Movies, TV Shows, ...) for picking which ones to sync. */
   public List<JellyfinLibrary> listLibraries(String apiKey)
       throws IOException, InterruptedException {
