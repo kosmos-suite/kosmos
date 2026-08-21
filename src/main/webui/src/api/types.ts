@@ -368,6 +368,22 @@ export interface DiscoverItem {
   inLibrary: boolean;
 }
 
+export interface GenreTile {
+  id: number;
+  name: string;
+}
+
+export interface BecauseYouAddedResult {
+  basedOnTitle: string;
+  items: DiscoverItem[];
+}
+
+export interface StudioTile {
+  id: number;
+  name: string;
+  logoPath: string;
+}
+
 export type RequestStatus = "PENDING" | "APPROVED" | "AVAILABLE" | "DECLINED";
 
 export interface MediaRequest {

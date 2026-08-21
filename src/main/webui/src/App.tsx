@@ -4,6 +4,9 @@ import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
 import ActivityPage from "./pages/ActivityPage";
 import AnimeDetailPage from "./pages/AnimeDetailPage";
+import GenreDiscoverPage from "./pages/discover/GenreDiscoverPage";
+import NetworkDiscoverPage from "./pages/discover/NetworkDiscoverPage";
+import StudioDiscoverPage from "./pages/discover/StudioDiscoverPage";
 import HomePage from "./pages/HomePage";
 import InteractiveSearchPage from "./pages/InteractiveSearchPage";
 import LibraryPage from "./pages/LibraryPage";
@@ -46,6 +49,9 @@ function App() {
 
           <Route element={<Layout />}>
             <Route path="/" element={<HomePage />} />
+            <Route path="/discover/genre/:mediaType/:id" element={<GenreDiscoverPage />} />
+            <Route path="/discover/studio/:id" element={<StudioDiscoverPage />} />
+            <Route path="/discover/network/:id" element={<NetworkDiscoverPage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/movies/:id" element={<MovieDetailPage />} />
             <Route path="/shows/:id" element={<ShowDetailPage />} />

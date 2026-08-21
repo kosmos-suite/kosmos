@@ -28,6 +28,12 @@ public class TmdbMetadataProvider implements MetadataProvider {
   private static final String MOVIE_URL = "https://api.themoviedb.org/3/movie/";
   private static final String TRENDING_URL = "https://api.themoviedb.org/3/trending/movie/week";
   private static final String POPULAR_URL = "https://api.themoviedb.org/3/movie/popular";
+  private static final String UPCOMING_MOVIES_URL = "https://api.themoviedb.org/3/movie/upcoming";
+  private static final String POPULAR_TV_URL = "https://api.themoviedb.org/3/tv/popular";
+  private static final String DISCOVER_MOVIE_URL = "https://api.themoviedb.org/3/discover/movie";
+  private static final String DISCOVER_TV_URL = "https://api.themoviedb.org/3/discover/tv";
+  private static final String MOVIE_GENRES_URL = "https://api.themoviedb.org/3/genre/movie/list";
+  private static final String TV_GENRES_URL = "https://api.themoviedb.org/3/genre/tv/list";
   private static final String AUTH_URL = "https://api.themoviedb.org/3/authentication";
 
   @ConfigProperty(name = "kosmos.metadata.tmdb.api-key")
@@ -119,6 +125,79 @@ public class TmdbMetadataProvider implements MetadataProvider {
   }
 
   private List<MetadataSearchResult> fetchList(String url, String failureMessage) {
+    return fetchList(url, null, failureMessage);
+  }
+
+  private List<MetadataSearchResult> fetchList(
+      String url, String extraParams, String failureMessage) {
+    return fetch(url, extraParams, failureMessage, this::parse);
+  }
+
+  /**
+   * Backs Discover/Home's "Upcoming Movies" row — TMDB's own {@code /movie/upcoming}, same result
+   * shape as {@link #fetchTrendingMovies}/{@link #fetchPopularMovies}.
+   */
+  @CacheResult(cacheName = "tmdb-upcoming-movies")
+  public List<MetadataSearchResult> fetchUpcomingMovies() {
+    return fetchList(UPCOMING_MOVIES_URL, "TMDB upcoming movies fetch failed");
+  }
+
+  /** Backs Discover/Home's "Popular Series" row. */
+  @CacheResult(cacheName = "tmdb-popular-tv")
+  public List<MetadataSearchResult> fetchPopularTv() {
+    return fetchTvList(POPULAR_TV_URL, "TMDB popular TV fetch failed");
+  }
+
+  private static final int UPCOMING_TV_TARGET_COUNT = 20;
+  private static final int UPCOMING_TV_MAX_PAGES = 5;
+
+  /**
+   * Backs Discover/Home's "Upcoming Series" row. TMDB has no dedicated "upcoming TV" endpoint (only
+   * movies get one) — this is {@code /discover/tv} filtered to a first-air-date in the future,
+   * sorted soonest-first, which is the same query Overseerr/Jellyseerr use for the same row.
+   *
+   * <p>Unlike every other discover row, a large share of what this query surfaces — small/regional
+   * productions ordered by "airs soonest" rather than any popularity signal — has no poster on TMDB
+   * at all yet. Rather than showing a row half full of gray placeholder tiles, this pages through
+   * results (capped at {@link #UPCOMING_TV_MAX_PAGES} TMDB calls) filtering to only posters-having
+   * titles until it collects {@link #UPCOMING_TV_TARGET_COUNT} of them.
+   */
+  @CacheResult(cacheName = "tmdb-upcoming-tv")
+  public List<MetadataSearchResult> fetchUpcomingTv() {
+    String extraParams =
+        "sort_by=first_air_date.asc&first_air_date.gte=" + java.time.LocalDate.now();
+    List<MetadataSearchResult> collected = new ArrayList<>();
+    for (int page = 1;
+        page <= UPCOMING_TV_MAX_PAGES && collected.size() < UPCOMING_TV_TARGET_COUNT;
+        page++) {
+      List<MetadataSearchResult> pageResults =
+          fetchTvList(
+              DISCOVER_TV_URL, extraParams + "&page=" + page, "TMDB upcoming TV fetch failed");
+      for (MetadataSearchResult r : pageResults) {
+        if (r.posterPath() != null) {
+          collected.add(r);
+          if (collected.size() >= UPCOMING_TV_TARGET_COUNT) {
+            break;
+          }
+        }
+      }
+    }
+    return collected;
+  }
+
+  /** Backs Discover/Home's "Movie Genres" tile row — the fixed TMDB genre vocabulary for movies. */
+  @CacheResult(cacheName = "tmdb-movie-genres")
+  public List<TmdbGenre> fetchMovieGenres() {
+    return fetchGenres(MOVIE_GENRES_URL, "TMDB movie genre list fetch failed");
+  }
+
+  /** Backs Discover/Home's "Series Genres" tile row — the fixed TMDB genre vocabulary for TV. */
+  @CacheResult(cacheName = "tmdb-tv-genres")
+  public List<TmdbGenre> fetchTvGenres() {
+    return fetchGenres(TV_GENRES_URL, "TMDB TV genre list fetch failed");
+  }
+
+  private List<TmdbGenre> fetchGenres(String url, String failureMessage) {
     if (apiKey.isEmpty()) {
       throw new IllegalStateException("kosmos.metadata.tmdb.api-key is not configured");
     }
@@ -130,9 +209,86 @@ public class TmdbMetadataProvider implements MetadataProvider {
               .build();
       HttpResponse<String> response =
           httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-      return parse(response.body());
+      return objectMapper.readValue(response.body(), TmdbGenreListResponse.class).genres();
     } catch (IOException | InterruptedException e) {
       throw new IllegalStateException(failureMessage, e);
+    }
+  }
+
+  /** Backs a genre tile's "see all" click-through — movies tagged with the given TMDB genre id. */
+  @CacheResult(cacheName = "tmdb-discover-movie-genre")
+  public List<MetadataSearchResult> discoverMoviesByGenre(int genreId) {
+    return fetchList(
+        DISCOVER_MOVIE_URL,
+        "sort_by=popularity.desc&with_genres=" + genreId,
+        "TMDB movie-by-genre discover failed");
+  }
+
+  /** Backs a genre tile's "see all" click-through — series tagged with the given TMDB genre id. */
+  @CacheResult(cacheName = "tmdb-discover-tv-genre")
+  public List<MetadataSearchResult> discoverTvByGenre(int genreId) {
+    return fetchTvList(
+        DISCOVER_TV_URL + "?sort_by=popularity.desc&with_genres=" + genreId,
+        "TMDB TV-by-genre discover failed");
+  }
+
+  /** Backs a studio tile's click-through — movies produced by the given TMDB company id. */
+  @CacheResult(cacheName = "tmdb-discover-movie-company")
+  public List<MetadataSearchResult> discoverMoviesByCompany(int companyId) {
+    return fetchList(
+        DISCOVER_MOVIE_URL,
+        "sort_by=popularity.desc&with_companies=" + companyId,
+        "TMDB movie-by-company discover failed");
+  }
+
+  /** Backs a network tile's click-through — series airing on the given TMDB network id. */
+  @CacheResult(cacheName = "tmdb-discover-tv-network")
+  public List<MetadataSearchResult> discoverTvByNetwork(int networkId) {
+    return fetchTvList(
+        DISCOVER_TV_URL + "?sort_by=popularity.desc&with_networks=" + networkId,
+        "TMDB TV-by-network discover failed");
+  }
+
+  private List<MetadataSearchResult> fetchTvList(String url, String failureMessage) {
+    return fetchTvList(url, null, failureMessage);
+  }
+
+  private List<MetadataSearchResult> fetchTvList(
+      String url, String extraParams, String failureMessage) {
+    return fetch(url, extraParams, failureMessage, this::parseTv);
+  }
+
+  private List<MetadataSearchResult> fetch(
+      String url,
+      String extraParams,
+      String failureMessage,
+      java.util.function.Function<String, List<MetadataSearchResult>> parser) {
+    if (apiKey.isEmpty()) {
+      throw new IllegalStateException("kosmos.metadata.tmdb.api-key is not configured");
+    }
+    try {
+      String separator = url.contains("?") ? "&" : "?";
+      String fullUrl =
+          url
+              + separator
+              + "api_key="
+              + apiKey.orElseThrow()
+              + (extraParams == null ? "" : "&" + extraParams);
+      HttpRequest request = HttpRequest.newBuilder().uri(URI.create(fullUrl)).GET().build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      return parser.apply(response.body());
+    } catch (IOException | InterruptedException e) {
+      throw new IllegalStateException(failureMessage, e);
+    }
+  }
+
+  private List<MetadataSearchResult> parseTv(String json) {
+    try {
+      TmdbTvSearchResponse response = objectMapper.readValue(json, TmdbTvSearchResponse.class);
+      return response.results().stream().map(this::toSearchResult).toList();
+    } catch (IOException e) {
+      throw new IllegalArgumentException("Invalid TMDB response", e);
     }
   }
 
@@ -170,6 +326,45 @@ public class TmdbMetadataProvider implements MetadataProvider {
     } catch (Exception e) {
       return Optional.empty();
     }
+  }
+
+  /**
+   * Full details for one known TMDB movie id — backs {@code JellyfinSyncService}'s poster/backdrop
+   * backfill: Jellyfin's own ProviderIds give a TMDB id but no artwork, so this is the one real
+   * TMDB round trip that fills that gap in. Same response shape as {@link #search} bar the extra
+   * fields {@link TmdbMovie} ignores, just unwrapped (a single object, not a {@code results} list).
+   */
+  @CacheResult(cacheName = "tmdb-movie-by-id")
+  public Optional<MetadataSearchResult> fetchMovieById(String tmdbId) {
+    if (apiKey.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(URI.create(MOVIE_URL + tmdbId + "?api_key=" + apiKey.orElseThrow()))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        return Optional.empty();
+      }
+      return Optional.of(toSearchResult(objectMapper.readValue(response.body(), TmdbMovie.class)));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Backs Discover/Home's "Because You Added" row — TMDB's own {@code /movie/{id}/recommendations},
+   * same response shape as {@link #fetchTrendingMovies}/{@link #fetchPopularMovies}. Cached per
+   * seed movie id rather than globally, since unlike trending/popular this genuinely varies by
+   * which movie in the library it's computed from.
+   */
+  @CacheResult(cacheName = "tmdb-movie-recommendations")
+  public List<MetadataSearchResult> fetchMovieRecommendations(String tmdbId) {
+    return fetchList(MOVIE_URL + tmdbId + "/recommendations", "TMDB recommendations fetch failed");
   }
 
   /**

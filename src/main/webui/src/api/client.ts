@@ -2,10 +2,12 @@ import type {
   Anime,
   AnimeDetail,
   AnimeEpisodeDetail,
+  BecauseYouAddedResult,
   CustomFormat,
   DiscoverItem,
   DownloadClient,
   EpisodeDetail,
+  GenreTile,
   Grab,
   ImportFromProwlarrResult,
   Indexer,
@@ -32,6 +34,7 @@ import type {
   SetupStatus,
   Show,
   ShowDetail,
+  StudioTile,
   TestDownloadClientResult,
   TestIndexerResult,
   TrashImportResult,
@@ -158,6 +161,31 @@ export const api = {
   discoverTrending: () => request<DiscoverItem[]>("/discover/trending"),
 
   discoverPopular: () => request<DiscoverItem[]>("/discover/popular"),
+
+  discoverBecauseYouAdded: () =>
+    request<BecauseYouAddedResult | undefined>("/discover/because-you-added"),
+
+  discoverUpcomingMovies: () => request<DiscoverItem[]>("/discover/upcoming-movies"),
+
+  discoverPopularTv: () => request<DiscoverItem[]>("/discover/popular-tv"),
+
+  discoverUpcomingTv: () => request<DiscoverItem[]>("/discover/upcoming-tv"),
+
+  discoverMovieGenres: () => request<GenreTile[]>("/discover/genres/movie"),
+
+  discoverTvGenres: () => request<GenreTile[]>("/discover/genres/tv"),
+
+  discoverMoviesByGenre: (id: number) => request<DiscoverItem[]>(`/discover/genre/movie/${id}`),
+
+  discoverTvByGenre: (id: number) => request<DiscoverItem[]>(`/discover/genre/tv/${id}`),
+
+  discoverStudios: () => request<StudioTile[]>("/discover/studios"),
+
+  discoverNetworks: () => request<StudioTile[]>("/discover/networks"),
+
+  discoverMoviesByStudio: (id: number) => request<DiscoverItem[]>(`/discover/studio/${id}`),
+
+  discoverTvByNetwork: (id: number) => request<DiscoverItem[]>(`/discover/network/${id}`),
 
   listShows: () => request<Show[]>("/shows"),
 

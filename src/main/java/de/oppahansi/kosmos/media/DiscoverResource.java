@@ -1,11 +1,15 @@
 package de.oppahansi.kosmos.media;
 
 import de.oppahansi.kosmos.media.dto.DiscoverItem;
+import de.oppahansi.kosmos.media.dto.GenreTile;
+import de.oppahansi.kosmos.media.dto.StudioTile;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.Path;
+import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
+import jakarta.ws.rs.core.Response;
 import java.util.List;
 
 /** Backs Discover/Home's real rows — see {@link DiscoverService}. */
@@ -31,5 +35,80 @@ public class DiscoverResource {
   @Path("/popular")
   public List<DiscoverItem> popular() {
     return discoverService.popular();
+  }
+
+  @GET
+  @Path("/because-you-added")
+  public Response becauseYouAdded() {
+    return discoverService
+        .becauseYouAdded()
+        .map(result -> Response.ok(result).build())
+        .orElseGet(() -> Response.noContent().build());
+  }
+
+  @GET
+  @Path("/upcoming-movies")
+  public List<DiscoverItem> upcomingMovies() {
+    return discoverService.upcomingMovies();
+  }
+
+  @GET
+  @Path("/popular-tv")
+  public List<DiscoverItem> popularTv() {
+    return discoverService.popularTv();
+  }
+
+  @GET
+  @Path("/upcoming-tv")
+  public List<DiscoverItem> upcomingTv() {
+    return discoverService.upcomingTv();
+  }
+
+  @GET
+  @Path("/genres/movie")
+  public List<GenreTile> movieGenres() {
+    return discoverService.movieGenres();
+  }
+
+  @GET
+  @Path("/genres/tv")
+  public List<GenreTile> tvGenres() {
+    return discoverService.tvGenres();
+  }
+
+  @GET
+  @Path("/genre/movie/{id}")
+  public List<DiscoverItem> moviesByGenre(@PathParam("id") int id) {
+    return discoverService.moviesByGenre(id);
+  }
+
+  @GET
+  @Path("/genre/tv/{id}")
+  public List<DiscoverItem> tvByGenre(@PathParam("id") int id) {
+    return discoverService.tvByGenre(id);
+  }
+
+  @GET
+  @Path("/studios")
+  public List<StudioTile> studios() {
+    return discoverService.studios();
+  }
+
+  @GET
+  @Path("/networks")
+  public List<StudioTile> networks() {
+    return discoverService.networks();
+  }
+
+  @GET
+  @Path("/studio/{id}")
+  public List<DiscoverItem> moviesByStudio(@PathParam("id") int id) {
+    return discoverService.moviesByStudio(id);
+  }
+
+  @GET
+  @Path("/network/{id}")
+  public List<DiscoverItem> tvByNetwork(@PathParam("id") int id) {
+    return discoverService.tvByNetwork(id);
   }
 }

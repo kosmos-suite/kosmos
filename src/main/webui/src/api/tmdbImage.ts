@@ -26,3 +26,8 @@ export function posterUrl(path: string | null, size: PosterSize = "w342"): strin
 export function backdropUrl(path: string | null, size: BackdropSize = "w1280"): string | null {
   return resolveUrl(path, size);
 }
+
+/** Studio/network logo image — always TMDB, always a relative path. */
+export function logoUrl(path: string | null): string | null {
+  return resolveUrl(path, "w300");
+}

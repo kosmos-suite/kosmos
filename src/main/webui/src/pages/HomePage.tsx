@@ -8,22 +8,35 @@ import {
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
-import { backdropUrl } from "../api/tmdbImage";
-import type { DiscoverItem } from "../api/types";
+import { backdropUrl, logoUrl } from "../api/tmdbImage";
+import type { DiscoverItem, GenreTile as GenreTileType, StudioTile as StudioTileType } from "../api/types";
 import { MovieCard } from "../components/MovieCard";
 import { useApi } from "../hooks/useApi";
-import { becauseYouAdded, type DiscoverMovie } from "../mocks/mockLibrary";
+import { useArtworkFallback } from "../hooks/useArtworkFallback";
+import { discoverItemLink } from "../utils/discoverItemLink";
 import { tonalGradient } from "../utils/tonalGradient";
 
-function discoverItemLink(item: DiscoverItem): string {
-  if (item.mediaItemId) {
-    return item.mediaType === "tv" ? `/shows/${item.mediaItemId}` : `/movies/${item.mediaItemId}`;
-  }
-  return `/search?q=${encodeURIComponent(item.title)}`;
-}
-
-const HERO_SLIDE_COUNT = 5;
+const HERO_SLIDE_COUNT = 10;
 const HERO_INTERVAL_MS = 7600;
+
+function HeroSlideArt({ slide, index }: { slide: DiscoverItem; index: number }) {
+  const tmdbArt = backdropUrl(slide.backdropPath, "original");
+  const { url, probe } = useArtworkFallback(tmdbArt, slide.mediaItemId, "backdrop");
+
+  return (
+    <>
+      <div
+        className="hero-slide-art"
+        style={
+          url
+            ? { backgroundImage: `url(${url})`, backgroundSize: "cover", backgroundPosition: "center" }
+            : { background: tonalGradient(index) }
+        }
+      />
+      {probe}
+    </>
+  );
+}
 
 /**
  * Real trending (falling back to popular if trending is empty) — no recommendation engine or
@@ -63,21 +76,11 @@ function Hero() {
   return (
     <div className="hero" onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
       <div className="hero-slides">
-        {slides.map((s, i) => {
-          const art = backdropUrl(s.backdropPath, "original");
-          return (
-            <div key={s.mediaItemId ?? s.externalId} className={`hero-slide${i === active ? " active" : ""}`}>
-              <div
-                className="hero-slide-art"
-                style={
-                  art
-                    ? { backgroundImage: `url(${art})`, backgroundSize: "cover", backgroundPosition: "center" }
-                    : { background: tonalGradient(i) }
-                }
-              />
-            </div>
-          );
-        })}
+        {slides.map((s, i) => (
+          <div key={s.mediaItemId ?? s.externalId} className={`hero-slide${i === active ? " active" : ""}`}>
+            <HeroSlideArt slide={s} index={i} />
+          </div>
+        ))}
       </div>
 
       <div className="hero-content">
@@ -171,24 +174,24 @@ function RowShell({ heading, sub, wide, children }: RowShellProps) {
   );
 }
 
-interface MockContentRowProps {
-  heading: string;
-  sub: string;
-  movies: DiscoverMovie[];
-}
+function BecauseYouAddedRow() {
+  const { data } = useApi(api.discoverBecauseYouAdded);
 
-function MockContentRow({ heading, sub, movies }: MockContentRowProps) {
+  if (!data || data.items.length === 0) {
+    return null;
+  }
+
   return (
-    <RowShell heading={heading} sub={sub}>
-      {movies.map((movie, i) => (
+    <RowShell heading={`Because You Added ${data.basedOnTitle}`} sub="from TMDB · similar titles">
+      {data.items.map((item, i) => (
         <MovieCard
-          key={movie.id}
-          to="/library"
-          title={movie.title}
-          year={movie.year}
-          posterPath={null}
-          status={movie.status}
-          progress={movie.progress}
+          key={item.mediaItemId ?? item.externalId}
+          to={discoverItemLink(item)}
+          title={item.title}
+          year={item.year}
+          posterPath={item.posterPath}
+          mediaItemId={item.mediaItemId}
+          status={item.inLibrary ? "in-library" : undefined}
           placeholderBackground={tonalGradient(i)}
         />
       ))}
@@ -222,7 +225,113 @@ function DiscoverRow({ heading, sub, fetcher, wide }: DiscoverRowProps) {
           title={item.title}
           year={item.year}
           posterPath={item.posterPath}
+          backdropPath={item.backdropPath}
+          wide={wide}
+          mediaItemId={item.mediaItemId}
           status={item.inLibrary ? "in-library" : undefined}
+          placeholderBackground={tonalGradient(i)}
+        />
+      ))}
+    </RowShell>
+  );
+}
+
+interface GenreRowProps {
+  heading: string;
+  sub: string;
+  fetcher: () => Promise<GenreTileType[]>;
+  mediaType: "movie" | "tv";
+}
+
+function GenreRow({ heading, sub, fetcher, mediaType }: GenreRowProps) {
+  const { data, loading, error } = useApi(fetcher);
+
+  return (
+    <RowShell heading={heading} sub={sub}>
+      {loading && <div className="text-muted" style={{ padding: "0 2px" }}>Loading…</div>}
+      {error && (
+        <div className="text-muted" style={{ padding: "0 2px" }}>
+          Couldn't load — {error}
+        </div>
+      )}
+      {data?.map((genre, i) => (
+        <Link
+          key={genre.id}
+          to={`/discover/genre/${mediaType}/${genre.id}`}
+          state={{ name: genre.name }}
+          className="genre-tile"
+          style={{ background: tonalGradient(i) }}
+        >
+          {genre.name}
+        </Link>
+      ))}
+    </RowShell>
+  );
+}
+
+interface StudioRowProps {
+  heading: string;
+  sub: string;
+  fetcher: () => Promise<StudioTileType[]>;
+  kind: "studio" | "network";
+}
+
+function StudioRow({ heading, sub, fetcher, kind }: StudioRowProps) {
+  const { data, loading, error } = useApi(fetcher);
+
+  return (
+    <RowShell heading={heading} sub={sub}>
+      {loading && <div className="text-muted" style={{ padding: "0 2px" }}>Loading…</div>}
+      {error && (
+        <div className="text-muted" style={{ padding: "0 2px" }}>
+          Couldn't load — {error}
+        </div>
+      )}
+      {data?.map((studio) => (
+        <Link
+          key={studio.id}
+          to={kind === "studio" ? `/discover/studio/${studio.id}` : `/discover/network/${studio.id}`}
+          state={{ name: studio.name }}
+          className="studio-tile"
+        >
+          <img src={logoUrl(studio.logoPath) ?? undefined} alt={studio.name} loading="lazy" />
+        </Link>
+      ))}
+    </RowShell>
+  );
+}
+
+function RecentRequestsRow() {
+  const { data, loading, error } = useApi(api.listRequests);
+  const recent = useMemo(
+    () => (data ?? []).slice().sort((a, b) => b.requestedAt.localeCompare(a.requestedAt)).slice(0, 12),
+    [data],
+  );
+
+  if (!loading && !error && recent.length === 0) return null;
+
+  return (
+    <RowShell heading="Recent Requests" sub="latest from your users">
+      {loading && <div className="text-muted" style={{ padding: "0 2px" }}>Loading…</div>}
+      {error && (
+        <div className="text-muted" style={{ padding: "0 2px" }}>
+          Couldn't load — {error}
+        </div>
+      )}
+      {recent.map((r, i) => (
+        <MovieCard
+          key={r.id}
+          to={
+            r.mediaItemId
+              ? r.mediaType === "tv"
+                ? `/shows/${r.mediaItemId}`
+                : `/movies/${r.mediaItemId}`
+              : `/search?q=${encodeURIComponent(r.title)}`
+          }
+          title={r.title}
+          year={r.year}
+          posterPath={r.posterPath}
+          mediaItemId={r.mediaItemId}
           placeholderBackground={tonalGradient(i)}
         />
       ))}
@@ -233,19 +342,26 @@ function DiscoverRow({ heading, sub, fetcher, wide }: DiscoverRowProps) {
 export default function HomePage() {
   return (
     <div>
-      {/* Note: "Because You Added" still uses mock data — no recommendation engine exists yet. */}
       <Hero />
 
       <div className="page">
-        <DiscoverRow heading="Trending This Week" sub="from TMDB · updated 12h" fetcher={api.discoverTrending} />
-        <DiscoverRow heading="Popular Movies" sub="all time · from TMDB" fetcher={api.discoverPopular} />
         <DiscoverRow
           heading="Recently Added to Your Library"
           sub="your latest additions"
           fetcher={api.discoverRecent}
           wide
         />
-        <MockContentRow heading="Because You Added Dune: Part Two" sub="similar sci-fi picks" movies={becauseYouAdded} />
+        <RecentRequestsRow />
+        <DiscoverRow heading="Trending This Week" sub="from TMDB · updated 12h" fetcher={api.discoverTrending} />
+        <DiscoverRow heading="Popular Movies" sub="all time · from TMDB" fetcher={api.discoverPopular} />
+        <GenreRow heading="Movie Genres" sub="browse by genre" fetcher={api.discoverMovieGenres} mediaType="movie" />
+        <DiscoverRow heading="Upcoming Movies" sub="from TMDB" fetcher={api.discoverUpcomingMovies} />
+        <StudioRow heading="Studios" sub="browse by studio" fetcher={api.discoverStudios} kind="studio" />
+        <DiscoverRow heading="Popular Series" sub="all time · from TMDB" fetcher={api.discoverPopularTv} />
+        <GenreRow heading="Series Genres" sub="browse by genre" fetcher={api.discoverTvGenres} mediaType="tv" />
+        <DiscoverRow heading="Upcoming Series" sub="from TMDB" fetcher={api.discoverUpcomingTv} />
+        <StudioRow heading="Networks" sub="browse by network" fetcher={api.discoverNetworks} kind="network" />
+        <BecauseYouAddedRow />
       </div>
     </div>
   );
