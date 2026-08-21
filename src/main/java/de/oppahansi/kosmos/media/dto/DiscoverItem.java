@@ -22,4 +22,5 @@ public record DiscoverItem(
     String backdropPath,
     Double voteAverage,
     String mediaType,
-    boolean inLibrary) {}
+    boolean inLibrary,
+    boolean partiallyAvailable) {}

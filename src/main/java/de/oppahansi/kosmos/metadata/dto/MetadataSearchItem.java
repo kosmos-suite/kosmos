@@ -19,4 +19,5 @@ public record MetadataSearchItem(
     String backdropPath,
     Double voteAverage,
     String mediaType,
-    boolean inLibrary) {}
+    boolean inLibrary,
+    boolean partiallyAvailable) {}

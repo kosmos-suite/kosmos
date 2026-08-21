@@ -261,7 +261,7 @@ export default function SearchPage() {
                   posterPath={item.posterPath}
                   mediaItemId={item.mediaItemId}
                   mediaType={item.mediaType}
-                  status={item.inLibrary ? "in-library" : undefined}
+                  status={item.inLibrary ? (item.partiallyAvailable ? "partially-available" : "in-library") : undefined}
                   placeholderBackground={tonalGradient(i)}
                   onAdd={
                     item.inLibrary || !item.externalId
@@ -301,7 +301,7 @@ export default function SearchPage() {
                   posterPath={result.posterPath}
                   mediaItemId={result.mediaItemId}
                   mediaType={result.mediaType}
-                  status={result.inLibrary ? "in-library" : undefined}
+                  status={result.inLibrary ? (result.partiallyAvailable ? "partially-available" : "in-library") : undefined}
                   placeholderBackground={tonalGradient(i)}
                   onAdd={result.inLibrary ? undefined : () => triggerAdd(result)}
                   addState={stateFor(result.externalId)}

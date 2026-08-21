@@ -14,6 +14,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -24,6 +25,7 @@ public class DiscoverService {
   private static final int RECENT_LIMIT = 12;
 
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
+  @Inject MediaAvailabilityService mediaAvailabilityService;
 
   /**
    * 100% Kosmos's own data — no TMDB call, no caching needed (a Postgres query for a homelab-sized
@@ -34,6 +36,9 @@ public class DiscoverService {
         Movie.<Movie>find("order by mediaItem.addedAt desc").page(0, RECENT_LIMIT).list();
     List<Show> shows =
         Show.<Show>find("order by mediaItem.addedAt desc").page(0, RECENT_LIMIT).list();
+    Set<UUID> partialShowIds =
+        mediaAvailabilityService.partiallyAvailableShows(
+            shows.stream().map(s -> s.mediaItemId).toList());
 
     record Ranked(Instant addedAt, DiscoverItem item) {}
 
@@ -53,7 +58,8 @@ public class DiscoverService {
                                 m.backdropPath,
                                 null,
                                 "movie",
-                                true))),
+                                true,
+                                false))),
             shows.stream()
                 .map(
                     s ->
@@ -69,7 +75,8 @@ public class DiscoverService {
                                 s.backdropPath,
                                 null,
                                 "tv",
-                                true))))
+                                true,
+                                partialShowIds.contains(s.mediaItemId)))))
         .sorted((a, b) -> b.addedAt().compareTo(a.addedAt()))
         .limit(RECENT_LIMIT)
         .map(Ranked::item)
@@ -211,7 +218,11 @@ public class DiscoverService {
     List<MetadataSearchResult> deduped = dedupe(results);
     Map<String, UUID> inLibrary =
         lookupLibrary(deduped.stream().map(MetadataSearchResult::externalId).toList(), contentType);
-    return deduped.stream().map(r -> toDiscoverItem(r, inLibrary)).toList();
+    Set<UUID> partialIds =
+        "show".equals(contentType)
+            ? mediaAvailabilityService.partiallyAvailableShows(inLibrary.values())
+            : Set.of();
+    return deduped.stream().map(r -> toDiscoverItem(r, inLibrary, partialIds)).toList();
   }
 
   /**
@@ -233,8 +244,13 @@ public class DiscoverService {
             .toList();
     Map<String, UUID> movieLibrary = lookupLibrary(movieIds, "movie");
     Map<String, UUID> tvLibrary = lookupLibrary(tvIds, "show");
+    Set<UUID> partialTvIds = mediaAvailabilityService.partiallyAvailableShows(tvLibrary.values());
     return deduped.stream()
-        .map(r -> toDiscoverItem(r, "tv".equals(r.mediaType()) ? tvLibrary : movieLibrary))
+        .map(
+            r ->
+                "tv".equals(r.mediaType())
+                    ? toDiscoverItem(r, tvLibrary, partialTvIds)
+                    : toDiscoverItem(r, movieLibrary, Set.of()))
         .toList();
   }
 
@@ -267,9 +283,11 @@ public class DiscoverService {
         .collect(Collectors.toMap(l -> l.externalId, l -> l.mediaItem.id, (a, b) -> a));
   }
 
-  private DiscoverItem toDiscoverItem(MetadataSearchResult r, Map<String, UUID> inLibrary) {
+  private DiscoverItem toDiscoverItem(
+      MetadataSearchResult r, Map<String, UUID> inLibrary, Set<UUID> partialIds) {
+    UUID mediaItemId = inLibrary.get(r.externalId());
     return new DiscoverItem(
-        inLibrary.get(r.externalId()),
+        mediaItemId,
         r.externalId(),
         r.title(),
         r.year(),
@@ -278,7 +296,8 @@ public class DiscoverService {
         r.backdropPath(),
         r.voteAverage(),
         r.mediaType(),
-        inLibrary.containsKey(r.externalId()));
+        mediaItemId != null,
+        mediaItemId != null && partialIds.contains(mediaItemId));
   }
 
   /**

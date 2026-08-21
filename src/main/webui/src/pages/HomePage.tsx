@@ -199,7 +199,7 @@ function BecauseYouAddedRow() {
           posterPath={item.posterPath}
           mediaItemId={item.mediaItemId}
           mediaType={item.mediaType}
-          status={item.inLibrary ? "in-library" : undefined}
+          status={item.inLibrary ? (item.partiallyAvailable ? "partially-available" : "in-library") : undefined}
           placeholderBackground={tonalGradient(i)}
           onAdd={
             item.inLibrary || !item.externalId
@@ -254,7 +254,7 @@ function DiscoverRow({ heading, sub, fetcher, wide, seeAllTo }: DiscoverRowProps
           wide={wide}
           mediaItemId={item.mediaItemId}
           mediaType={item.mediaType}
-          status={item.inLibrary ? "in-library" : undefined}
+          status={item.inLibrary ? (item.partiallyAvailable ? "partially-available" : "in-library") : undefined}
           placeholderBackground={tonalGradient(i)}
           onAdd={
             item.inLibrary || !item.externalId

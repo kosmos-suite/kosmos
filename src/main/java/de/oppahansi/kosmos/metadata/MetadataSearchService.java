@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.metadata;
 
+import de.oppahansi.kosmos.media.MediaAvailabilityService;
 import de.oppahansi.kosmos.metadata.anilist.AniListMetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchItem;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
@@ -9,6 +10,7 @@ import jakarta.inject.Inject;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -22,6 +24,7 @@ public class MetadataSearchService {
 
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject AniListMetadataProvider aniListMetadataProvider;
+  @Inject MediaAvailabilityService mediaAvailabilityService;
 
   public List<MetadataSearchItem> search(String query) {
     List<MetadataSearchResult> movies = tmdbMetadataProvider.search(query);
@@ -31,11 +34,15 @@ public class MetadataSearchService {
     Map<String, UUID> movieLibrary = lookupLibrary("tmdb", movies, "movie");
     Map<String, UUID> showLibrary = lookupLibrary("tmdb", shows, "show");
     Map<String, UUID> animeLibrary = lookupLibrary("anilist", anime, "anime");
+    Set<UUID> partialShowIds =
+        mediaAvailabilityService.partiallyAvailableShows(showLibrary.values());
+    Set<UUID> partialAnimeIds =
+        mediaAvailabilityService.partiallyAvailableAnime(animeLibrary.values());
 
     List<MetadataSearchItem> results = new ArrayList<>();
-    movies.forEach(r -> results.add(toItem(r, movieLibrary)));
-    shows.forEach(r -> results.add(toItem(r, showLibrary)));
-    anime.forEach(r -> results.add(toItem(r, animeLibrary)));
+    movies.forEach(r -> results.add(toItem(r, movieLibrary, Set.of())));
+    shows.forEach(r -> results.add(toItem(r, showLibrary, partialShowIds)));
+    anime.forEach(r -> results.add(toItem(r, animeLibrary, partialAnimeIds)));
     return results;
   }
 
@@ -56,9 +63,11 @@ public class MetadataSearchService {
         .collect(Collectors.toMap(l -> l.externalId, l -> l.mediaItem.id, (a, b) -> a));
   }
 
-  private MetadataSearchItem toItem(MetadataSearchResult r, Map<String, UUID> inLibrary) {
+  private MetadataSearchItem toItem(
+      MetadataSearchResult r, Map<String, UUID> inLibrary, Set<UUID> partialIds) {
+    UUID mediaItemId = inLibrary.get(r.externalId());
     return new MetadataSearchItem(
-        inLibrary.get(r.externalId()),
+        mediaItemId,
         r.externalId(),
         r.title(),
         r.year(),
@@ -67,6 +76,7 @@ public class MetadataSearchService {
         r.backdropPath(),
         r.voteAverage(),
         r.mediaType(),
-        inLibrary.containsKey(r.externalId()));
+        mediaItemId != null,
+        mediaItemId != null && partialIds.contains(mediaItemId));
   }
 }

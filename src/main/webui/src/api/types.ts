@@ -137,6 +137,7 @@ export interface MetadataSearchResult {
   voteAverage: number | null;
   mediaType: "movie" | "tv" | "anime";
   inLibrary: boolean;
+  partiallyAvailable: boolean;
 }
 
 export interface Indexer {
@@ -374,6 +375,7 @@ export interface DiscoverItem {
   voteAverage: number | null;
   mediaType: "movie" | "tv";
   inLibrary: boolean;
+  partiallyAvailable: boolean;
 }
 
 export interface GenreTile {

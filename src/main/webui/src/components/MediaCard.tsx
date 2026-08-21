@@ -1,19 +1,27 @@
-import { CheckCircleIcon as CheckCircle, FilmStripIcon as FilmStrip, PlusIcon as Plus, SpinnerIcon as Spinner } from "@phosphor-icons/react";
+import {
+  CheckCircleIcon as CheckCircle,
+  FilmStripIcon as FilmStrip,
+  MinusCircleIcon as MinusCircle,
+  PlusIcon as Plus,
+  SpinnerIcon as Spinner,
+} from "@phosphor-icons/react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
 import type { AddState } from "../hooks/useAddToLibrary";
 
-export type MediaStatus = "in-library" | "downloading" | "missing";
+export type MediaStatus = "in-library" | "partially-available" | "downloading" | "missing";
 
 const STATUS_LABEL: Record<MediaStatus, string> = {
   "in-library": "In Library",
+  "partially-available": "Partially Available",
   downloading: "Downloading",
   missing: "Missing",
 };
 
 const STATUS_DOT_CLASS: Record<MediaStatus, string> = {
   "in-library": "dot-good",
+  "partially-available": "dot-warn",
   downloading: "dot-warn",
   missing: "dot-bad",
 };
@@ -100,9 +108,13 @@ export function MediaCard({
         {mediaType ? (
           <>
             <div className="media-card-type-badge">{TYPE_LABEL[mediaType]}</div>
-            {status === "in-library" ? (
-              <div className="media-card-status-icon" title="In Library">
-                <CheckCircle size={13} weight="fill" style={{ color: "var(--status-good)" }} />
+            {status === "in-library" || status === "partially-available" ? (
+              <div className="media-card-status-icon" title={STATUS_LABEL[status]}>
+                {status === "in-library" ? (
+                  <CheckCircle size={13} weight="fill" style={{ color: "var(--status-good)" }} />
+                ) : (
+                  <MinusCircle size={13} weight="fill" style={{ color: "var(--status-good)" }} />
+                )}
               </div>
             ) : (
               onAdd && (

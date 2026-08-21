@@ -120,7 +120,7 @@ export function DiscoverGrid({ title, fetcher, depKey, filters }: DiscoverGridPr
             posterPath={item.posterPath}
             mediaItemId={item.mediaItemId}
             mediaType={item.mediaType}
-            status={item.inLibrary ? "in-library" : undefined}
+            status={item.inLibrary ? (item.partiallyAvailable ? "partially-available" : "in-library") : undefined}
             placeholderBackground={tonalGradient(i)}
             onAdd={
               item.inLibrary || !item.externalId
