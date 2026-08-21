@@ -8,6 +8,7 @@ const TABS = [
   { to: "/settings/quality", label: "Quality Profiles" },
   { to: "/settings/size-limits", label: "Size Limits" },
   { to: "/settings/notifications", label: "Notifications" },
+  { to: "/settings/jobs", label: "Jobs" },
   { to: "/settings/jellyfin", label: "Jellyfin" },
   { to: "/settings/users", label: "Users" },
   { to: "/settings/permissions", label: "Permissions" },

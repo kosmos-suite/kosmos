@@ -363,11 +363,21 @@ export interface JellyfinSyncResult {
 export interface ScheduledJob {
   id: string;
   name: string;
+  displayName: string;
   intervalSeconds: number;
   enabled: boolean;
+  running: boolean;
   lastRunAt: string | null;
   lastStatus: string | null;
   lastMessage: string | null;
+}
+
+export interface JobRun {
+  id: string;
+  startedAt: string;
+  finishedAt: string | null;
+  status: string;
+  message: string | null;
 }
 
 export interface MetadataStatus {

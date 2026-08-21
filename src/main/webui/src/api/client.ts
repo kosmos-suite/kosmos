@@ -14,6 +14,7 @@ import type {
   JellyfinLibrary,
   JellyfinServer,
   JellyfinSyncResult,
+  JobRun,
   LibraryFile,
   BrowseResult,
   LibraryContentType,
@@ -422,6 +423,14 @@ export const api = {
     request<{ registered: number; skipped: number }>(`/jellyfin-servers/${id}/root-folders`, { method: "POST" }),
 
   listJobs: () => request<ScheduledJob[]>("/jobs"),
+
+  listJobRuns: (name: string, limit = 20) =>
+    request<JobRun[]>(`/jobs/${encodeURIComponent(name)}/runs?limit=${limit}`),
+
+  runJobNow: (name: string) => request<JobRun>(`/jobs/${encodeURIComponent(name)}/run`, { method: "POST" }),
+
+  updateJob: (name: string, body: { enabled: boolean; intervalSeconds: number }) =>
+    request<ScheduledJob>(`/jobs/${encodeURIComponent(name)}`, { method: "PUT", body: JSON.stringify(body) }),
 
   setupStatus: () => request<SetupStatus>("/auth/setup-status"),
 
