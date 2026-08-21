@@ -1,10 +1,13 @@
 import {
   CaretDownIcon as CaretDown,
   CaretUpIcon as CaretUp,
+  CheckCircleIcon as CheckCircle,
   CheckIcon as Check,
   EyeIcon as Eye,
   EyeSlashIcon as EyeSlash,
   MagnifyingGlassIcon as MagnifyingGlass,
+  PlusIcon as Plus,
+  SpinnerIcon as Spinner,
   StarIcon as Star,
   TelevisionIcon as Television,
 } from "@phosphor-icons/react";
@@ -13,6 +16,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
 import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
+import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { useApi } from "../hooks/useApi";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import type { Episode, EpisodeStatus, Season } from "../api/types";
@@ -30,31 +34,64 @@ const EPISODE_STATUS_LABEL: Record<EpisodeStatus, string> = {
   AVAILABLE: "Available",
 };
 
+/**
+ * Doubles as the "not in library" preview screen (route {@code /shows/tmdb/:externalId}) — a
+ * not-owned card links here instead of falling back to a search. See {@code MovieDetailPage}'s
+ * own doc comment for the same pattern applied there.
+ */
 export default function ShowDetailPage() {
-  const { id } = useParams<{ id: string }>();
-  const { data: show, loading, error, reload } = useApi(() => api.getShow(id!), [id]);
+  const { id, externalId } = useParams<{ id?: string; externalId?: string }>();
+  const owned = !!id;
+
+  const { data: show, loading: showLoading, error: showError, reload } = useApi(
+    () => (id ? api.getShow(id) : Promise.resolve(null)),
+    [id],
+  );
   const { data: profiles } = useApi(() => api.listQualityProfiles(), []);
-  const { data: extras } = useApi(() => api.getShowDetailExtras(id!), [id]);
+  const { data: extras } = useApi(
+    () => (id ? api.getShowDetailExtras(id) : Promise.resolve(null)),
+    [id],
+  );
+  const {
+    data: preview,
+    loading: previewLoading,
+    error: previewError,
+  } = useApi(() => (externalId ? api.getShowPreview(externalId) : Promise.resolve(null)), [externalId]);
+  const { admin, stateFor, triggerAdd } = useAddToLibrary();
   const [openSeasonId, setOpenSeasonId] = useState<string | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
 
+  const title = show?.title ?? preview?.title ?? "";
+  const year = show?.year ?? preview?.year ?? null;
+  const overview = show?.overview ?? preview?.overview ?? null;
+  const posterPath = show?.posterPath ?? preview?.posterPath ?? null;
+  const backdropPath = show?.backdropPath ?? preview?.backdropPath ?? null;
+  const genres = extras?.genres ?? preview?.genres ?? [];
+  const facts = extras?.facts ?? preview?.facts ?? [];
+  const cast = extras?.cast ?? preview?.cast ?? [];
+  const similar = extras?.similar ?? preview?.similar ?? [];
+  const voteAverage = extras?.voteAverage ?? preview?.voteAverage ?? null;
+  const certification = extras?.certification ?? preview?.certification ?? null;
+
   const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
-    show ? posterUrl(show.posterPath, "w500") : null,
+    posterUrl(posterPath, "w500"),
     show?.id,
     "poster",
   );
   const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
-    show ? backdropUrl(show.backdropPath) : null,
+    backdropUrl(backdropPath),
     show?.id,
     "backdrop",
   );
 
-  if (loading) return <div className="page">Loading…</div>;
-  if (error) return <div className="page text-muted">Failed to load: {error}</div>;
-  if (!show) return null;
+  if (showLoading || previewLoading) return <div className="page">Loading…</div>;
+  if (owned && showError) return <div className="page text-muted">Failed to load: {showError}</div>;
+  if (!owned && previewError) return <div className="page text-muted">Failed to load: {previewError}</div>;
+  if (owned && !show) return null;
+  if (!owned && !preview) return null;
 
-  const activeProfile = profiles?.find((p) => p.id === show.qualityProfileId) ?? null;
+  const activeProfile = profiles?.find((p) => p.id === show?.qualityProfileId) ?? null;
 
   async function setProfile(profileId: string | null) {
     if (!show || profileSaving) return;
@@ -67,6 +104,20 @@ export default function ShowDetailPage() {
       setProfileSaving(false);
     }
   }
+
+  const addState = preview ? stateFor(preview.externalId) : "idle";
+  const addLabel =
+    addState === "adding"
+      ? admin
+        ? "Adding…"
+        : "Requesting…"
+      : addState === "added"
+        ? admin
+          ? "Added"
+          : "Requested"
+        : admin
+          ? "Add to Library"
+          : "Request";
 
   return (
     <div>
@@ -93,42 +144,50 @@ export default function ShowDetailPage() {
 
         <div className="detail-body2-main">
           <div className="detail-title-row">
-            <span className="status-pill" style={{ background: "rgba(145,132,217,.16)", color: "#D2CEFD" }}>
-              <Television size={12} />
-              {show.status ?? "Series"}
-            </span>
+            {owned ? (
+              <span className="status-pill" style={{ background: "rgba(145,132,217,.16)", color: "#D2CEFD" }}>
+                <Television size={12} />
+                {show?.status ?? "Series"}
+              </span>
+            ) : (
+              <span className="status-pill accent">Not in Library</span>
+            )}
           </div>
 
           <h1 className="detail-h1" style={{ fontSize: 38 }}>
-            {show.title}
+            {title}
           </h1>
 
           <div className="detail-meta-row2">
-            {show.year && <span>{show.year}</span>}
-            <span className="sep" />
-            <span>{show.seasons.length} season{show.seasons.length === 1 ? "" : "s"}</span>
-            <span className="sep" />
-            <span>{show.seasons.reduce((sum, s) => sum + s.episodes.length, 0)} episodes</span>
-            {extras?.certification && (
+            {year && <span>{year}</span>}
+            {owned && show && (
               <>
                 <span className="sep" />
-                <span className="cert-badge">{extras.certification}</span>
+                <span>{show.seasons.length} season{show.seasons.length === 1 ? "" : "s"}</span>
+                <span className="sep" />
+                <span>{show.seasons.reduce((sum, s) => sum + s.episodes.length, 0)} episodes</span>
               </>
             )}
-            {extras?.voteAverage != null && (
+            {certification && (
+              <>
+                <span className="sep" />
+                <span className="cert-badge">{certification}</span>
+              </>
+            )}
+            {voteAverage != null && (
               <>
                 <span className="sep" />
                 <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                   <Star size={12} weight="fill" color="#E0A94A" />
-                  {extras.voteAverage.toFixed(1)} <span className="text-ghost">TMDB</span>
+                  {voteAverage.toFixed(1)} <span className="text-ghost">TMDB</span>
                 </span>
               </>
             )}
           </div>
 
-          {extras && extras.genres.length > 0 && (
+          {genres.length > 0 && (
             <div className="detail-genres">
-              {extras.genres.map((g) => (
+              {genres.map((g) => (
                 <span key={g} className="genre-tag">
                   {g}
                 </span>
@@ -136,64 +195,100 @@ export default function ShowDetailPage() {
             </div>
           )}
 
-          {show.overview && (
+          {overview && (
             <p className="detail-synopsis" style={{ maxWidth: "70ch" }}>
-              {show.overview}
+              {overview}
             </p>
           )}
 
-          <div className="dropdown-wrap" style={{ marginTop: 14 }}>
+          {owned ? (
+            <>
+              <div className="dropdown-wrap" style={{ marginTop: 14 }}>
+                <button
+                  type="button"
+                  className={`btn btn-secondary${profileMenuOpen ? " open" : ""}`}
+                  disabled={profileSaving}
+                  onClick={() => setProfileMenuOpen((o) => !o)}
+                >
+                  {activeProfile ? <Eye size={15} /> : <EyeSlash size={15} />}
+                  {profileSaving ? "Saving…" : activeProfile ? activeProfile.name : "Not monitored"}
+                  <CaretDown size={11} className="text-faint" />
+                </button>
+                {profileMenuOpen && (
+                  <div className="grab-client-menu">
+                    <div className={`grab-client-item${!activeProfile ? " active" : ""}`} onClick={() => setProfile(null)}>
+                      <EyeSlash size={14} className="text-muted" />
+                      <span style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>Not monitored</span>
+                      {!activeProfile && <Check size={12} color="#B5ABFC" />}
+                    </div>
+                    {profiles?.map((p) => (
+                      <div key={p.id} className={`grab-client-item${p.id === activeProfile?.id ? " active" : ""}`} onClick={() => setProfile(p.id)}>
+                        <Eye size={14} className="text-muted" />
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>{p.name}</span>
+                        {p.id === activeProfile?.id && <Check size={12} color="#B5ABFC" />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <p className="text-faint" style={{ fontSize: 11.5, marginTop: 8 }}>
+                {activeProfile
+                  ? `Kosmos checks every enabled indexer against "${activeProfile.name}" every 6 hours, per missing episode.`
+                  : "Assign a quality profile to let Kosmos search for missing episodes automatically."}
+              </p>
+            </>
+          ) : (
             <button
               type="button"
-              className={`btn btn-secondary${profileMenuOpen ? " open" : ""}`}
-              disabled={profileSaving}
-              onClick={() => setProfileMenuOpen((o) => !o)}
+              className="btn btn-hero"
+              style={{ marginTop: 14 }}
+              disabled={addState !== "idle"}
+              onClick={() =>
+                preview &&
+                triggerAdd({
+                  externalId: preview.externalId,
+                  title: preview.title,
+                  year: preview.year,
+                  overview: preview.overview,
+                  posterPath: preview.posterPath,
+                  backdropPath: preview.backdropPath,
+                  mediaType: "tv",
+                })
+              }
             >
-              {activeProfile ? <Eye size={15} /> : <EyeSlash size={15} />}
-              {profileSaving ? "Saving…" : activeProfile ? activeProfile.name : "Not monitored"}
-              <CaretDown size={11} className="text-faint" />
+              {addState === "adding" ? (
+                <Spinner size={16} className="spin" />
+              ) : addState === "added" ? (
+                <CheckCircle size={16} weight="fill" />
+              ) : (
+                <Plus size={16} weight="bold" />
+              )}
+              {addLabel}
             </button>
-            {profileMenuOpen && (
-              <div className="grab-client-menu">
-                <div className={`grab-client-item${!activeProfile ? " active" : ""}`} onClick={() => setProfile(null)}>
-                  <EyeSlash size={14} className="text-muted" />
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>Not monitored</span>
-                  {!activeProfile && <Check size={12} color="#B5ABFC" />}
-                </div>
-                {profiles?.map((p) => (
-                  <div key={p.id} className={`grab-client-item${p.id === activeProfile?.id ? " active" : ""}`} onClick={() => setProfile(p.id)}>
-                    <Eye size={14} className="text-muted" />
-                    <span style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>{p.name}</span>
-                    {p.id === activeProfile?.id && <Check size={12} color="#B5ABFC" />}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <p className="text-faint" style={{ fontSize: 11.5, marginTop: 8 }}>
-            {activeProfile
-              ? `Kosmos checks every enabled indexer against "${activeProfile.name}" every 6 hours, per missing episode.`
-              : "Assign a quality profile to let Kosmos search for missing episodes automatically."}
-          </p>
+          )}
         </div>
       </div>
 
       <div className="page">
-        <div className="section-label" style={{ marginBottom: 12 }}>
-          Seasons
-        </div>
+        {owned && show && (
+          <>
+            <div className="section-label" style={{ marginBottom: 12 }}>
+              Seasons
+            </div>
 
-        {show.seasons.map((season) => (
-          <SeasonRow key={season.id} season={season} open={openSeasonId === season.id} onToggle={() => setOpenSeasonId((s) => (s === season.id ? null : season.id))} />
-        ))}
+            {show.seasons.map((season) => (
+              <SeasonRow key={season.id} season={season} open={openSeasonId === season.id} onToggle={() => setOpenSeasonId((s) => (s === season.id ? null : season.id))} />
+            ))}
 
-        {show.seasons.length === 0 && <p className="text-muted">No season data for this show.</p>}
+            {show.seasons.length === 0 && <p className="text-muted">No season data for this show.</p>}
+          </>
+        )}
 
-        {extras && extras.facts.length > 0 && (
-          <div style={{ maxWidth: 420, marginTop: 32 }}>
+        {facts.length > 0 && (
+          <div style={{ maxWidth: 420, marginTop: owned ? 32 : 0 }}>
             <div className="section-label">Details</div>
             <div className="fact-list">
-              {extras.facts.map((f) => (
+              {facts.map((f) => (
                 <div key={f.k} className="fact-list-row">
                   <span className="k">{f.k}</span>
                   <span className="v">{f.v}</span>
@@ -203,8 +298,8 @@ export default function ShowDetailPage() {
           </div>
         )}
 
-        <CastRow cast={extras?.cast ?? []} />
-        <SimilarRow items={extras?.similar ?? []} />
+        <CastRow cast={cast} />
+        <SimilarRow items={similar} />
       </div>
     </div>
   );
