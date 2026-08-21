@@ -18,7 +18,7 @@ import { SimilarRow } from "../components/DetailExtrasSections";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { useApi } from "../hooks/useApi";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
-import type { AnimeEpisode, EpisodeStatus } from "../api/types";
+import type { AnimeEpisode, EpisodeStatus, PreviewEpisode } from "../api/types";
 
 const EPISODE_STATUS_DOT: Record<EpisodeStatus, string> = {
   MISSING: "dot-bad",
@@ -32,6 +32,26 @@ const EPISODE_STATUS_LABEL: Record<EpisodeStatus, string> = {
   IMPORTED: "Importing",
   AVAILABLE: "Available",
 };
+
+/**
+ * Not-owned previews carry the same Fribb/TMDB-enriched episode list an owned anime gets, just
+ * without a real {@code AnimeEpisode} row for it yet — adapted into that shape here so {@code
+ * EpisodeRow} renders it identically, with every episode implicitly "missing".
+ */
+function episodesFromPreview(episodes: PreviewEpisode[]): AnimeEpisode[] {
+  return episodes.map((e) => ({
+    id: `preview-episode-${e.episodeNumber}`,
+    episodeNumber: e.episodeNumber,
+    absoluteEpisodeNumber: e.episodeNumber,
+    episodeType: "EPISODE",
+    title: e.title,
+    overview: null,
+    airDate: e.airDate,
+    runtimeMinutes: null,
+    stillPath: null,
+    status: "MISSING" as EpisodeStatus,
+  }));
+}
 
 /**
  * Doubles as the "not in library" preview screen (route {@code /anime/anilist/:externalId}) — a
@@ -89,6 +109,13 @@ export default function AnimeDetailPage() {
 
   const activeProfile = profiles?.find((p) => p.id === anime?.qualityProfileId) ?? null;
 
+  const episodes = owned && anime ? anime.episodes : episodesFromPreview(preview?.episodes ?? []);
+  const availableEpisodes = episodes.filter((e) => e.status === "AVAILABLE").length;
+  const availability: "good" | "warn" | "bad" =
+    availableEpisodes === 0 ? "bad" : availableEpisodes === episodes.length ? "good" : "warn";
+  const availabilityLabel =
+    availability === "good" ? "In Library" : availability === "warn" ? "Partially Available" : "Missing";
+
   async function setProfile(profileId: string | null) {
     if (!anime || profileSaving) return;
     setProfileSaving(true);
@@ -124,12 +151,11 @@ export default function AnimeDetailPage() {
         style={
           backdropArt
             ? {
-                height: 220,
                 backgroundImage: `url(${backdropArt})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
-            : { height: 220 }
+            : undefined
         }
       />
 
@@ -141,10 +167,17 @@ export default function AnimeDetailPage() {
         <div className="detail-body2-main">
           <div className="detail-title-row">
             {owned ? (
-              <span className="status-pill" style={{ background: "rgba(145,132,217,.16)", color: "#D2CEFD" }}>
-                <Sparkle size={12} />
-                {anime?.status ?? "Anime"}
-              </span>
+              <>
+                <span className={`status-pill ${availability}`}>
+                  <span className="dot" />
+                  {availabilityLabel}
+                </span>
+                <span className="detail-title-note">
+                  {activeProfile
+                    ? `monitored · automatic search every 6h against "${activeProfile.name}"`
+                    : "not monitored"}
+                </span>
+              </>
             ) : (
               <span className="status-pill accent">Not in Library</span>
             )}
@@ -156,11 +189,20 @@ export default function AnimeDetailPage() {
 
           <div className="detail-meta-row2">
             {year && <span>{year}</span>}
-            {owned && anime && (
+            {episodes.length > 0 && (
               <>
                 <span className="sep" />
                 <span>
-                  {anime.episodeCountTotal ?? anime.episodes.length} episode{anime.episodeCountTotal === 1 ? "" : "s"}
+                  {anime?.episodeCountTotal ?? episodes.length} episode{(anime?.episodeCountTotal ?? episodes.length) === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
+            {owned && anime?.status && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Sparkle size={12} />
+                  {anime.status}
                 </span>
               </>
             )}
@@ -183,12 +225,6 @@ export default function AnimeDetailPage() {
                 </span>
               ))}
             </div>
-          )}
-
-          {overview && (
-            <p className="detail-synopsis" style={{ maxWidth: "70ch" }}>
-              {overview}
-            </p>
           )}
 
           {owned ? (
@@ -259,29 +295,34 @@ export default function AnimeDetailPage() {
       </div>
 
       <div className="page">
-        {owned && anime && (
-          <>
+        <div className="detail-info-grid">
+          <div>
+            <div className="section-label">Synopsis</div>
+            {overview && <p className="detail-synopsis">{overview}</p>}
+          </div>
+          {facts.length > 0 && (
+            <div>
+              <div className="section-label">Details</div>
+              <div className="fact-list">
+                {facts.map((f) => (
+                  <div key={f.k} className="fact-list-row">
+                    <span className="k">{f.k}</span>
+                    <span className="v">{f.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {episodes.length > 0 && (
+          <div style={{ marginTop: 38 }}>
             <div className="section-label" style={{ marginBottom: 12 }}>
               Episodes
             </div>
-            {anime.episodes.map((episode) => (
-              <EpisodeRow key={episode.id} episode={episode} />
+            {episodes.map((episode) => (
+              <EpisodeRow key={episode.id} episode={episode} owned={owned} />
             ))}
-            {anime.episodes.length === 0 && <p className="text-muted">No episode data for this anime.</p>}
-          </>
-        )}
-
-        {facts.length > 0 && (
-          <div style={{ maxWidth: 420, marginTop: owned ? 32 : 0 }}>
-            <div className="section-label">Details</div>
-            <div className="fact-list">
-              {facts.map((f) => (
-                <div key={f.k} className="fact-list-row">
-                  <span className="k">{f.k}</span>
-                  <span className="v">{f.v}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -291,7 +332,7 @@ export default function AnimeDetailPage() {
   );
 }
 
-function EpisodeRow({ episode }: { episode: AnimeEpisode }) {
+function EpisodeRow({ episode, owned }: { episode: AnimeEpisode; owned: boolean }) {
   const number = episode.absoluteEpisodeNumber ?? episode.episodeNumber;
   return (
     <div
@@ -316,14 +357,18 @@ function EpisodeRow({ episode }: { episode: AnimeEpisode }) {
       <span className="text-faint" style={{ fontSize: 11, textAlign: "right" }}>
         {episode.airDate ?? "—"}
       </span>
-      <Link
-        to={`/anime-episodes/${episode.id}/search`}
-        className="btn btn-icon"
-        title="Interactive search"
-        style={{ width: 26, height: 26 }}
-      >
-        <MagnifyingGlass size={12} />
-      </Link>
+      {owned ? (
+        <Link
+          to={`/anime-episodes/${episode.id}/search`}
+          className="btn btn-icon"
+          title="Interactive search"
+          style={{ width: 26, height: 26 }}
+        >
+          <MagnifyingGlass size={12} />
+        </Link>
+      ) : (
+        <span />
+      )}
     </div>
   );
 }

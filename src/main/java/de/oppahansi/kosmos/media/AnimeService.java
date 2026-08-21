@@ -109,18 +109,26 @@ public class AnimeService {
    * Empty/absent fields throughout are all handled by {@link #persistEpisodes}'s own fallbacks.
    */
   private FribbEnrichment fribbEnrichment(MediaItem mediaItem, CreateAnimeRequest request) {
-    int anilistId;
-    try {
-      anilistId = Integer.parseInt(request.externalId());
-    } catch (NumberFormatException e) {
-      return new FribbEnrichment(List.of(), null);
+    FribbEntry entry = resolveFribbEntry(request.externalId()).orElse(null);
+    if (entry != null) {
+      linkFribbExternalIds(mediaItem, entry);
     }
-    FribbEntry entry = fribbMappingProvider.loadMapping().get(anilistId);
+    return fribbEnrichmentFrom(entry);
+  }
+
+  private Optional<FribbEntry> resolveFribbEntry(String anilistExternalId) {
+    try {
+      int anilistId = Integer.parseInt(anilistExternalId);
+      return Optional.ofNullable(fribbMappingProvider.loadMapping().get(anilistId));
+    } catch (NumberFormatException e) {
+      return Optional.empty();
+    }
+  }
+
+  private FribbEnrichment fribbEnrichmentFrom(FribbEntry entry) {
     if (entry == null) {
       return new FribbEnrichment(List.of(), null);
     }
-    linkFribbExternalIds(mediaItem, entry);
-
     Integer tmdbTvId = entry.themoviedbId() != null ? entry.themoviedbId().tv() : null;
     Integer tmdbSeason = entry.season() != null ? entry.season().tmdb() : null;
     List<TmdbShowStructure.EpisodeData> episodes =
@@ -208,7 +216,43 @@ public class AnimeService {
             extras.voteCount(),
             extras.certification(),
             extras.cast(),
-            extras.similar()));
+            extras.similar(),
+            List.of(),
+            previewEpisodes(externalId, b.episodeCount())));
+  }
+
+  /**
+   * Same Fribb/TMDB episode enrichment {@link #create} persists, reused read-only for the not-owned
+   * preview screen so it can render the identical Episodes section an owned anime's detail page
+   * does. Best-effort throughout, same as {@link #fribbEnrichmentFrom} — no mapping or a fetch
+   * failure just means the plain {@code "Episode N"} fallback, never a broken preview.
+   */
+  private List<MediaPreview.PreviewEpisode> previewEpisodes(
+      String anilistExternalId, Integer episodeCount) {
+    if (episodeCount == null || episodeCount <= 0) {
+      return List.of();
+    }
+    FribbEnrichment enrichment;
+    try {
+      enrichment = fribbEnrichmentFrom(resolveFribbEntry(anilistExternalId).orElse(null));
+    } catch (Exception e) {
+      enrichment = new FribbEnrichment(List.of(), null);
+    }
+    List<MediaPreview.PreviewEpisode> out = new java.util.ArrayList<>();
+    for (int i = 1; i <= episodeCount; i++) {
+      int episodeNumber = i;
+      TmdbShowStructure.EpisodeData tmdbEpisode =
+          enrichment.episodes().stream()
+              .filter(e -> e.episodeNumber() == episodeNumber)
+              .findFirst()
+              .orElse(null);
+      String title =
+          tmdbEpisode != null && tmdbEpisode.title() != null ? tmdbEpisode.title() : "Episode " + i;
+      out.add(
+          new MediaPreview.PreviewEpisode(
+              i, title, tmdbEpisode != null ? tmdbEpisode.airDate() : null));
+    }
+    return out;
   }
 
   /**

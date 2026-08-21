@@ -161,6 +161,19 @@ export interface MediaDetailExtras {
   similar: MetadataSearchResult[];
 }
 
+export interface PreviewEpisode {
+  episodeNumber: number;
+  title: string;
+  airDate: string | null;
+}
+
+export interface PreviewSeason {
+  seasonNumber: number;
+  name: string;
+  episodeCount: number | null;
+  episodes: PreviewEpisode[];
+}
+
 /** The detail screen for a title Kosmos doesn't own yet — see {@link MediaDetailExtras}. */
 export interface MediaPreview {
   externalId: string;
@@ -178,6 +191,8 @@ export interface MediaPreview {
   certification: string | null;
   cast: CastMember[];
   similar: MetadataSearchResult[];
+  seasons: PreviewSeason[];
+  episodes: PreviewEpisode[];
 }
 
 export interface Indexer {

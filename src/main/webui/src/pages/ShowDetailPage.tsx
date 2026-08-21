@@ -19,7 +19,7 @@ import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { useApi } from "../hooks/useApi";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
-import type { Episode, EpisodeStatus, Season } from "../api/types";
+import type { Episode, EpisodeStatus, PreviewSeason, Season } from "../api/types";
 
 const EPISODE_STATUS_DOT: Record<EpisodeStatus, string> = {
   MISSING: "dot-bad",
@@ -33,6 +33,32 @@ const EPISODE_STATUS_LABEL: Record<EpisodeStatus, string> = {
   IMPORTED: "Importing",
   AVAILABLE: "Available",
 };
+
+/**
+ * Not-owned previews carry the same season/episode tree TMDB gives an owned show, just without a
+ * real {@code Season}/{@code Episode} row for it yet — adapted into that shape here so {@code
+ * SeasonRow}/{@code EpisodeRow} render it identically, with every episode implicitly "missing".
+ */
+function seasonsFromPreview(seasons: PreviewSeason[]): Season[] {
+  return seasons.map((s) => ({
+    id: `preview-season-${s.seasonNumber}`,
+    seasonNumber: s.seasonNumber,
+    name: s.name,
+    overview: null,
+    posterPath: null,
+    episodeCount: s.episodeCount,
+    episodes: s.episodes.map((e) => ({
+      id: `preview-episode-${s.seasonNumber}-${e.episodeNumber}`,
+      episodeNumber: e.episodeNumber,
+      title: e.title,
+      overview: null,
+      airDate: e.airDate,
+      runtimeMinutes: null,
+      stillPath: null,
+      status: "MISSING" as EpisodeStatus,
+    })),
+  }));
+}
 
 /**
  * Doubles as the "not in library" preview screen (route {@code /shows/tmdb/:externalId}) — a
@@ -73,6 +99,7 @@ export default function ShowDetailPage() {
   const similar = extras?.similar ?? preview?.similar ?? [];
   const voteAverage = extras?.voteAverage ?? preview?.voteAverage ?? null;
   const certification = extras?.certification ?? preview?.certification ?? null;
+  const seasons = owned && show ? show.seasons : seasonsFromPreview(preview?.seasons ?? []);
 
   const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
     posterUrl(posterPath, "w500"),
@@ -92,6 +119,13 @@ export default function ShowDetailPage() {
   if (!owned && !preview) return null;
 
   const activeProfile = profiles?.find((p) => p.id === show?.qualityProfileId) ?? null;
+
+  const episodes = show?.seasons.flatMap((s) => s.episodes) ?? [];
+  const availableEpisodes = episodes.filter((e) => e.status === "AVAILABLE").length;
+  const availability: "good" | "warn" | "bad" =
+    availableEpisodes === 0 ? "bad" : availableEpisodes === episodes.length ? "good" : "warn";
+  const availabilityLabel =
+    availability === "good" ? "In Library" : availability === "warn" ? "Partially Available" : "Missing";
 
   async function setProfile(profileId: string | null) {
     if (!show || profileSaving) return;
@@ -128,12 +162,11 @@ export default function ShowDetailPage() {
         style={
           backdropArt
             ? {
-                height: 220,
                 backgroundImage: `url(${backdropArt})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }
-            : { height: 220 }
+            : undefined
         }
       />
 
@@ -145,10 +178,17 @@ export default function ShowDetailPage() {
         <div className="detail-body2-main">
           <div className="detail-title-row">
             {owned ? (
-              <span className="status-pill" style={{ background: "rgba(145,132,217,.16)", color: "#D2CEFD" }}>
-                <Television size={12} />
-                {show?.status ?? "Series"}
-              </span>
+              <>
+                <span className={`status-pill ${availability}`}>
+                  <span className="dot" />
+                  {availabilityLabel}
+                </span>
+                <span className="detail-title-note">
+                  {activeProfile
+                    ? `monitored · automatic search every 6h against "${activeProfile.name}"`
+                    : "not monitored"}
+                </span>
+              </>
             ) : (
               <span className="status-pill accent">Not in Library</span>
             )}
@@ -160,12 +200,21 @@ export default function ShowDetailPage() {
 
           <div className="detail-meta-row2">
             {year && <span>{year}</span>}
-            {owned && show && (
+            {seasons.length > 0 && (
               <>
                 <span className="sep" />
-                <span>{show.seasons.length} season{show.seasons.length === 1 ? "" : "s"}</span>
+                <span>{seasons.length} season{seasons.length === 1 ? "" : "s"}</span>
                 <span className="sep" />
-                <span>{show.seasons.reduce((sum, s) => sum + s.episodes.length, 0)} episodes</span>
+                <span>{seasons.reduce((sum, s) => sum + s.episodes.length, 0)} episodes</span>
+              </>
+            )}
+            {owned && show?.status && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Television size={12} />
+                  {show.status}
+                </span>
               </>
             )}
             {certification && (
@@ -193,12 +242,6 @@ export default function ShowDetailPage() {
                 </span>
               ))}
             </div>
-          )}
-
-          {overview && (
-            <p className="detail-synopsis" style={{ maxWidth: "70ch" }}>
-              {overview}
-            </p>
           )}
 
           {owned ? (
@@ -270,31 +313,41 @@ export default function ShowDetailPage() {
       </div>
 
       <div className="page">
-        {owned && show && (
-          <>
+        <div className="detail-info-grid">
+          <div>
+            <div className="section-label">Synopsis</div>
+            {overview && <p className="detail-synopsis">{overview}</p>}
+          </div>
+          {facts.length > 0 && (
+            <div>
+              <div className="section-label">Details</div>
+              <div className="fact-list">
+                {facts.map((f) => (
+                  <div key={f.k} className="fact-list-row">
+                    <span className="k">{f.k}</span>
+                    <span className="v">{f.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {seasons.length > 0 && (
+          <div style={{ marginTop: 38 }}>
             <div className="section-label" style={{ marginBottom: 12 }}>
               Seasons
             </div>
 
-            {show.seasons.map((season) => (
-              <SeasonRow key={season.id} season={season} open={openSeasonId === season.id} onToggle={() => setOpenSeasonId((s) => (s === season.id ? null : season.id))} />
+            {seasons.map((season) => (
+              <SeasonRow
+                key={season.id}
+                season={season}
+                owned={owned}
+                open={openSeasonId === season.id}
+                onToggle={() => setOpenSeasonId((s) => (s === season.id ? null : season.id))}
+              />
             ))}
-
-            {show.seasons.length === 0 && <p className="text-muted">No season data for this show.</p>}
-          </>
-        )}
-
-        {facts.length > 0 && (
-          <div style={{ maxWidth: 420, marginTop: owned ? 32 : 0 }}>
-            <div className="section-label">Details</div>
-            <div className="fact-list">
-              {facts.map((f) => (
-                <div key={f.k} className="fact-list-row">
-                  <span className="k">{f.k}</span>
-                  <span className="v">{f.v}</span>
-                </div>
-              ))}
-            </div>
           </div>
         )}
 
@@ -305,7 +358,17 @@ export default function ShowDetailPage() {
   );
 }
 
-function SeasonRow({ season, open, onToggle }: { season: Season; open: boolean; onToggle: () => void }) {
+function SeasonRow({
+  season,
+  owned,
+  open,
+  onToggle,
+}: {
+  season: Season;
+  owned: boolean;
+  open: boolean;
+  onToggle: () => void;
+}) {
   return (
     <div style={{ borderBottom: "1px solid var(--border)" }}>
       <div
@@ -328,7 +391,7 @@ function SeasonRow({ season, open, onToggle }: { season: Season; open: boolean; 
       {open && (
         <div style={{ paddingBottom: 12 }}>
           {season.episodes.map((ep) => (
-            <EpisodeRow key={ep.id} episode={ep} />
+            <EpisodeRow key={ep.id} episode={ep} owned={owned} />
           ))}
           {season.episodes.length === 0 && (
             <p className="text-muted" style={{ fontSize: 12, padding: "4px" }}>
@@ -341,7 +404,7 @@ function SeasonRow({ season, open, onToggle }: { season: Season; open: boolean; 
   );
 }
 
-function EpisodeRow({ episode }: { episode: Episode }) {
+function EpisodeRow({ episode, owned }: { episode: Episode; owned: boolean }) {
   return (
     <div
       style={{
@@ -364,14 +427,18 @@ function EpisodeRow({ episode }: { episode: Episode }) {
       <span className="text-faint" style={{ fontSize: 11, textAlign: "right" }}>
         {episode.airDate ?? "—"}
       </span>
-      <Link
-        to={`/episodes/${episode.id}/search`}
-        className="btn btn-icon"
-        title="Interactive search"
-        style={{ width: 26, height: 26 }}
-      >
-        <MagnifyingGlass size={12} />
-      </Link>
+      {owned ? (
+        <Link
+          to={`/episodes/${episode.id}/search`}
+          className="btn btn-icon"
+          title="Interactive search"
+          style={{ width: 26, height: 26 }}
+        >
+          <MagnifyingGlass size={12} />
+        </Link>
+      ) : (
+        <span />
+      )}
     </div>
   );
 }

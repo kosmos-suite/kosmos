@@ -1446,7 +1446,7 @@ a:hover {
 /* ---- movie detail hero ---- */
 .detail-hero {
   position: relative;
-  height: 480px;
+  height: 560px;
   margin-top: -67px;
   background: linear-gradient(148deg, #241f33, #6b5273 50%, #1b2836);
 }
@@ -2150,6 +2150,7 @@ a:hover {
 }
 .dropdown-wrap {
   position: relative;
+  display: inline-block;
 }
 .dropdown-trigger {
   display: inline-flex;

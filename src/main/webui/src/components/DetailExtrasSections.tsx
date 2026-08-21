@@ -7,7 +7,14 @@ import { tonalGradient } from "../utils/tonalGradient";
 import { MediaCard } from "./MediaCard";
 
 export function CastRow({ cast }: { cast: CastMember[] }) {
+  const rowRef = useRef<HTMLDivElement>(null);
   if (cast.length === 0) return null;
+
+  function scroll(dir: 1 | -1) {
+    const el = rowRef.current;
+    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
+  }
+
   return (
     <div className="content-row">
       <div className="content-row-header">
@@ -15,8 +22,15 @@ export function CastRow({ cast }: { cast: CastMember[] }) {
         <span className="content-row-sub">
           top billed · {cast.length} credited
         </span>
+        <div style={{ flex: 1 }} />
+        <button type="button" className="row-scroll-btn" onClick={() => scroll(-1)}>
+          <CaretLeft size={15} />
+        </button>
+        <button type="button" className="row-scroll-btn" onClick={() => scroll(1)}>
+          <CaretRight size={15} />
+        </button>
       </div>
-      <div className="cast-row k-scroll">
+      <div className="cast-row k-scroll" ref={rowRef}>
         {cast.map((p, i) => {
           const photo = profileUrl(p.profilePath);
           return (

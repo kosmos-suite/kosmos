@@ -126,6 +126,8 @@ public class MovieService {
             extras.voteCount(),
             extras.certification(),
             extras.cast(),
-            extras.similar()));
+            extras.similar(),
+            List.of(),
+            List.of()));
   }
 }

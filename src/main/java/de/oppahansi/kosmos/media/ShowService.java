@@ -182,7 +182,37 @@ public class ShowService {
             extras.voteCount(),
             extras.certification(),
             extras.cast(),
-            extras.similar()));
+            extras.similar(),
+            previewSeasons(externalId),
+            List.of()));
+  }
+
+  /**
+   * Same season/episode tree {@link #createFromJellyfin} persists, reused read-only for the
+   * not-owned preview screen so it can render the identical Seasons section an owned show's detail
+   * page does. Unlike creation, a fetch failure here is best-effort — like the rest of {@link
+   * #preview}, a missing/failed season tree just means an empty Seasons section, not a broken
+   * preview.
+   */
+  private List<MediaPreview.PreviewSeason> previewSeasons(String tmdbId) {
+    try {
+      return tmdbMetadataProvider.fetchShowStructure(tmdbId).seasons().stream()
+          .map(
+              s ->
+                  new MediaPreview.PreviewSeason(
+                      s.seasonNumber(),
+                      s.name(),
+                      s.episodeCount(),
+                      s.episodes().stream()
+                          .map(
+                              e ->
+                                  new MediaPreview.PreviewEpisode(
+                                      e.episodeNumber(), e.title(), e.airDate()))
+                          .toList()))
+          .toList();
+    } catch (Exception e) {
+      return List.of();
+    }
   }
 
   private void persistStructure(Show show, TmdbShowStructure structure) {
