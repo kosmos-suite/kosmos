@@ -218,7 +218,7 @@ export default function RequestsPage() {
                 </div>
               ) : (
                 !declining && (
-                  <button type="button" className="btn btn-icon">
+                  <button type="button" className="btn btn-icon" aria-label="More actions">
                     <DotsThree size={16} />
                   </button>
                 )

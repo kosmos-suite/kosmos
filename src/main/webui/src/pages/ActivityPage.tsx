@@ -276,13 +276,13 @@ export default function ActivityPage() {
                   </div>
                 </div>
                 <div className="download-row-actions" style={{ opacity: on ? 1 : 0.5, transition: "opacity 160ms" }}>
-                  <button type="button" className="btn-icon">
+                  <button type="button" className="btn-icon" aria-label={paused ? "Resume" : "Pause"}>
                     {paused ? <Play size={15} weight="fill" /> : <Pause size={15} />}
                   </button>
-                  <button type="button" className="btn-icon">
+                  <button type="button" className="btn-icon" aria-label="Cancel">
                     <X size={15} />
                   </button>
-                  <button type="button" className="btn-icon">
+                  <button type="button" className="btn-icon" aria-label="More actions">
                     <DotsThree size={16} />
                   </button>
                 </div>
@@ -378,7 +378,7 @@ export default function ActivityPage() {
                     <span className="text-disabled" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
                       {h.time}
                     </span>
-                    <button type="button" className="btn-icon" style={{ width: 26, height: 26 }}>
+                    <button type="button" className="btn-icon" style={{ width: 26, height: 26 }} aria-label="More actions">
                       <DotsThree size={14} />
                     </button>
                   </div>

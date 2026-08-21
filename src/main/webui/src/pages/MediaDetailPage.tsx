@@ -298,7 +298,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                     Interactive search
                   </Link>
                   <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
-                  <button type="button" className="btn btn-icon">
+                  <button type="button" className="btn btn-icon" aria-label="More actions">
                     <DotsThree size={17} />
                   </button>
                 </div>

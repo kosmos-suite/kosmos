@@ -191,6 +191,7 @@ export default function IndexersPage() {
                 type="button"
                 className="btn-icon"
                 title="Editing existing indexers isn't supported by the API yet"
+                aria-label="Edit"
                 onClick={() => showToast("Editing existing indexers isn't supported by the API yet")}
               >
                 <PencilSimple size={15} />
@@ -199,6 +200,7 @@ export default function IndexersPage() {
                 type="button"
                 className="btn-icon icon-btn-danger"
                 title="Removing indexers isn't supported by the API yet"
+                aria-label="Delete"
                 onClick={() => showToast("Removing indexers isn't supported by the API yet")}
               >
                 <Trash size={15} />

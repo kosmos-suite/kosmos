@@ -8,7 +8,9 @@ import {
 } from "@phosphor-icons/react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { api } from "../../api/client";
 import { Toggle } from "../../components/Toggle";
+import { useApi } from "../../hooks/useApi";
 import {
   permissionOverrides,
   permissionSections,
@@ -16,12 +18,25 @@ import {
   type OverrideValue,
   type PermissionKey,
 } from "../../mocks/mockPermissions";
-import { mockUsers } from "../../mocks/mockUsers";
 
-/** No granular per-user permission system exists yet — basic auth/roles are real, see UsersPage/AuthContext. */
+/**
+ * No granular per-user permission system exists yet — basic auth/roles are real (see
+ * UsersPage/AuthContext, and {@link api.listUsers} below for the real account list this page's
+ * per-user overrides are keyed against), but the section/permission matrix and every override
+ * itself are still sample data with nothing behind them on the backend.
+ */
 
 type Role = "Admin" | "User";
 const ALL_KEYS = permissionSections.flatMap((s) => s.permissions.map((p) => p.key));
+
+function initialsOf(displayName: string): string {
+  return displayName
+    .split(" ")
+    .map((p) => p[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+}
 
 export default function PermissionsPage() {
   const [role, setRole] = useState<Role>("User");
@@ -30,6 +45,19 @@ export default function PermissionsPage() {
   const [search, setSearch] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+
+  const { data: apiUsers } = useApi(() => api.listUsers(), []);
+  const people = useMemo(
+    () =>
+      (apiUsers ?? []).map((u) => ({
+        id: u.id,
+        name: u.displayName,
+        handle: u.username,
+        initials: initialsOf(u.displayName),
+        role: (u.role === "ADMIN" ? "Admin" : "User") as Role,
+      })),
+    [apiUsers],
+  );
 
   function say(message: string) {
     setToast(message);
@@ -44,12 +72,12 @@ export default function PermissionsPage() {
     return counts;
   }, [overrides]);
 
-  const filteredUsers = mockUsers.filter(
+  const filteredUsers = people.filter(
     (u) => u.name.toLowerCase().includes(search.toLowerCase()) || u.handle.toLowerCase().includes(search.toLowerCase()),
   );
 
   /** Count of accounts that have at least one non-default permission, independent of the currently selected role tab. */
-  const usersWithOverrides = mockUsers.filter((u) =>
+  const usersWithOverrides = people.filter((u) =>
     Object.values(overrides[u.id] ?? {}).some((v) => v && v !== "default"),
   ).length;
 

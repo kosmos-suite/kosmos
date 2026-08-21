@@ -117,10 +117,10 @@ export default function SizeLimitsPage() {
               <span style={{ textAlign: "right", fontFamily: "var(--font-mono)" }}>{d.minMbPerMinute}</span>
               <span style={{ textAlign: "right", fontFamily: "var(--font-mono)" }}>{d.maxMbPerMinute}</span>
               <span style={{ display: "flex", gap: 4, justifyContent: "flex-end" }}>
-                <button type="button" className="btn btn-icon" onClick={() => setEditing(d)}>
+                <button type="button" className="btn btn-icon" onClick={() => setEditing(d)} aria-label="Edit">
                   <PencilSimple size={14} />
                 </button>
-                <button type="button" className="btn btn-icon" onClick={() => remove(d.id)}>
+                <button type="button" className="btn btn-icon" onClick={() => remove(d.id)} aria-label="Delete">
                   <Trash size={14} />
                 </button>
               </span>
