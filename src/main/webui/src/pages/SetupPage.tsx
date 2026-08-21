@@ -134,7 +134,7 @@ export default function SetupPage() {
   const [f2, setF2] = useState({ name: "", url: "", key: "" });
   const [prowlarr, setProwlarr] = useState({ url: "", key: "" });
   const [indexerMode, setIndexerMode] = useState<"manual" | "prowlarr">("manual");
-  const [f3, setF3] = useState({ baseUrl: DEFAULT_BASE_URL_BY_LABEL.qBittorrent, user: "", pass: "", client: "qBittorrent" as (typeof CLIENTS)[number]["label"] });
+  const [f3, setF3] = useState({ baseUrl: "", user: "", pass: "", client: "qBittorrent" as (typeof CLIENTS)[number]["label"] });
   const [rootFolders, setRootFolders] = useState<LibraryRootFolder[] | null>(null);
   const [browsingFolder, setBrowsingFolder] = useState(false);
   const [savingFolder, setSavingFolder] = useState(false);
@@ -352,7 +352,7 @@ export default function SetupPage() {
   const summary = [
     sumRow("metadata", "Metadata source", "TMDB · key detected"),
     sumRow("indexer", "Indexer", indexerMode === "prowlarr" ? "Prowlarr" : f2.name.trim() || "indexer"),
-    sumRow("download-client", "Download client", `${f3.client} · ${f3.baseUrl}`),
+    sumRow("download-client", "Download client", `${f3.client} · ${f3.baseUrl || DEFAULT_BASE_URL_BY_LABEL[f3.client]}`),
     sumRow(
       "media-folder",
       "Root folders",
@@ -702,7 +702,7 @@ export default function SetupPage() {
                   key={label}
                   className={`setup-chip${f3.client === label ? " active" : ""}`}
                   onClick={() => {
-                    setF3((s) => ({ ...s, client: label, baseUrl: DEFAULT_BASE_URL_BY_LABEL[label] }));
+                    setF3((s) => ({ ...s, client: label, baseUrl: "" }));
                     setDownloadTestResult(null);
                   }}
                 >
@@ -725,7 +725,7 @@ export default function SetupPage() {
                     setTests((t) => ({ ...t, "download-client": undefined }));
                     setDownloadTestResult(null);
                   }}
-                  placeholder="http://192.168.1.10:8080"
+                  placeholder={DEFAULT_BASE_URL_BY_LABEL[f3.client]}
                 />
               </div>
               <div className="setup-grid-2" style={{ gridTemplateColumns: "1fr 1fr" }}>
