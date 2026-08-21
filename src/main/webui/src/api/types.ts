@@ -127,6 +127,7 @@ export interface RegistryEntry {
 }
 
 export interface MetadataSearchResult {
+  mediaItemId: string | null;
   externalId: string;
   title: string;
   year: number | null;
@@ -135,6 +136,7 @@ export interface MetadataSearchResult {
   backdropPath: string | null;
   voteAverage: number | null;
   mediaType: "movie" | "tv" | "anime";
+  inLibrary: boolean;
 }
 
 export interface Indexer {

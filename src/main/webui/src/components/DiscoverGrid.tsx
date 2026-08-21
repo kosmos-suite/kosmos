@@ -2,10 +2,11 @@ import { ArrowLeftIcon as ArrowLeft } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 import type { DiscoverItem } from "../api/types";
+import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { dedupeDiscoverItems } from "../utils/dedupeDiscoverItems";
 import { discoverItemLink } from "../utils/discoverItemLink";
 import { tonalGradient } from "../utils/tonalGradient";
-import { MovieCard } from "./MovieCard";
+import { MediaCard } from "./MediaCard";
 
 const PAGE_SIZE = 20;
 
@@ -21,6 +22,7 @@ interface DiscoverGridProps {
 
 /** Grid click-through target for a Discover/Home row's "See all" — paginates via infinite scroll. */
 export function DiscoverGrid({ title, fetcher, depKey, filters }: DiscoverGridProps) {
+  const { stateFor, triggerAdd } = useAddToLibrary();
   const [items, setItems] = useState<DiscoverItem[]>([]);
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -110,7 +112,7 @@ export function DiscoverGrid({ title, fetcher, depKey, filters }: DiscoverGridPr
 
       <div className="poster-grid">
         {items.map((item, i) => (
-          <MovieCard
+          <MediaCard
             key={`${item.mediaItemId ?? item.externalId}-${i}`}
             to={discoverItemLink(item)}
             title={item.title}
@@ -120,6 +122,21 @@ export function DiscoverGrid({ title, fetcher, depKey, filters }: DiscoverGridPr
             mediaType={item.mediaType}
             status={item.inLibrary ? "in-library" : undefined}
             placeholderBackground={tonalGradient(i)}
+            onAdd={
+              item.inLibrary || !item.externalId
+                ? undefined
+                : () =>
+                    triggerAdd({
+                      externalId: item.externalId!,
+                      title: item.title,
+                      year: item.year,
+                      overview: item.overview,
+                      posterPath: item.posterPath,
+                      backdropPath: item.backdropPath,
+                      mediaType: item.mediaType,
+                    })
+            }
+            addState={item.externalId ? stateFor(item.externalId) : undefined}
           />
         ))}
       </div>

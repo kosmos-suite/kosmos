@@ -10,7 +10,8 @@ import { Link } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, logoUrl } from "../api/tmdbImage";
 import type { DiscoverItem, GenreTile as GenreTileType, StudioTile as StudioTileType } from "../api/types";
-import { MovieCard } from "../components/MovieCard";
+import { MediaCard } from "../components/MediaCard";
+import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { useApi } from "../hooks/useApi";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import { discoverItemLink } from "../utils/discoverItemLink";
@@ -181,6 +182,7 @@ function RowShell({ heading, sub, wide, seeAllTo, children }: RowShellProps) {
 
 function BecauseYouAddedRow() {
   const { data } = useApi(api.discoverBecauseYouAdded);
+  const { stateFor, triggerAdd } = useAddToLibrary();
 
   if (!data || data.items.length === 0) {
     return null;
@@ -189,15 +191,31 @@ function BecauseYouAddedRow() {
   return (
     <RowShell heading={`Because You Added ${data.basedOnTitle}`} sub="from TMDB · similar titles">
       {data.items.map((item, i) => (
-        <MovieCard
+        <MediaCard
           key={item.mediaItemId ?? item.externalId}
           to={discoverItemLink(item)}
           title={item.title}
           year={item.year}
           posterPath={item.posterPath}
           mediaItemId={item.mediaItemId}
+          mediaType={item.mediaType}
           status={item.inLibrary ? "in-library" : undefined}
           placeholderBackground={tonalGradient(i)}
+          onAdd={
+            item.inLibrary || !item.externalId
+              ? undefined
+              : () =>
+                  triggerAdd({
+                    externalId: item.externalId!,
+                    title: item.title,
+                    year: item.year,
+                    overview: item.overview,
+                    posterPath: item.posterPath,
+                    backdropPath: item.backdropPath,
+                    mediaType: item.mediaType,
+                  })
+          }
+          addState={item.externalId ? stateFor(item.externalId) : undefined}
         />
       ))}
     </RowShell>
@@ -214,6 +232,7 @@ interface DiscoverRowProps {
 
 function DiscoverRow({ heading, sub, fetcher, wide, seeAllTo }: DiscoverRowProps) {
   const { data, loading, error } = useApi(fetcher);
+  const { stateFor, triggerAdd } = useAddToLibrary();
 
   return (
     <RowShell heading={heading} sub={sub} wide={wide} seeAllTo={seeAllTo}>
@@ -225,7 +244,7 @@ function DiscoverRow({ heading, sub, fetcher, wide, seeAllTo }: DiscoverRowProps
       )}
       {data?.length === 0 && <div className="text-muted" style={{ padding: "0 2px" }}>Nothing here yet.</div>}
       {data?.map((item, i) => (
-        <MovieCard
+        <MediaCard
           key={item.mediaItemId ?? item.externalId}
           to={discoverItemLink(item)}
           title={item.title}
@@ -234,8 +253,24 @@ function DiscoverRow({ heading, sub, fetcher, wide, seeAllTo }: DiscoverRowProps
           backdropPath={item.backdropPath}
           wide={wide}
           mediaItemId={item.mediaItemId}
+          mediaType={item.mediaType}
           status={item.inLibrary ? "in-library" : undefined}
           placeholderBackground={tonalGradient(i)}
+          onAdd={
+            item.inLibrary || !item.externalId
+              ? undefined
+              : () =>
+                  triggerAdd({
+                    externalId: item.externalId!,
+                    title: item.title,
+                    year: item.year,
+                    overview: item.overview,
+                    posterPath: item.posterPath,
+                    backdropPath: item.backdropPath,
+                    mediaType: item.mediaType,
+                  })
+          }
+          addState={item.externalId ? stateFor(item.externalId) : undefined}
         />
       ))}
     </RowShell>
@@ -325,7 +360,7 @@ function RecentRequestsRow() {
         </div>
       )}
       {recent.map((r, i) => (
-        <MovieCard
+        <MediaCard
           key={r.id}
           to={
             r.mediaItemId

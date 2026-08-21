@@ -105,45 +105,45 @@ function LibraryGridCard({ item }: { item: LibraryItem }) {
   const src = tmdbSrc ?? localSrc;
 
   return (
-    <Link to={`/movies/${item.id}`} className="movie-card">
-      <div className={`movie-card-art${isMissing ? " missing" : ""}`}>
+    <Link to={`/movies/${item.id}`} className="media-card">
+      <div className={`media-card-art${isMissing ? " missing" : ""}`}>
         {src ? (
           <img
-            className="movie-card-poster"
+            className="media-card-poster"
             src={src}
             alt=""
             loading="lazy"
             onError={localSrc ? () => setLocalFailed(true) : undefined}
           />
         ) : (
-          <div className="movie-card-placeholder" style={{ background: tonalGradient(item.tone) }}>
+          <div className="media-card-placeholder" style={{ background: tonalGradient(item.tone) }}>
             <FilmStrip size={28} />
           </div>
         )}
 
         {isDownloading ? (
           <div
-            className="movie-card-ring"
+            className="media-card-ring"
             style={{ "--pct": `${item.progress ?? 0}%` } as CSSProperties}
           >
             {item.progress}%
           </div>
         ) : (
-          <div className="movie-card-badge">
+          <div className="media-card-badge">
             <span className={`dot ${meta.dotClass}`} />
             {meta.label}
           </div>
         )}
 
-        <div className="movie-card-scrim" />
-        <div className="movie-card-meta">
-          <div className="movie-card-title">{item.title}</div>
-          {item.year && <div className="movie-card-year">{item.year}</div>}
+        <div className="media-card-scrim" />
+        <div className="media-card-meta">
+          <div className="media-card-title">{item.title}</div>
+          {item.year && <div className="media-card-year">{item.year}</div>}
         </div>
 
         {isDownloading && (
-          <div className="movie-card-progress">
-            <div className="movie-card-progress-fill downloading" style={{ width: `${item.progress}%` }} />
+          <div className="media-card-progress">
+            <div className="media-card-progress-fill downloading" style={{ width: `${item.progress}%` }} />
           </div>
         )}
       </div>
