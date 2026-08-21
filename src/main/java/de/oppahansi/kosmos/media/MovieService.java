@@ -109,7 +109,7 @@ public class MovieService {
             .map(e -> e.withSimilar(similarEnrichmentService.enrich(e.similar(), "tmdb", "movie")))
             .orElse(
                 new MediaDetailExtras(
-                    List.of(), List.of(), null, null, null, List.of(), List.of()));
+                    List.of(), List.of(), null, null, null, List.of(), List.of(), null));
     return Optional.of(
         new MediaPreview(
             externalId,
@@ -128,6 +128,7 @@ public class MovieService {
             extras.cast(),
             extras.similar(),
             List.of(),
-            List.of()));
+            List.of(),
+            extras.trailerUrl()));
   }
 }

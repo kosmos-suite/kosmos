@@ -91,6 +91,7 @@ export default function MovieDetailPage() {
   const similar = extras?.similar ?? preview?.similar ?? [];
   const voteAverage = extras?.voteAverage ?? preview?.voteAverage ?? null;
   const certification = extras?.certification ?? preview?.certification ?? null;
+  const trailerUrl = extras?.trailerUrl ?? preview?.trailerUrl ?? null;
   const director = facts.find((f) => f.k === "Director")?.v;
 
   const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
@@ -161,10 +162,17 @@ export default function MovieDetailPage() {
             : undefined
         }
       >
-        <span className="chip-floating detail-hero-trailer" title="No trailer source wired up yet">
-          <PlayCircle size={16} weight="fill" />
-          Trailer
-        </span>
+        {trailerUrl && (
+          <a
+            href={trailerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chip-floating detail-hero-trailer"
+          >
+            <PlayCircle size={20} weight="fill" />
+            Trailer
+          </a>
+        )}
       </section>
 
       <div className="detail-body2">

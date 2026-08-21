@@ -15,12 +15,13 @@ public record MediaDetailExtras(
     Integer voteCount,
     String certification,
     List<CastMember> cast,
-    List<MetadataSearchItem> similar) {
+    List<MetadataSearchItem> similar,
+    String trailerUrl) {
 
   /** Replaces {@code similar} once the caller has cross-referenced it against the library. */
   public MediaDetailExtras withSimilar(List<MetadataSearchItem> enrichedSimilar) {
     return new MediaDetailExtras(
-        genres, facts, voteAverage, voteCount, certification, cast, enrichedSimilar);
+        genres, facts, voteAverage, voteCount, certification, cast, enrichedSimilar, trailerUrl);
   }
 
   /**

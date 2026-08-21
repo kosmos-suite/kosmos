@@ -17,7 +17,8 @@ record TmdbMovieDetailFull(
     @JsonProperty("production_companies") List<Company> productionCompanies,
     TmdbCredits credits,
     Recommendations recommendations,
-    @JsonProperty("release_dates") ReleaseDates releaseDates) {
+    @JsonProperty("release_dates") ReleaseDates releaseDates,
+    TmdbVideos videos) {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record Company(String name) {}

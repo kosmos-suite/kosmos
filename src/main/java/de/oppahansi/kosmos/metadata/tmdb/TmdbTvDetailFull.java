@@ -18,7 +18,8 @@ record TmdbTvDetailFull(
     @JsonProperty("created_by") List<Creator> createdBy,
     TmdbCredits credits,
     Recommendations recommendations,
-    @JsonProperty("content_ratings") ContentRatings contentRatings) {
+    @JsonProperty("content_ratings") ContentRatings contentRatings,
+    TmdbVideos videos) {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record Network(String name) {}

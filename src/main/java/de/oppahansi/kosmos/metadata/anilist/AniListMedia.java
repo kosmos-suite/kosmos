@@ -15,11 +15,19 @@ record AniListMedia(
     Integer episodes,
     List<String> genres,
     Integer averageScore,
+    Trailer trailer,
     Studios studios,
     Recommendations recommendations) {
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record Title(String romaji, String english) {}
+
+  /**
+   * Only present when the query requests {@code trailer { id site } }. {@code site} is a lowercase
+   * host name — {@code "youtube"} or {@code "dailymotion"}.
+   */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  record Trailer(String id, String site) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record StartDate(Integer year) {}

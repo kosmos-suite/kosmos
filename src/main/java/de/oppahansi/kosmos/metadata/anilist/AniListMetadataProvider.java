@@ -75,6 +75,7 @@ public class AniListMetadataProvider implements MetadataProvider {
           episodes
           genres
           averageScore
+          trailer { id site }
           studios(isMain: true) { nodes { name } }
           recommendations(sort: RATING_DESC, perPage: 10) {
             nodes {
@@ -182,9 +183,14 @@ public class AniListMetadataProvider implements MetadataProvider {
     if (averageScore != null) {
       facts.add(new MediaDetailExtras.Fact("AniList", averageScore + " / 10"));
     }
+    String trailerUrl =
+        media.trailer() != null && "youtube".equals(media.trailer().site())
+            ? "https://www.youtube.com/watch?v=" + media.trailer().id()
+            : null;
 
     return Optional.of(
-        new MediaDetailExtras(genres, facts, averageScore, null, null, List.of(), similar));
+        new MediaDetailExtras(
+            genres, facts, averageScore, null, null, List.of(), similar, trailerUrl));
   }
 
   private MetadataSearchResult toSearchResult(AniListMedia media) {

@@ -159,6 +159,7 @@ export interface MediaDetailExtras {
   certification: string | null;
   cast: CastMember[];
   similar: MetadataSearchResult[];
+  trailerUrl: string | null;
 }
 
 export interface PreviewEpisode {
@@ -193,6 +194,7 @@ export interface MediaPreview {
   similar: MetadataSearchResult[];
   seasons: PreviewSeason[];
   episodes: PreviewEpisode[];
+  trailerUrl: string | null;
 }
 
 export interface Indexer {

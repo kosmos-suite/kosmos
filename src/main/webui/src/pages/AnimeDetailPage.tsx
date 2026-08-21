@@ -5,6 +5,7 @@ import {
   EyeIcon as Eye,
   EyeSlashIcon as EyeSlash,
   MagnifyingGlassIcon as MagnifyingGlass,
+  PlayCircleIcon as PlayCircle,
   PlusIcon as Plus,
   SparkleIcon as Sparkle,
   SpinnerIcon as Spinner,
@@ -89,6 +90,7 @@ export default function AnimeDetailPage() {
   const facts = extras?.facts ?? preview?.facts ?? [];
   const similar = extras?.similar ?? preview?.similar ?? [];
   const voteAverage = extras?.voteAverage ?? preview?.voteAverage ?? null;
+  const trailerUrl = extras?.trailerUrl ?? preview?.trailerUrl ?? null;
 
   const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
     posterUrl(posterPath, "w500"),
@@ -157,7 +159,19 @@ export default function AnimeDetailPage() {
               }
             : undefined
         }
-      />
+      >
+        {trailerUrl && (
+          <a
+            href={trailerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chip-floating detail-hero-trailer"
+          >
+            <PlayCircle size={20} weight="fill" />
+            Trailer
+          </a>
+        )}
+      </section>
 
       <div className="detail-body2">
         <div className="detail-poster2">

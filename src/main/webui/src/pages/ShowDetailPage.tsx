@@ -6,6 +6,7 @@ import {
   EyeIcon as Eye,
   EyeSlashIcon as EyeSlash,
   MagnifyingGlassIcon as MagnifyingGlass,
+  PlayCircleIcon as PlayCircle,
   PlusIcon as Plus,
   SpinnerIcon as Spinner,
   StarIcon as Star,
@@ -99,6 +100,7 @@ export default function ShowDetailPage() {
   const similar = extras?.similar ?? preview?.similar ?? [];
   const voteAverage = extras?.voteAverage ?? preview?.voteAverage ?? null;
   const certification = extras?.certification ?? preview?.certification ?? null;
+  const trailerUrl = extras?.trailerUrl ?? preview?.trailerUrl ?? null;
   const seasons = owned && show ? show.seasons : seasonsFromPreview(preview?.seasons ?? []);
 
   const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
@@ -168,7 +170,19 @@ export default function ShowDetailPage() {
               }
             : undefined
         }
-      />
+      >
+        {trailerUrl && (
+          <a
+            href={trailerUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="chip-floating detail-hero-trailer"
+          >
+            <PlayCircle size={20} weight="fill" />
+            Trailer
+          </a>
+        )}
+      </section>
 
       <div className="detail-body2">
         <div className="detail-poster2">

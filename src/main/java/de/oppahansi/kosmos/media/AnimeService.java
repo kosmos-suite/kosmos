@@ -199,7 +199,7 @@ public class AnimeService {
                     e.withSimilar(similarEnrichmentService.enrich(e.similar(), "anilist", "anime")))
             .orElse(
                 new MediaDetailExtras(
-                    List.of(), List.of(), null, null, null, List.of(), List.of()));
+                    List.of(), List.of(), null, null, null, List.of(), List.of(), null));
     return Optional.of(
         new MediaPreview(
             externalId,
@@ -218,7 +218,8 @@ public class AnimeService {
             extras.cast(),
             extras.similar(),
             List.of(),
-            previewEpisodes(externalId, b.episodeCount())));
+            previewEpisodes(externalId, b.episodeCount()),
+            extras.trailerUrl()));
   }
 
   /**

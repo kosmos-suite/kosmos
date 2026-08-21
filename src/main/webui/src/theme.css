@@ -1480,6 +1480,11 @@ a:hover {
   bottom: 22px;
   right: 34px;
   z-index: 5;
+  height: 44px;
+  padding: 0 20px;
+  gap: 10px;
+  font-size: 14px;
+  border-radius: 11px;
 }
 .detail-body2 {
   position: relative;

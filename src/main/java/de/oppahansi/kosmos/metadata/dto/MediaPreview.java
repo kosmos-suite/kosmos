@@ -34,7 +34,8 @@ public record MediaPreview(
     List<MediaDetailExtras.CastMember> cast,
     List<MetadataSearchItem> similar,
     List<PreviewSeason> seasons,
-    List<PreviewEpisode> episodes) {
+    List<PreviewEpisode> episodes,
+    String trailerUrl) {
 
   public record PreviewSeason(
       int seasonNumber, String name, Integer episodeCount, List<PreviewEpisode> episodes) {}

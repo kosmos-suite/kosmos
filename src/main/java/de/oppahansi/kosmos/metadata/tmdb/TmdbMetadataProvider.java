@@ -567,7 +567,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
                           + tmdbId
                           + "?api_key="
                           + apiKey.orElseThrow()
-                          + "&append_to_response=credits,recommendations,release_dates"))
+                          + "&append_to_response=credits,recommendations,release_dates,videos"))
               .GET()
               .build();
       HttpResponse<String> response =
@@ -597,7 +597,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
                           + tmdbId
                           + "?api_key="
                           + apiKey.orElseThrow()
-                          + "&append_to_response=credits,recommendations,content_ratings"))
+                          + "&append_to_response=credits,recommendations,content_ratings,videos"))
               .GET()
               .build();
       HttpResponse<String> response =
@@ -650,7 +650,14 @@ public class TmdbMetadataProvider implements MetadataProvider {
               d.voteAverage() + (d.voteCount() != null ? " · " + d.voteCount() + " votes" : "")));
     }
     return new MediaDetailExtras(
-        genres, facts, d.voteAverage(), d.voteCount(), certification, cast, similar);
+        genres,
+        facts,
+        d.voteAverage(),
+        d.voteCount(),
+        certification,
+        cast,
+        similar,
+        trailerUrl(d.videos()));
   }
 
   private MediaDetailExtras toTvExtras(TmdbTvDetailFull d) {
@@ -683,7 +690,35 @@ public class TmdbMetadataProvider implements MetadataProvider {
               d.voteAverage() + (d.voteCount() != null ? " · " + d.voteCount() + " votes" : "")));
     }
     return new MediaDetailExtras(
-        genres, facts, d.voteAverage(), d.voteCount(), certification, cast, similar);
+        genres,
+        facts,
+        d.voteAverage(),
+        d.voteCount(),
+        certification,
+        cast,
+        similar,
+        trailerUrl(d.videos()));
+  }
+
+  /**
+   * Picks the best YouTube trailer out of a title's {@code videos.results} — an official {@code
+   * "Trailer"}-type entry if one exists, otherwise the first YouTube video of any type/officialness
+   * (a teaser is still better than nothing). Non-YouTube hosts (Vimeo etc.) are skipped since the
+   * frontend only knows how to open a YouTube watch URL.
+   */
+  private String trailerUrl(TmdbVideos videos) {
+    if (videos == null || videos.results() == null) {
+      return null;
+    }
+    List<TmdbVideos.Video> youtube =
+        videos.results().stream().filter(v -> "YouTube".equals(v.site())).toList();
+    return youtube.stream()
+        .filter(v -> "Trailer".equals(v.type()) && Boolean.TRUE.equals(v.official()))
+        .findFirst()
+        .or(() -> youtube.stream().filter(v -> "Trailer".equals(v.type())).findFirst())
+        .or(() -> youtube.stream().findFirst())
+        .map(v -> "https://www.youtube.com/watch?v=" + v.key())
+        .orElse(null);
   }
 
   private List<MediaDetailExtras.CastMember> castFrom(TmdbCredits credits) {
