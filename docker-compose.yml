@@ -1,14 +1,15 @@
 services:
   db:
     image: postgres:16-alpine
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: kosmos
-      POSTGRES_USER: kosmos
-      POSTGRES_PASSWORD: kosmos
+      POSTGRES_DB: ${KOSMOS_DB_NAME:-kosmos}
+      POSTGRES_USER: ${KOSMOS_DB_USER:-kosmos}
+      POSTGRES_PASSWORD: ${KOSMOS_DB_PASSWORD:-kosmos}
     volumes:
-      - kosmos-db:/var/lib/postgresql/data
+      - ${KOSMOS_DB_DATA_PATH:-kosmos-db}:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U kosmos -d kosmos"]
+      test: ["CMD-SHELL", "pg_isready -U ${KOSMOS_DB_USER:-kosmos} -d ${KOSMOS_DB_NAME:-kosmos}"]
       interval: 5s
       timeout: 5s
       retries: 10
@@ -17,19 +18,36 @@ services:
     build:
       context: .
       dockerfile: src/main/docker/${KOSMOS_DOCKERFILE:-Dockerfile.jvm}
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://db:5432/kosmos
-      QUARKUS_DATASOURCE_USERNAME: kosmos
-      QUARKUS_DATASOURCE_PASSWORD: kosmos
-      KOSMOS_METADATA_TMDB_API_KEY: ${KOSMOS_METADATA_TMDB_API_KEY:-}
+      QUARKUS_DATASOURCE_JDBC_URL: jdbc:postgresql://db:5432/${KOSMOS_DB_NAME:-kosmos}
+      QUARKUS_DATASOURCE_USERNAME: ${KOSMOS_DB_USER:-kosmos}
+      QUARKUS_DATASOURCE_PASSWORD: ${KOSMOS_DB_PASSWORD:-kosmos}
       KOSMOS_LIBRARY_ROOT_PATH: /library
+      TZ: ${TZ:-UTC}
+      # UID/GID the app runs as inside the container — matters when KOSMOS_LIBRARY_PATH is a
+      # bind mount, so files it creates are owned by a real host user instead of the image's
+      # baked-in default (185:0).
+      PUID: ${PUID:-185}
+      PGID: ${PGID:-0}
+      # Real TMDB metadata search needs this; the app still starts and runs without it.
+      KOSMOS_METADATA_TMDB_API_KEY: ${KOSMOS_METADATA_TMDB_API_KEY:-}
+      # Optional — only needed for AniDB hash-based anime identification.
+      KOSMOS_METADATA_ANIDB_USERNAME: ${KOSMOS_METADATA_ANIDB_USERNAME:-}
+      KOSMOS_METADATA_ANIDB_PASSWORD: ${KOSMOS_METADATA_ANIDB_PASSWORD:-}
     volumes:
-      - kosmos-library:/library
+      - ${KOSMOS_LIBRARY_PATH:-kosmos-library}:/library
     ports:
-      - "8080:8080"
+      - "${KOSMOS_PORT:-8080}:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/q/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 30s
 
 volumes:
   kosmos-db:

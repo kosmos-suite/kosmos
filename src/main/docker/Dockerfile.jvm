@@ -1,16 +1,11 @@
 ####
-# This Dockerfile is used in order to build a container that runs the Quarkus application in JVM mode
+# This Dockerfile is used in order to build a container that runs the Quarkus application in JVM mode.
 #
-# Before building the container image run:
-#
-# ./gradlew build
-#
-# Then, build the image with:
+# Self-contained multi-stage build — builds from source inside the image (Gradle, and Quinoa's own
+# self-managed Node.js for the React frontend), so a bare git clone with no local `./gradlew build`
+# step first is enough to produce a runnable image.
 #
 # docker build -f src/main/docker/Dockerfile.jvm -t quarkus/kosmos-jvm .
-#
-# Then run the container using:
-#
 # docker run -i --rm -p 8080:8080 quarkus/kosmos-jvm
 #
 # If you want to include the debug port into your docker image
@@ -80,6 +75,21 @@
 # You can find more information about the UBI base runtime images and their configuration here:
 # https://rh-openjdk.github.io/redhat-openjdk-containers/
 ###
+FROM registry.access.redhat.com/ubi9/openjdk-21:1.24 AS build
+
+# Under /home/default rather than a fresh top-level directory — the image's default non-root user
+# (185) can't create new directories directly under /, only under paths it already owns.
+WORKDIR /home/default/workspace
+
+# Copy just the files Gradle needs to resolve dependencies first, so that layer is reused on
+# rebuilds where only src/ changed underneath it.
+COPY --chown=185 gradlew gradlew.bat build.gradle.kts settings.gradle.kts gradle.properties ./
+COPY --chown=185 gradle ./gradle
+RUN ./gradlew --no-daemon help
+
+COPY --chown=185 src ./src
+RUN ./gradlew --no-daemon build -x test
+
 FROM registry.access.redhat.com/ubi9/openjdk-21-runtime:1.24
 
 ENV LANGUAGE='en_US:en'
@@ -105,19 +115,23 @@ RUN set -eux; \
 
 # Pre-create the library mount point owned by the app's non-root user (185) — a fresh named
 # volume mounted over an empty/nonexistent path is created root-owned by the container runtime,
-# and library/ImportService can't write into that as UID 185.
+# and library/ImportService can't write into that as UID 185. This is just the build-time
+# default; entrypoint.sh re-chowns it at container start to whatever PUID/PGID is configured.
 RUN mkdir -p /library && chown 185:0 /library
 
+COPY --chmod=0755 src/main/docker/entrypoint.sh /opt/kosmos/entrypoint.sh
+
 # We make four distinct layers so if there are application changes the library layers can be re-used
-COPY --chown=185 build/quarkus-app/lib/ /deployments/lib/
-COPY --chown=185 build/quarkus-app/*.jar /deployments/
-COPY --chown=185 build/quarkus-app/app/ /deployments/app/
-COPY --chown=185 build/quarkus-app/quarkus/ /deployments/quarkus/
+COPY --from=build --chown=185 /home/default/workspace/build/quarkus-app/lib/ /deployments/lib/
+COPY --from=build --chown=185 /home/default/workspace/build/quarkus-app/*.jar /deployments/
+COPY --from=build --chown=185 /home/default/workspace/build/quarkus-app/app/ /deployments/app/
+COPY --from=build --chown=185 /home/default/workspace/build/quarkus-app/quarkus/ /deployments/quarkus/
 
 EXPOSE 8080
-USER 185
 ENV JAVA_OPTS_APPEND="-Dquarkus.http.host=0.0.0.0 -Djava.util.logging.manager=org.jboss.logmanager.LogManager"
 ENV JAVA_APP_JAR="/deployments/quarkus-run.jar"
 
-ENTRYPOINT [ "/opt/jboss/container/java/run/run-java.sh" ]
+# Stays root here on purpose — entrypoint.sh chowns the /library mount to PUID:PGID (default
+# 185:0, matching the previous fixed non-root user) and drops privileges before exec'ing Java.
+ENTRYPOINT [ "/opt/kosmos/entrypoint.sh" ]
 

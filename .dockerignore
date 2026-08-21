@@ -1,5 +1,14 @@
-*
-!build/*-runner
-!build/*-runner.jar
-!build/lib/*
-!build/quarkus-app/*
+# The build stage compiles from source inside the image, so unlike a "copy pre-built output"
+# Dockerfile, this needs to allow real source through rather than allowlisting build artifacts.
+.git/
+.gradle/
+build/
+bin/
+.vscode/
+.idea/
+.devdata/
+.env
+*.db
+*.db-journal
+src/main/webui/node_modules/
+src/main/webui/dist/

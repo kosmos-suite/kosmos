@@ -26,6 +26,7 @@ dependencies {
     implementation("io.quarkus:quarkus-arc")
     implementation("io.quarkus:quarkus-hibernate-orm")
     implementation("io.quarkus:quarkus-elytron-security-common")
+    implementation("io.quarkus:quarkus-smallrye-health")
 
     // TODO: no SQLite datasource extension currently supports this Quarkus version.
     // io.quarkiverse.jdbc:quarkus-jdbc-sqlite is capped at 3.0.11, built against Quarkus
@@ -35,7 +36,7 @@ dependencies {
     implementation("io.quarkiverse.quinoa:quarkus-quinoa:2.9.0")
 
     // No published Quarkus extension wraps Chicory; used as a plain library, wired up
-    // manually in metadata/host/.
+    // manually in plugins/.
     implementation("com.dylibso.chicory:runtime:1.4.0")
     implementation("com.dylibso.chicory:wasm:1.4.0")
     implementation("com.dylibso.chicory:wasi:1.4.0")
