@@ -46,6 +46,11 @@ public class AutomaticSearchJob implements JobHandler {
   }
 
   @Override
+  public String displayName() {
+    return "Movie Automatic Search";
+  }
+
+  @Override
   public int defaultIntervalSeconds() {
     return 21600; // 6 hours
   }

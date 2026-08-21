@@ -7,8 +7,10 @@ import java.util.UUID;
 public record ScheduledJobResponse(
     UUID id,
     String name,
+    String displayName,
     int intervalSeconds,
     boolean enabled,
+    boolean running,
     Instant lastRunAt,
     String lastStatus,
     String lastMessage) {
@@ -17,8 +19,10 @@ public record ScheduledJobResponse(
     return new ScheduledJobResponse(
         job.id,
         job.name,
+        job.displayName,
         job.intervalSeconds,
         job.enabled,
+        job.runningSince != null,
         job.lastRunAt,
         job.lastStatus,
         job.lastMessage);

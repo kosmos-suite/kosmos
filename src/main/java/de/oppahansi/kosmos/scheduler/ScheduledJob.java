@@ -14,11 +14,21 @@ public class ScheduledJob extends KosmosEntity {
   @Column(nullable = false, unique = true, length = 100)
   public String name;
 
+  @Column(name = "display_name", nullable = false, length = 200)
+  public String displayName;
+
   @Column(name = "interval_seconds", nullable = false)
   public int intervalSeconds;
 
   @Column(nullable = false)
   public boolean enabled;
+
+  /**
+   * Set for the duration of a run — see {@link JobRunner} for why this is its own committed
+   * transaction rather than a flag checked within the run's own transaction. Null when idle.
+   */
+  @Column(name = "running_since")
+  public Instant runningSince;
 
   @Column(name = "last_run_at")
   public Instant lastRunAt;
@@ -30,6 +40,8 @@ public class ScheduledJob extends KosmosEntity {
   public String lastMessage;
 
   public boolean isDue(Instant now) {
-    return enabled && (lastRunAt == null || lastRunAt.plusSeconds(intervalSeconds).isBefore(now));
+    return enabled
+        && runningSince == null
+        && (lastRunAt == null || lastRunAt.plusSeconds(intervalSeconds).isBefore(now));
   }
 }

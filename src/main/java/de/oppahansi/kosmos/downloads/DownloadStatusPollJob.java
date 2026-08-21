@@ -29,6 +29,11 @@ public class DownloadStatusPollJob implements JobHandler {
   }
 
   @Override
+  public String displayName() {
+    return "Download Status Poll";
+  }
+
+  @Override
   public int defaultIntervalSeconds() {
     return 30;
   }

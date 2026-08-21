@@ -9,6 +9,9 @@ public interface JobHandler {
   /** Must match the {@link ScheduledJob#name} row this handler runs for. */
   String jobName();
 
+  /** Human-readable label for the jobs settings page and failure notifications. */
+  String displayName();
+
   /** Used only to seed the {@link ScheduledJob} row the first time this handler is seen. */
   int defaultIntervalSeconds();
 

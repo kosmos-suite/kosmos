@@ -50,6 +50,11 @@ public class AnimeAutomaticSearchJob implements JobHandler {
   }
 
   @Override
+  public String displayName() {
+    return "Anime Automatic Search";
+  }
+
+  @Override
   public int defaultIntervalSeconds() {
     return 21600; // 6 hours, same cadence as the movie/TV jobs
   }

@@ -215,8 +215,13 @@ CREATE TABLE grab (
 CREATE TABLE scheduled_job (
     id                VARCHAR(36) PRIMARY KEY,
     name              VARCHAR(100) NOT NULL UNIQUE,
+    display_name      VARCHAR(200) NOT NULL,
     interval_seconds  INTEGER NOT NULL,
     enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+    -- set for the duration of a run, so a concurrent tick can see "already running" the instant
+    -- a job is claimed rather than only after the whole run (including its own external HTTP
+    -- calls) commits. Null when idle.
+    running_since     TIMESTAMP,
     last_run_at       TIMESTAMP,
     last_status       VARCHAR(20),
     last_message      VARCHAR(1000)

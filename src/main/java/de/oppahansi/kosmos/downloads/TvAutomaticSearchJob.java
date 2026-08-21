@@ -47,6 +47,11 @@ public class TvAutomaticSearchJob implements JobHandler {
   }
 
   @Override
+  public String displayName() {
+    return "TV Automatic Search";
+  }
+
+  @Override
   public int defaultIntervalSeconds() {
     return 21600; // 6 hours, same cadence as the movie job
   }
