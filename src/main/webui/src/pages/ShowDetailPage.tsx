@@ -13,6 +13,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
 import { useApi } from "../hooks/useApi";
+import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import type { Episode, EpisodeStatus, Season } from "../api/types";
 
 const EPISODE_STATUS_DOT: Record<EpisodeStatus, string> = {
@@ -54,17 +55,28 @@ export default function ShowDetailPage() {
     }
   }
 
-  const posterSrc = posterUrl(show.posterPath, "w500");
+  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
+    posterUrl(show.posterPath, "w500"),
+    show.id,
+    "poster",
+  );
+  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
+    backdropUrl(show.backdropPath),
+    show.id,
+    "backdrop",
+  );
 
   return (
     <div>
+      {backdropProbe}
+      {posterProbe}
       <section
         className="detail-hero"
         style={
-          show.backdropPath
+          backdropArt
             ? {
                 height: 220,
-                backgroundImage: `url(${backdropUrl(show.backdropPath)})`,
+                backgroundImage: `url(${backdropArt})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }

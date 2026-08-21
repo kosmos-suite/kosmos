@@ -20,6 +20,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
 import { useApi } from "../hooks/useApi";
+import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import {
   cast,
   certification,
@@ -88,7 +89,16 @@ export default function MovieDetailPage() {
     }
   }
 
-  const posterSrc = posterUrl(movie.posterPath, "w500");
+  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
+    posterUrl(movie.posterPath, "w500"),
+    movie.id,
+    "poster",
+  );
+  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
+    backdropUrl(movie.backdropPath),
+    movie.id,
+    "backdrop",
+  );
 
   const scrollSimilar = (dir: 1 | -1) => {
     const el = similarRowRef.current;
@@ -97,12 +107,14 @@ export default function MovieDetailPage() {
 
   return (
     <div>
+      {backdropProbe}
+      {posterProbe}
       <section
         className="detail-hero"
         style={
-          movie.backdropPath
+          backdropArt
             ? {
-                backgroundImage: `url(${backdropUrl(movie.backdropPath)})`,
+                backgroundImage: `url(${backdropArt})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }

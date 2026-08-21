@@ -36,7 +36,6 @@ public class ImportService {
       Set.of("mp4", "mkv", "avi", "mov", "m4v", "ts", "wmv", "flv", "webm");
   private static final long SAMPLE_SIZE_THRESHOLD_BYTES = 50L * 1024 * 1024;
   private static final Pattern SAMPLE_NAME = Pattern.compile("(?i)\\bsample\\b");
-  private static final Pattern ILLEGAL_FILENAME_CHARS = Pattern.compile("[\\\\/:*?\"<>|]");
 
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ProbeService probeService;
@@ -245,7 +244,7 @@ public class ImportService {
   }
 
   private String titleYear(String title, Integer year) {
-    return sanitize(title) + " (" + year + ")";
+    return LibraryPathNaming.titleYear(title, year);
   }
 
   private String pad2(int number) {
@@ -259,7 +258,7 @@ public class ImportService {
   }
 
   private String sanitize(String name) {
-    return ILLEGAL_FILENAME_CHARS.matcher(name).replaceAll("").trim();
+    return LibraryPathNaming.sanitize(name);
   }
 
   /**

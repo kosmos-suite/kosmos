@@ -12,6 +12,7 @@ import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
 import { useApi } from "../hooks/useApi";
+import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import type { AnimeEpisode, EpisodeStatus } from "../api/types";
 
 const EPISODE_STATUS_DOT: Record<EpisodeStatus, string> = {
@@ -52,17 +53,28 @@ export default function AnimeDetailPage() {
     }
   }
 
-  const posterSrc = posterUrl(anime.posterPath, "w500");
+  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
+    posterUrl(anime.posterPath, "w500"),
+    anime.id,
+    "poster",
+  );
+  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
+    backdropUrl(anime.backdropPath),
+    anime.id,
+    "backdrop",
+  );
 
   return (
     <div>
+      {backdropProbe}
+      {posterProbe}
       <section
         className="detail-hero"
         style={
-          anime.backdropPath
+          backdropArt
             ? {
                 height: 220,
-                backgroundImage: `url(${backdropUrl(anime.backdropPath)})`,
+                backgroundImage: `url(${backdropArt})`,
                 backgroundSize: "cover",
                 backgroundPosition: "center",
               }

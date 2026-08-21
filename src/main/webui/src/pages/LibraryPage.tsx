@@ -99,13 +99,22 @@ function LibraryGridCard({ item }: { item: LibraryItem }) {
   const isMissing = item.status === "missing";
   const isDownloading = item.status === "downloading";
   const meta = STATUS_META[item.status];
-  const src = posterUrl(item.posterPath);
+  const [localFailed, setLocalFailed] = useState(false);
+  const tmdbSrc = posterUrl(item.posterPath);
+  const localSrc = !tmdbSrc && !localFailed ? `/api/media-items/${item.id}/local-poster` : null;
+  const src = tmdbSrc ?? localSrc;
 
   return (
     <Link to={`/movies/${item.id}`} className="movie-card">
       <div className={`movie-card-art${isMissing ? " missing" : ""}`}>
         {src ? (
-          <img className="movie-card-poster" src={src} alt="" loading="lazy" />
+          <img
+            className="movie-card-poster"
+            src={src}
+            alt=""
+            loading="lazy"
+            onError={localSrc ? () => setLocalFailed(true) : undefined}
+          />
         ) : (
           <div className="movie-card-placeholder" style={{ background: tonalGradient(item.tone) }}>
             <FilmStrip size={28} />
