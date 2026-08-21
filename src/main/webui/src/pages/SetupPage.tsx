@@ -94,8 +94,8 @@ interface TestMsg {
 
 function testMsg(state: TestState, okText: string, waitText: string, failText?: string): TestMsg {
   if (state === "testing") return { msg: "Contacting…", fg: "var(--text-muted)", icon: CircleNotch, spin: true };
-  if (state === "ok") return { msg: okText, fg: "#7fd6ac", icon: Check, spin: false };
-  if (state === "fail") return { msg: failText ?? "No response — check the value and try again", fg: "#ee9891", icon: X, spin: false };
+  if (state === "ok") return { msg: okText, fg: "var(--status-good-text)", icon: Check, spin: false };
+  if (state === "fail") return { msg: failText ?? "No response — check the value and try again", fg: "var(--status-bad-text)", icon: X, spin: false };
   return { msg: waitText, fg: "var(--text-disabled)", icon: PlugsConnected, spin: false };
 }
 
@@ -324,13 +324,13 @@ export default function SetupPage() {
   const m1 = checkingTmdb
     ? { msg: "Checking…", fg: "var(--text-muted)", icon: CircleNotch, spin: true }
     : !tmdbConfigured
-      ? { msg: "Not set — add KOSMOS_METADATA_TMDB_API_KEY and restart Kosmos", fg: "#ee9891", icon: X, spin: false }
+      ? { msg: "Not set — add KOSMOS_METADATA_TMDB_API_KEY and restart Kosmos", fg: "var(--status-bad-text)", icon: X, spin: false }
       : tmdbTestState === "testing"
         ? { msg: "Contacting TMDB…", fg: "var(--text-muted)", icon: CircleNotch, spin: true }
         : tmdbTestState === "ok"
-          ? { msg: "Key verified working", fg: "#7fd6ac", icon: Check, spin: false }
+          ? { msg: "Key verified working", fg: "var(--status-good-text)", icon: Check, spin: false }
           : tmdbTestState === "fail"
-            ? { msg: "Key rejected by TMDB — check the value", fg: "#ee9891", icon: X, spin: false }
+            ? { msg: "Key rejected by TMDB — check the value", fg: "var(--status-bad-text)", icon: X, spin: false }
             : { msg: "Key detected — not verified yet", fg: "var(--status-warn)", icon: Warning, spin: false };
   const m2 = testMsg(tests.indexer, indexerMode === "prowlarr" ? (prowlarrResultMsg ?? "Imported") : "Saved — Kosmos will search this indexer", "We'll save it to Settings → Indexers", failMsg.indexer);
   const m3 = testMsg(tests["download-client"], "Saved — Kosmos will send grabs here", "We'll save it to Settings → Download Clients", failMsg["download-client"]);
@@ -594,7 +594,7 @@ export default function SetupPage() {
                   </span>
                 </div>
                 {indexerTestResult && (
-                  <p style={{ fontSize: 11.5, marginTop: 6, color: indexerTestResult.ok ? "#7fd6ac" : "#ee9891" }}>
+                  <p style={{ fontSize: 11.5, marginTop: 6, color: indexerTestResult.ok ? "var(--status-good-text)" : "var(--status-bad-text)" }}>
                     {indexerTestResult.msg}
                   </p>
                 )}
@@ -654,7 +654,7 @@ export default function SetupPage() {
                   </span>
                 </div>
                 {prowlarrTestResult && (
-                  <p style={{ fontSize: 11.5, marginTop: 6, color: prowlarrTestResult.ok ? "#7fd6ac" : "#ee9891" }}>
+                  <p style={{ fontSize: 11.5, marginTop: 6, color: prowlarrTestResult.ok ? "var(--status-good-text)" : "var(--status-bad-text)" }}>
                     {prowlarrTestResult.msg}
                   </p>
                 )}
@@ -685,7 +685,7 @@ export default function SetupPage() {
                   marginBottom: 18,
                 }}
               >
-                <Warning size={16} color="#ee9891" style={{ flex: "none", marginTop: 1 }} />
+                <Warning size={16} color="var(--status-bad-text)" style={{ flex: "none", marginTop: 1 }} />
                 <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--text-secondary)" }}>
                   Torrent traffic is visible to your ISP and to anyone else in the swarm — your IP address is exposed
                   to every peer you exchange data with. Downloading copyrighted content this way can carry legal risk
@@ -772,7 +772,7 @@ export default function SetupPage() {
                 </span>
               </div>
               {downloadTestResult && (
-                <p style={{ fontSize: 11.5, marginTop: 6, color: downloadTestResult.ok ? "#7fd6ac" : "#ee9891" }}>
+                <p style={{ fontSize: 11.5, marginTop: 6, color: downloadTestResult.ok ? "var(--status-good-text)" : "var(--status-bad-text)" }}>
                   {downloadTestResult.msg}
                 </p>
               )}
@@ -844,7 +844,7 @@ export default function SetupPage() {
 
         {step === "done" && (
           <div className="setup-step">
-            <span style={{ display: "grid", placeItems: "center", width: 52, height: 52, borderRadius: 16, background: "rgba(79,191,139,.13)", border: "1px solid rgba(79,191,139,.3)", color: "#7fd6ac", marginBottom: 26 }}>
+            <span style={{ display: "grid", placeItems: "center", width: 52, height: 52, borderRadius: 16, background: "rgba(79,191,139,.13)", border: "1px solid rgba(79,191,139,.3)", color: "var(--status-good-text)", marginBottom: 26 }}>
               <Check size={25} />
             </span>
             <h1 style={{ fontSize: 32, letterSpacing: "-0.03em", marginBottom: 13 }}>Kosmos is ready.</h1>
@@ -859,7 +859,7 @@ export default function SetupPage() {
                     className="setup-summary-icon"
                     style={{
                       background: row.ok ? "rgba(79,191,139,.16)" : "rgba(233,233,237,.07)",
-                      color: row.ok ? "#7fd6ac" : "var(--text-faint)",
+                      color: row.ok ? "var(--status-good-text)" : "var(--text-faint)",
                     }}
                   >
                     {row.ok ? <Check size={12} /> : <Minus size={12} />}

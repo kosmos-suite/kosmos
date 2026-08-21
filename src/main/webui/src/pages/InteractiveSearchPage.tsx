@@ -84,8 +84,8 @@ function signal(seeders: number) {
 
 function scoreTone(passes: boolean, dim: boolean): { bg: string; fg: string } {
   if (dim) return { bg: "rgba(233,233,237,.05)", fg: "#75798C" };
-  if (passes) return { bg: "rgba(79,191,139,.16)", fg: "#7FD6AC" };
-  return { bg: "rgba(224,169,74,.16)", fg: "#EBC182" };
+  if (passes) return { bg: "rgba(79,191,139,.16)", fg: "var(--status-good-text)" };
+  return { bg: "rgba(224,169,74,.16)", fg: "var(--status-warn-text)" };
 }
 
 interface ReleaseRowProps {
@@ -138,7 +138,7 @@ function ReleaseRow({ release: r, dim, grabState, onGrab }: ReleaseRowProps) {
               style={{
                 background: "rgba(224,169,74,.1)",
                 border: "1px solid rgba(224,169,74,.22)",
-                color: "#EBC182",
+                color: "var(--status-warn-text)",
               }}
             >
               <Warning size={11} />
@@ -173,7 +173,7 @@ function ReleaseRow({ release: r, dim, grabState, onGrab }: ReleaseRowProps) {
                     borderRadius: 5,
                     background: m.score >= 0 ? "rgba(79,191,139,.12)" : "rgba(224,104,95,.12)",
                     border: `1px solid ${m.score >= 0 ? "rgba(79,191,139,.28)" : "rgba(224,104,95,.28)"}`,
-                    color: m.score >= 0 ? "#7FD6AC" : "#EE9891",
+                    color: m.score >= 0 ? "var(--status-good-text)" : "var(--status-bad-text)",
                   }}
                 >
                   {m.score >= 0 ? <Check size={10} /> : <XCircle size={10} />}
@@ -209,7 +209,7 @@ function ReleaseRow({ release: r, dim, grabState, onGrab }: ReleaseRowProps) {
         style={{
           background: grabState === "grabbed" ? "rgba(79,191,139,.16)" : grabState === "sending" ? "rgba(145,132,217,.2)" : dim ? "transparent" : "var(--accent-gradient)",
           border: grabState === "grabbed" ? "1px solid rgba(79,191,139,.3)" : dim && grabState === "idle" ? "1px solid var(--border-strong)" : "0",
-          color: grabState === "grabbed" ? "#7FD6AC" : grabState === "sending" ? "#D2CEFD" : dim ? "var(--text-secondary)" : "#0B0C12",
+          color: grabState === "grabbed" ? "var(--status-good-text)" : grabState === "sending" ? "#D2CEFD" : dim ? "var(--text-secondary)" : "#0B0C12",
           cursor: btnDisabled ? "default" : "pointer",
         }}
       >
@@ -473,7 +473,7 @@ export default function InteractiveSearchPage() {
                       }}
                     >
                       <span style={{ flex: 1 }}>{label}</span>
-                      {sort === label && <Check size={13} color="#B5ABFC" />}
+                      {sort === label && <Check size={13} color="var(--accent-tint)" />}
                     </div>
                   ))}
                 </div>
@@ -481,7 +481,7 @@ export default function InteractiveSearchPage() {
             </div>
 
             <div style={{ flex: 1 }} />
-            <span className="count-indicator" style={{ color: "#7FD6AC" }}>
+            <span className="count-indicator" style={{ color: "var(--status-good-text)" }}>
               <span className="dot" style={{ background: "var(--status-good)" }} />
               {passRows.length} qualifying
             </span>

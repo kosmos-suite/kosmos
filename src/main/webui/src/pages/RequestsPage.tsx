@@ -227,7 +227,7 @@ export default function RequestsPage() {
 
             {declining && (
               <div className="decline-panel">
-                <span style={{ fontSize: 11.5, fontWeight: 500, color: "#ee9891", flex: "none" }}>Reason</span>
+                <span style={{ fontSize: 11.5, fontWeight: 500, color: "var(--status-bad-text)", flex: "none" }}>Reason</span>
                 <span className="text-faint" style={{ fontSize: 11, flex: "none" }}>
                   optional
                 </span>
@@ -253,7 +253,7 @@ export default function RequestsPage() {
                   type="button"
                   className="btn"
                   disabled={busyId === request.id}
-                  style={{ background: "rgba(224,104,95,.18)", border: "1px solid rgba(224,104,95,.34)", color: "#ee9891" }}
+                  style={{ background: "rgba(224,104,95,.18)", border: "1px solid rgba(224,104,95,.34)", color: "var(--status-bad-text)" }}
                   onClick={() => confirmDecline(request)}
                 >
                   Decline request
@@ -324,7 +324,7 @@ export default function RequestsPage() {
                   boxShadow: "0 16px 36px rgba(0,0,0,.5)",
                 }}
               >
-                <PaperPlaneTilt size={22} color="#b5abfc" />
+                <PaperPlaneTilt size={22} color="var(--accent-tint)" />
               </div>
             </div>
             <div className="empty-state-title">{emptyCopy.title}</div>
@@ -349,7 +349,7 @@ export default function RequestsPage() {
             className="toast-icon"
             style={{
               background: toast.kind === "ok" ? "rgba(79,191,139,.18)" : "rgba(224,104,95,.18)",
-              color: toast.kind === "ok" ? "#7fd6ac" : "#ee9891",
+              color: toast.kind === "ok" ? "var(--status-good-text)" : "var(--status-bad-text)",
             }}
           >
             {toast.kind === "ok" ? <Check size={12} /> : <Prohibit size={12} />}

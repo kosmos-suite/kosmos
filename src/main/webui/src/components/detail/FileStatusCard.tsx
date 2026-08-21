@@ -50,7 +50,7 @@ export function FileStatusCard({
       <div className="info-card">
         <div className="info-card-header">
           <span className="dot dot-good" />
-          <span style={{ fontWeight: 500, fontSize: 13.5, color: "#8FCB9B" }}>In library — file on disk</span>
+          <span style={{ fontWeight: 500, fontSize: 13.5, color: "var(--status-good-text)" }}>In library — file on disk</span>
           <div style={{ flex: 1 }} />
           <span className="text-faint" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
             imported {relativeDays(file.importedAt)}
@@ -93,7 +93,7 @@ export function FileStatusCard({
     <div className="info-card bad">
       <div className="info-card-header">
         <span className="dot dot-bad" />
-        <span style={{ fontWeight: 500, fontSize: 13.5, color: "#EE9891" }}>Missing — no file on disk</span>
+        <span style={{ fontWeight: 500, fontSize: 13.5, color: "var(--status-bad-text)" }}>Missing — no file on disk</span>
         <div style={{ flex: 1 }} />
         <span className="text-faint" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
           added {relativeDays(addedAt)}

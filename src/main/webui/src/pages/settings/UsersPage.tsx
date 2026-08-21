@@ -118,7 +118,7 @@ export default function UsersPage() {
 
       {toast && (
         <div className="toast">
-          <span className="toast-icon" style={{ background: "rgba(79,191,139,.18)", color: "#7fd6ac" }}>
+          <span className="toast-icon" style={{ background: "rgba(79,191,139,.18)", color: "var(--status-good-text)" }}>
             <UserPlus size={12} />
           </span>
           <span style={{ fontSize: 12.5 }}>{toast}</span>

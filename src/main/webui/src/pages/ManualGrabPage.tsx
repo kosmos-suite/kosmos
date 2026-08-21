@@ -276,7 +276,7 @@ export default function ManualGrabPage() {
                             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, fontWeight: active ? 500 : 400, color: active ? "var(--text)" : "var(--text-secondary)" }}>
                               {c.name}
                             </span>
-                            {active && <Check size={12} color="#B5ABFC" />}
+                            {active && <Check size={12} color="var(--accent-tint)" />}
                           </div>
                         );
                       })}

@@ -33,10 +33,10 @@ function relativeTime(iso: string | null): string {
 }
 
 const EVENT_META: Record<HistoryEventKind, { icon: typeof Check; bgClass: string; fgVar: string }> = {
-  done: { icon: Check, bgClass: "", fgVar: "#7FD6AC" },
-  upgrade: { icon: ArrowFatLineUp, bgClass: "", fgVar: "#C3BAFB" },
-  grab: { icon: ArrowDown, bgClass: "", fgVar: "#EBC182" },
-  fail: { icon: X, bgClass: "", fgVar: "#EE9891" },
+  done: { icon: Check, bgClass: "", fgVar: "var(--status-good-text)" },
+  upgrade: { icon: ArrowFatLineUp, bgClass: "", fgVar: "var(--accent-tint)" },
+  grab: { icon: ArrowDown, bgClass: "", fgVar: "var(--status-warn-text)" },
+  fail: { icon: X, bgClass: "", fgVar: "var(--status-bad-text)" },
 };
 const EVENT_BG: Record<HistoryEventKind, string> = {
   done: "rgba(79,191,139,.14)",
@@ -162,7 +162,7 @@ export default function ActivityPage() {
                   className="history-row-icon"
                   style={{
                     background: job.lastStatus === "FAILED" ? "rgba(224,104,95,.14)" : "rgba(79,191,139,.14)",
-                    color: job.lastStatus === "FAILED" ? "#EE9891" : "#7FD6AC",
+                    color: job.lastStatus === "FAILED" ? "var(--status-bad-text)" : "var(--status-good-text)",
                   }}
                 >
                   <Check size={14} />
@@ -234,7 +234,7 @@ export default function ActivityPage() {
                         fontWeight: 600,
                         letterSpacing: "0.08em",
                         textTransform: "uppercase",
-                        color: paused ? "var(--text-muted)" : "#EBC182",
+                        color: paused ? "var(--text-muted)" : "var(--status-warn-text)",
                       }}
                     >
                       <span className={`dot${paused ? "" : " pulsing"}`} style={{ background: paused ? "var(--text-disabled)" : "#E0A94A" }} />
@@ -316,7 +316,7 @@ export default function ActivityPage() {
                   background: "rgba(145,132,217,.07)",
                 }}
               />
-              <ArrowDown size={26} color="#B5ABFC" style={{ position: "relative" }} />
+              <ArrowDown size={26} color="var(--accent-tint)" style={{ position: "relative" }} />
             </div>
             <div className="empty-state-title">Nothing downloading right now</div>
             <p className="empty-state-body">

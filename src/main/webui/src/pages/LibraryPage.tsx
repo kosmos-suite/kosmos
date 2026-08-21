@@ -243,7 +243,7 @@ function EmptyLibrary() {
               boxShadow: "0 16px 36px rgba(0,0,0,.5)",
             }}
           >
-            <Planet size={22} color="#b5abfc" />
+            <Planet size={22} color="var(--accent-tint)" />
           </div>
         </div>
         <div className="empty-state-title">Your library is empty</div>

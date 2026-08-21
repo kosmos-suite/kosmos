@@ -42,13 +42,13 @@ export function QualityProfileDropdown({
           <div className={`grab-client-item${!activeProfile ? " active" : ""}`} onClick={() => select(null)}>
             <EyeSlash size={14} className="text-muted" />
             <span style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>Not monitored</span>
-            {!activeProfile && <Check size={12} color="#B5ABFC" />}
+            {!activeProfile && <Check size={12} color="var(--accent-tint)" />}
           </div>
           {profiles?.map((p) => (
             <div key={p.id} className={`grab-client-item${p.id === activeProfile?.id ? " active" : ""}`} onClick={() => select(p.id)}>
               <Eye size={14} className="text-muted" />
               <span style={{ flex: 1, minWidth: 0, fontSize: 12.5 }}>{p.name}</span>
-              {p.id === activeProfile?.id && <Check size={12} color="#B5ABFC" />}
+              {p.id === activeProfile?.id && <Check size={12} color="var(--accent-tint)" />}
             </div>
           ))}
         </div>

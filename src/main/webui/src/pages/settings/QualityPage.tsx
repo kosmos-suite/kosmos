@@ -232,7 +232,7 @@ export default function QualityPage() {
                 <span style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <span style={{ flex: 1 }}>{p.name}</span>
                   <span
-                    style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: active ? "#c3bafb" : "var(--text-disabled)" }}
+                    style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: active ? "var(--accent-tint)" : "var(--text-disabled)" }}
                   >
                     ≥{p.cutoffScore}
                   </span>
@@ -389,7 +389,7 @@ export default function QualityPage() {
                       )}
                     </div>
                     <span
-                      style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: 12.5, textAlign: "right", color: f.score > 0 ? "var(--status-good)" : "#ee9891" }}
+                      style={{ fontFamily: "var(--font-mono)", fontWeight: 500, fontSize: 12.5, textAlign: "right", color: f.score > 0 ? "var(--status-good)" : "var(--status-bad-text)" }}
                     >
                       {formatScore(f.score)}
                     </span>
@@ -511,7 +511,7 @@ export default function QualityPage() {
                   <span className="stepper-btn" onClick={() => setBuilder((b) => ({ ...b, score: Math.max(-1000, b.score - 5) }))}>
                     <Minus size={14} />
                   </span>
-                  <div className="stepper-value" style={{ color: builder.score > 0 ? "var(--status-good)" : builder.score === 0 ? "var(--text-muted)" : "#ee9891" }}>
+                  <div className="stepper-value" style={{ color: builder.score > 0 ? "var(--status-good)" : builder.score === 0 ? "var(--text-muted)" : "var(--status-bad-text)" }}>
                     {formatScore(builder.score)}
                   </div>
                   <span className="stepper-btn" onClick={() => setBuilder((b) => ({ ...b, score: Math.min(1000, b.score + 5) }))}>
