@@ -6,12 +6,14 @@ import {
   EyeIcon as Eye,
   EyeSlashIcon as EyeSlash,
   MagnifyingGlassIcon as MagnifyingGlass,
+  StarIcon as Star,
   TelevisionIcon as Television,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
+import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
 import { useApi } from "../hooks/useApi";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import type { Episode, EpisodeStatus, Season } from "../api/types";
@@ -33,9 +35,21 @@ export default function ShowDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: show, loading, error, reload } = useApi(() => api.getShow(id!), [id]);
   const { data: profiles } = useApi(() => api.listQualityProfiles(), []);
+  const { data: extras } = useApi(() => api.getShowDetailExtras(id!), [id]);
   const [openSeasonId, setOpenSeasonId] = useState<string | null>(null);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+
+  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
+    show ? posterUrl(show.posterPath, "w500") : null,
+    show?.id,
+    "poster",
+  );
+  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
+    show ? backdropUrl(show.backdropPath) : null,
+    show?.id,
+    "backdrop",
+  );
 
   if (loading) return <div className="page">Loading…</div>;
   if (error) return <div className="page text-muted">Failed to load: {error}</div>;
@@ -54,17 +68,6 @@ export default function ShowDetailPage() {
       setProfileSaving(false);
     }
   }
-
-  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
-    posterUrl(show.posterPath, "w500"),
-    show.id,
-    "poster",
-  );
-  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
-    backdropUrl(show.backdropPath),
-    show.id,
-    "backdrop",
-  );
 
   return (
     <div>
@@ -114,7 +117,32 @@ export default function ShowDetailPage() {
             <span>{show.seasons.length} season{show.seasons.length === 1 ? "" : "s"}</span>
             <span className="sep" />
             <span>{show.seasons.reduce((sum, s) => sum + s.episodes.length, 0)} episodes</span>
+            {extras?.certification && (
+              <>
+                <span className="sep" />
+                <span className="cert-badge">{extras.certification}</span>
+              </>
+            )}
+            {extras?.voteAverage != null && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Star size={12} weight="fill" color="#E0A94A" />
+                  {extras.voteAverage.toFixed(1)} <span className="text-ghost">TMDB</span>
+                </span>
+              </>
+            )}
           </div>
+
+          {extras && extras.genres.length > 0 && (
+            <div className="detail-genres">
+              {extras.genres.map((g) => (
+                <span key={g} className="genre-tag">
+                  {g}
+                </span>
+              ))}
+            </div>
+          )}
 
           {show.overview && (
             <p className="detail-synopsis" style={{ maxWidth: "70ch" }}>
@@ -168,7 +196,24 @@ export default function ShowDetailPage() {
         ))}
 
         {show.seasons.length === 0 && <p className="text-muted">No season data for this show.</p>}
+
+        {extras && extras.facts.length > 0 && (
+          <div style={{ maxWidth: 420, marginTop: 32 }}>
+            <div className="section-label">Details</div>
+            <div className="fact-list">
+              {extras.facts.map((f) => (
+                <div key={f.k} className="fact-list-row">
+                  <span className="k">{f.k}</span>
+                  <span className="v">{f.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      <CastRow cast={extras?.cast ?? []} />
+      <SimilarRow items={extras?.similar ?? []} />
     </div>
   );
 }

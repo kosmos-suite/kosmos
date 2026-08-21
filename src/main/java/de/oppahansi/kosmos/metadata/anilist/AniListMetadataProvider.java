@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.metadata.anilist;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.oppahansi.kosmos.metadata.MetadataProvider;
+import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -11,6 +12,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,6 +57,35 @@ public class AniListMetadataProvider implements MetadataProvider {
           coverImage { large }
           status
           episodes
+        }
+      }
+      """;
+
+  private static final String DETAIL_EXTRAS_QUERY =
+      """
+      query ($id: Int) {
+        Media(id: $id, type: ANIME) {
+          id
+          title { romaji english }
+          startDate { year }
+          description(asHtml: false)
+          coverImage { large }
+          status
+          episodes
+          genres
+          averageScore
+          studios(isMain: true) { nodes { name } }
+          recommendations(sort: RATING_DESC, perPage: 10) {
+            nodes {
+              mediaRecommendation {
+                id
+                title { romaji english }
+                startDate { year }
+                description(asHtml: false)
+                coverImage { large }
+              }
+            }
+          }
         }
       }
       """;
@@ -104,6 +135,54 @@ public class AniListMetadataProvider implements MetadataProvider {
             poster(media),
             media.status(),
             media.episodes()));
+  }
+
+  /**
+   * Genres, studio, average score, and recommendations for the anime detail page — AniList has no
+   * per-title cast/voice-actor query cheap enough to bother with here, so {@code
+   * MediaDetailExtras.cast()} is always empty for anime.
+   */
+  @CacheResult(cacheName = "anilist-detail-extras")
+  public Optional<MediaDetailExtras> fetchDetailExtras(String externalId) {
+    AniListMediaResponse response =
+        post(
+            DETAIL_EXTRAS_QUERY,
+            Map.of("id", Integer.valueOf(externalId)),
+            AniListMediaResponse.class);
+    AniListMedia media = response.data() != null ? response.data().Media() : null;
+    if (media == null) {
+      return Optional.empty();
+    }
+
+    List<String> genres = media.genres() != null ? media.genres() : List.of();
+    String studio =
+        media.studios() != null
+                && media.studios().nodes() != null
+                && !media.studios().nodes().isEmpty()
+            ? media.studios().nodes().get(0).name()
+            : null;
+    List<MetadataSearchResult> similar =
+        media.recommendations() != null && media.recommendations().nodes() != null
+            ? media.recommendations().nodes().stream()
+                .map(AniListMedia.Recommendations.Node::mediaRecommendation)
+                .filter(m -> m != null)
+                .map(this::toSearchResult)
+                .toList()
+            : List.of();
+
+    List<MediaDetailExtras.Fact> facts = new ArrayList<>();
+    if (studio != null) facts.add(new MediaDetailExtras.Fact("Studio", studio));
+    if (media.startDate() != null && media.startDate().year() != null) {
+      facts.add(
+          new MediaDetailExtras.Fact("First Aired", String.valueOf(media.startDate().year())));
+    }
+    Double averageScore = media.averageScore() != null ? media.averageScore() / 10.0 : null;
+    if (averageScore != null) {
+      facts.add(new MediaDetailExtras.Fact("AniList", averageScore + " / 10"));
+    }
+
+    return Optional.of(
+        new MediaDetailExtras(genres, facts, averageScore, null, null, List.of(), similar));
   }
 
   private MetadataSearchResult toSearchResult(AniListMedia media) {

@@ -1,8 +1,6 @@
 import {
   ArrowLeftIcon as ArrowLeft,
   CaretDownIcon as CaretDown,
-  CaretLeftIcon as CaretLeft,
-  CaretRightIcon as CaretRight,
   CheckIcon as Check,
   DotsThreeIcon as DotsThree,
   EyeIcon as Eye,
@@ -10,25 +8,16 @@ import {
   InfoIcon as Info,
   ListMagnifyingGlassIcon as ListMagnifyingGlass,
   MagnifyingGlassIcon as MagnifyingGlass,
-  PlayIcon as Play,
   PlayCircleIcon as PlayCircle,
-  PlusIcon as Plus,
   StarIcon as Star,
 } from "@phosphor-icons/react";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
+import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
 import { useApi } from "../hooks/useApi";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
-import {
-  cast,
-  certification,
-  detailFacts,
-  genres,
-  similarTitles,
-  tmdbRating,
-} from "../mocks/movieDetailExtras";
 
 function formatBytes(bytes: number): string {
   return `${(bytes / 1024 ** 3).toFixed(2)} GB`;
@@ -55,20 +44,25 @@ function relativeDays(iso: string): string {
   return `${days} days ago`;
 }
 
-/**
- * Cast, similar titles, genres, and certification have no real backend source yet — TMDB's
- * credits/similar/details endpoints are never fetched, only search results are (see
- * mocks/movieDetailExtras.ts). Library status and file/probe facts below ARE real: they come
- * from GET /movies/{id}/library-files, now that a LibraryFile-to-Movie link exists.
- */
 export default function MovieDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: movie, loading, error, reload } = useApi(() => api.getMovie(id!), [id]);
   const { data: profiles } = useApi(() => api.listQualityProfiles(), []);
   const { data: libraryFiles } = useApi(() => api.listMovieLibraryFiles(id!), [id]);
-  const similarRowRef = useRef<HTMLDivElement>(null);
+  const { data: extras } = useApi(() => api.getMovieDetailExtras(id!), [id]);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+
+  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
+    movie ? posterUrl(movie.posterPath, "w500") : null,
+    movie?.id,
+    "poster",
+  );
+  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
+    movie ? backdropUrl(movie.backdropPath) : null,
+    movie?.id,
+    "backdrop",
+  );
 
   if (loading) return <div className="page">Loading…</div>;
   if (error) return <div className="page text-muted">Failed to load: {error}</div>;
@@ -89,21 +83,7 @@ export default function MovieDetailPage() {
     }
   }
 
-  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
-    posterUrl(movie.posterPath, "w500"),
-    movie.id,
-    "poster",
-  );
-  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
-    backdropUrl(movie.backdropPath),
-    movie.id,
-    "backdrop",
-  );
-
-  const scrollSimilar = (dir: 1 | -1) => {
-    const el = similarRowRef.current;
-    if (el) el.scrollBy({ left: dir * el.clientWidth * 0.8, behavior: "smooth" });
-  };
+  const director = extras?.facts.find((f) => f.k === "Director")?.v;
 
   return (
     <div>
@@ -157,24 +137,38 @@ export default function MovieDetailPage() {
             {movie.year && <span>{movie.year}</span>}
             <span className="sep" />
             <span>{movie.runtimeMinutes ? `${Math.floor(movie.runtimeMinutes / 60)}h ${movie.runtimeMinutes % 60}m` : "Runtime unknown"}</span>
-            <span className="sep" />
-            <span className="cert-badge">{certification}</span>
-            <span className="sep" />
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-              <Star size={12} weight="fill" color="#E0A94A" />
-              {tmdbRating} <span className="text-ghost">TMDB</span>
-            </span>
-            <span className="sep" />
-            <span>{detailFacts[0].v}</span>
+            {extras?.certification && (
+              <>
+                <span className="sep" />
+                <span className="cert-badge">{extras.certification}</span>
+              </>
+            )}
+            {extras?.voteAverage != null && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Star size={12} weight="fill" color="#E0A94A" />
+                  {extras.voteAverage.toFixed(1)} <span className="text-ghost">TMDB</span>
+                </span>
+              </>
+            )}
+            {director && (
+              <>
+                <span className="sep" />
+                <span>{director}</span>
+              </>
+            )}
           </div>
 
-          <div className="detail-genres">
-            {genres.map((g) => (
-              <span key={g} className="genre-tag">
-                {g}
-              </span>
-            ))}
-          </div>
+          {extras && extras.genres.length > 0 && (
+            <div className="detail-genres">
+              {extras.genres.map((g) => (
+                <span key={g} className="genre-tag">
+                  {g}
+                </span>
+              ))}
+            </div>
+          )}
 
           <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
@@ -301,91 +295,23 @@ export default function MovieDetailPage() {
             <div className="section-label">Synopsis</div>
             {movie.overview && <p className="detail-synopsis">{movie.overview}</p>}
           </div>
-          <div>
-            <div className="section-label">Details</div>
-            <div className="fact-list">
-              {detailFacts.map((f) => (
-                <div key={f.k} className="fact-list-row">
-                  <span className="k">{f.k}</span>
-                  <span className="v">{f.v}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="content-row">
-          <div className="content-row-header">
-            <h2>Cast</h2>
-            <span className="content-row-sub">top billed · 14 credited</span>
-            <div style={{ flex: 1 }} />
-            <span style={{ fontSize: 11.5, color: "var(--text-muted)", cursor: "pointer" }}>Full cast &amp; crew</span>
-          </div>
-          <div className="cast-row k-scroll">
-            {cast.map((p) => (
-              <div key={p.name} className="cast-item">
-                <div className="cast-avatar">
-                  <span>{p.initials}</span>
-                </div>
-                <div className="cast-name">{p.name}</div>
-                <div className="cast-role">{p.role}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="content-row" style={{ paddingBottom: 40 }}>
-          <div className="content-row-header">
-            <h2>More Like This</h2>
-            <span className="content-row-sub">TMDB similar · 9 titles</span>
-            <div style={{ flex: 1 }} />
-            <button type="button" className="row-scroll-btn" onClick={() => scrollSimilar(-1)}>
-              <CaretLeft size={15} />
-            </button>
-            <button type="button" className="row-scroll-btn" onClick={() => scrollSimilar(1)}>
-              <CaretRight size={15} />
-            </button>
-          </div>
-          <div className="poster-row k-scroll" ref={similarRowRef}>
-            {similarTitles.map((s) => {
-              const owned = s.status === "library";
-              return (
-                <div key={s.title} className="similar-card">
-                  <div className="similar-card-art">
-                    <div
-                      className="similar-card-badge"
-                      style={{
-                        background: s.status === "new" ? "rgba(145,132,217,.2)" : "rgba(11,12,18,.7)",
-                        border: `1px solid ${s.status === "new" ? "rgba(145,132,217,.42)" : "rgba(233,233,237,.1)"}`,
-                        color: s.status === "new" ? "#D2CEFD" : "#E9E9ED",
-                      }}
-                    >
-                      {s.status !== "new" && (
-                        <span className={`dot ${s.status === "library" ? "dot-good" : "dot-bad"}`} />
-                      )}
-                      {s.status === "library" ? "IN LIBRARY" : s.status === "missing" ? "MISSING" : "TMDB"}
-                    </div>
-                    <div className="similar-card-scrim" />
-                    <div className="similar-card-action">
-                      <span
-                        style={{
-                          background: owned ? "rgba(233,233,237,.16)" : "var(--accent-gradient)",
-                          color: owned ? "#E9E9ED" : "#0B0C12",
-                          border: owned ? "1px solid rgba(233,233,237,.14)" : "0",
-                        }}
-                      >
-                        {owned ? <Play size={13} weight="fill" /> : <Plus size={13} />}
-                        {owned ? "Play" : "Add"}
-                      </span>
-                    </div>
+          {extras && extras.facts.length > 0 && (
+            <div>
+              <div className="section-label">Details</div>
+              <div className="fact-list">
+                {extras.facts.map((f) => (
+                  <div key={f.k} className="fact-list-row">
+                    <span className="k">{f.k}</span>
+                    <span className="v">{f.v}</span>
                   </div>
-                  <div className="similar-card-title">{s.title}</div>
-                  <div className="similar-card-meta">{s.meta}</div>
-                </div>
-              );
-            })}
-          </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
+
+        <CastRow cast={extras?.cast ?? []} />
+        <SimilarRow items={extras?.similar ?? []} />
       </div>
     </div>
   );

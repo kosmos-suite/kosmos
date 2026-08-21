@@ -70,6 +70,16 @@ public class ShowResource {
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
+  /** Backs {@code ShowDetailPage}'s Cast/Details/More Like This sections. */
+  @GET
+  @Path("/{id}/detail-extras")
+  public Response detailExtras(@PathParam("id") UUID id) {
+    return showService
+        .detailExtras(id)
+        .map(extras -> Response.ok(extras).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
   private ShowDetailResponse toDetail(Show show) {
     List<Season> seasons = showService.seasonsFor(show.mediaItemId);
     Map<UUID, List<Episode>> episodesBySeason = new HashMap<>();

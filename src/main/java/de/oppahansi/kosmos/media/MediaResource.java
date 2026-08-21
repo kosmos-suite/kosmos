@@ -61,6 +61,16 @@ public class MediaResource {
         .toList();
   }
 
+  /** Backs {@code MovieDetailPage}'s Cast/Details/More Like This sections. */
+  @GET
+  @Path("/{id}/detail-extras")
+  public Response detailExtras(@PathParam("id") UUID id) {
+    return movieService
+        .detailExtras(id)
+        .map(extras -> Response.ok(extras).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
   @PUT
   @Path("/{id}/quality-profile")
   public Response updateQualityProfile(

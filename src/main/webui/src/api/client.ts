@@ -19,6 +19,7 @@ import type {
   LibraryContentType,
   LibraryRootFolder,
   LibraryStats,
+  MediaDetailExtras,
   MediaRequest,
   MetadataSearchResult,
   MetadataStatus,
@@ -103,6 +104,8 @@ export const api = {
     }),
 
   listMovieLibraryFiles: (id: string) => request<LibraryFile[]>(`/movies/${id}/library-files`),
+
+  getMovieDetailExtras: (id: string) => request<MediaDetailExtras>(`/movies/${id}/detail-extras`),
 
   libraryStats: () => request<LibraryStats>("/library/stats"),
 
@@ -217,6 +220,8 @@ export const api = {
 
   getShow: (id: string) => request<ShowDetail>(`/shows/${id}`),
 
+  getShowDetailExtras: (id: string) => request<MediaDetailExtras>(`/shows/${id}/detail-extras`),
+
   updateShowQualityProfile: (id: string, qualityProfileId: string | null) =>
     request<ShowDetail>(`/shows/${id}/quality-profile`, {
       method: "PUT",
@@ -240,6 +245,8 @@ export const api = {
   listAnime: () => request<Anime[]>("/anime"),
 
   getAnime: (id: string) => request<AnimeDetail>(`/anime/${id}`),
+
+  getAnimeDetailExtras: (id: string) => request<MediaDetailExtras>(`/anime/${id}/detail-extras`),
 
   updateAnimeQualityProfile: (id: string, qualityProfileId: string | null) =>
     request<AnimeDetail>(`/anime/${id}/quality-profile`, {

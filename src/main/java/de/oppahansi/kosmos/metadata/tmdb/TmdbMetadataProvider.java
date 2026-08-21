@@ -3,6 +3,7 @@ package de.oppahansi.kosmos.metadata.tmdb;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.oppahansi.kosmos.metadata.MetadataProvider;
+import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -544,6 +545,177 @@ public class TmdbMetadataProvider implements MetadataProvider {
     } catch (Exception e) {
       return Optional.empty();
     }
+  }
+
+  /**
+   * Cast, genres, certification, and recommendations for the movie detail page — one call via
+   * {@code append_to_response} rather than four separate ones ({@code /credits}, {@code
+   * /recommendations}, {@code /release_dates} each require their own request otherwise).
+   */
+  @CacheResult(cacheName = "tmdb-movie-detail-extras")
+  public Optional<MediaDetailExtras> fetchMovieDetailExtras(String tmdbId) {
+    if (apiKey.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(
+                  URI.create(
+                      MOVIE_URL
+                          + tmdbId
+                          + "?api_key="
+                          + apiKey.orElseThrow()
+                          + "&append_to_response=credits,recommendations,release_dates"))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        return Optional.empty();
+      }
+      TmdbMovieDetailFull d = objectMapper.readValue(response.body(), TmdbMovieDetailFull.class);
+      return Optional.of(toMovieExtras(d));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /** Show-detail counterpart to {@link #fetchMovieDetailExtras}. */
+  @CacheResult(cacheName = "tmdb-tv-detail-extras")
+  public Optional<MediaDetailExtras> fetchTvDetailExtras(String tmdbId) {
+    if (apiKey.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(
+                  URI.create(
+                      TV_URL
+                          + tmdbId
+                          + "?api_key="
+                          + apiKey.orElseThrow()
+                          + "&append_to_response=credits,recommendations,content_ratings"))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        return Optional.empty();
+      }
+      TmdbTvDetailFull d = objectMapper.readValue(response.body(), TmdbTvDetailFull.class);
+      return Optional.of(toTvExtras(d));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  private MediaDetailExtras toMovieExtras(TmdbMovieDetailFull d) {
+    List<String> genres =
+        d.genres() == null ? List.of() : d.genres().stream().map(TmdbGenre::name).toList();
+    String director =
+        d.credits() != null && d.credits().crew() != null
+            ? d.credits().crew().stream()
+                .filter(c -> "Director".equals(c.job()))
+                .map(TmdbCredits.Crew::name)
+                .findFirst()
+                .orElse(null)
+            : null;
+    String studio =
+        d.productionCompanies() != null && !d.productionCompanies().isEmpty()
+            ? d.productionCompanies().get(0).name()
+            : null;
+    String certification = usCertification(d.releaseDates());
+    List<MediaDetailExtras.CastMember> cast = castFrom(d.credits());
+    List<MetadataSearchResult> similar =
+        d.recommendations() != null && d.recommendations().results() != null
+            ? d.recommendations().results().stream().map(this::toSearchResult).toList()
+            : List.of();
+
+    List<MediaDetailExtras.Fact> facts = new ArrayList<>();
+    if (director != null) facts.add(new MediaDetailExtras.Fact("Director", director));
+    if (studio != null) facts.add(new MediaDetailExtras.Fact("Studio", studio));
+    if (d.releaseDate() != null && !d.releaseDate().isBlank()) {
+      facts.add(new MediaDetailExtras.Fact("Release", d.releaseDate()));
+    }
+    if (d.voteAverage() != null) {
+      facts.add(
+          new MediaDetailExtras.Fact(
+              "TMDB",
+              d.voteAverage() + (d.voteCount() != null ? " · " + d.voteCount() + " votes" : "")));
+    }
+    return new MediaDetailExtras(
+        genres, facts, d.voteAverage(), d.voteCount(), certification, cast, similar);
+  }
+
+  private MediaDetailExtras toTvExtras(TmdbTvDetailFull d) {
+    List<String> genres =
+        d.genres() == null ? List.of() : d.genres().stream().map(TmdbGenre::name).toList();
+    String creator =
+        d.createdBy() != null && !d.createdBy().isEmpty() ? d.createdBy().get(0).name() : null;
+    String network =
+        d.networks() != null && !d.networks().isEmpty() ? d.networks().get(0).name() : null;
+    String certification = usContentRating(d.contentRatings());
+    List<MediaDetailExtras.CastMember> cast = castFrom(d.credits());
+    List<MetadataSearchResult> similar =
+        d.recommendations() != null && d.recommendations().results() != null
+            ? d.recommendations().results().stream().map(this::toSearchResult).toList()
+            : List.of();
+
+    List<MediaDetailExtras.Fact> facts = new ArrayList<>();
+    if (creator != null) facts.add(new MediaDetailExtras.Fact("Creator", creator));
+    if (network != null) facts.add(new MediaDetailExtras.Fact("Network", network));
+    if (d.firstAirDate() != null && !d.firstAirDate().isBlank()) {
+      facts.add(new MediaDetailExtras.Fact("First Aired", d.firstAirDate()));
+    }
+    if (d.voteAverage() != null) {
+      facts.add(
+          new MediaDetailExtras.Fact(
+              "TMDB",
+              d.voteAverage() + (d.voteCount() != null ? " · " + d.voteCount() + " votes" : "")));
+    }
+    return new MediaDetailExtras(
+        genres, facts, d.voteAverage(), d.voteCount(), certification, cast, similar);
+  }
+
+  private List<MediaDetailExtras.CastMember> castFrom(TmdbCredits credits) {
+    if (credits == null || credits.cast() == null) {
+      return List.of();
+    }
+    return credits.cast().stream()
+        .limit(12)
+        .map(c -> new MediaDetailExtras.CastMember(c.name(), c.character(), c.profilePath()))
+        .toList();
+  }
+
+  private String usCertification(TmdbMovieDetailFull.ReleaseDates releaseDates) {
+    if (releaseDates == null || releaseDates.results() == null) {
+      return null;
+    }
+    return releaseDates.results().stream()
+        .filter(r -> "US".equals(r.isoCode()))
+        .findFirst()
+        .flatMap(
+            r ->
+                r.releaseDates() == null
+                    ? Optional.<String>empty()
+                    : r.releaseDates().stream()
+                        .map(TmdbMovieDetailFull.ReleaseDates.Certification::certification)
+                        .filter(c -> c != null && !c.isBlank())
+                        .findFirst())
+        .orElse(null);
+  }
+
+  private String usContentRating(TmdbTvDetailFull.ContentRatings contentRatings) {
+    if (contentRatings == null || contentRatings.results() == null) {
+      return null;
+    }
+    return contentRatings.results().stream()
+        .filter(r -> "US".equals(r.isoCode()) && r.rating() != null && !r.rating().isBlank())
+        .map(TmdbTvDetailFull.ContentRatings.Country::rating)
+        .findFirst()
+        .orElse(null);
   }
 
   /**

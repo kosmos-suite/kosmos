@@ -4,6 +4,8 @@ import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateShowRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
+import de.oppahansi.kosmos.metadata.MediaItemExternalId;
+import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbShowStructure;
@@ -127,6 +129,16 @@ public class ShowService {
               show.qualityProfile = qualityProfileService.resolveOrThrow(qualityProfileId);
               return show;
             });
+  }
+
+  /**
+   * Cast/genres/similar for the detail page — see {@link TmdbMetadataProvider#fetchTvDetailExtras}.
+   */
+  public Optional<MediaDetailExtras> detailExtras(UUID showId) {
+    return MediaItemExternalId.<MediaItemExternalId>find(
+            "mediaItem.id = ?1 and plugin.slug = 'tmdb' and supersededAt is null", showId)
+        .firstResultOptional()
+        .flatMap(link -> tmdbMetadataProvider.fetchTvDetailExtras(link.externalId));
   }
 
   private void persistStructure(Show show, TmdbShowStructure structure) {

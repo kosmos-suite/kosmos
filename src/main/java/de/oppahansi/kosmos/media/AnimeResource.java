@@ -68,6 +68,16 @@ public class AnimeResource {
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
+  /** Backs {@code AnimeDetailPage}'s Details/More Like This sections. */
+  @GET
+  @Path("/{id}/detail-extras")
+  public Response detailExtras(@PathParam("id") UUID id) {
+    return animeService
+        .detailExtras(id)
+        .map(extras -> Response.ok(extras).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
   private AnimeDetailResponse toDetail(Anime anime) {
     List<AnimeEpisode> episodes = animeService.episodesFor(anime.mediaItemId);
     Map<UUID, String> statusByEpisode =

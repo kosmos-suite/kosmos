@@ -140,6 +140,39 @@ export interface MetadataSearchResult {
   partiallyAvailable: boolean;
 }
 
+/** A "More Like This" recommendation — no library-status cross-reference, unlike {@link MetadataSearchResult}. */
+export interface SimilarTitle {
+  externalId: string;
+  title: string;
+  year: number | null;
+  overview: string | null;
+  posterPath: string | null;
+  backdropPath: string | null;
+  voteAverage: number | null;
+  mediaType: "movie" | "tv" | "anime";
+}
+
+export interface DetailFact {
+  k: string;
+  v: string;
+}
+
+export interface CastMember {
+  name: string;
+  role: string;
+  profilePath: string | null;
+}
+
+export interface MediaDetailExtras {
+  genres: string[];
+  facts: DetailFact[];
+  voteAverage: number | null;
+  voteCount: number | null;
+  certification: string | null;
+  cast: CastMember[];
+  similar: SimilarTitle[];
+}
+
 export interface Indexer {
   id: string;
   name: string;

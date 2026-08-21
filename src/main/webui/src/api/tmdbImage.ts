@@ -31,3 +31,8 @@ export function backdropUrl(path: string | null, size: BackdropSize = "w1280"): 
 export function logoUrl(path: string | null): string | null {
   return resolveUrl(path, "w300");
 }
+
+/** Cast member headshot — always TMDB, always a relative path; null for AniList (no cast data). */
+export function profileUrl(path: string | null): string | null {
+  return resolveUrl(path, "w185");
+}

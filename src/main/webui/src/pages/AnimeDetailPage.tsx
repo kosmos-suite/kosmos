@@ -6,11 +6,13 @@ import {
   EyeSlashIcon as EyeSlash,
   MagnifyingGlassIcon as MagnifyingGlass,
   SparkleIcon as Sparkle,
+  StarIcon as Star,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
+import { SimilarRow } from "../components/DetailExtrasSections";
 import { useApi } from "../hooks/useApi";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import type { AnimeEpisode, EpisodeStatus } from "../api/types";
@@ -32,8 +34,20 @@ export default function AnimeDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: anime, loading, error, reload } = useApi(() => api.getAnime(id!), [id]);
   const { data: profiles } = useApi(() => api.listQualityProfiles(), []);
+  const { data: extras } = useApi(() => api.getAnimeDetailExtras(id!), [id]);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+
+  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
+    anime ? posterUrl(anime.posterPath, "w500") : null,
+    anime?.id,
+    "poster",
+  );
+  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
+    anime ? backdropUrl(anime.backdropPath) : null,
+    anime?.id,
+    "backdrop",
+  );
 
   if (loading) return <div className="page">Loading…</div>;
   if (error) return <div className="page text-muted">Failed to load: {error}</div>;
@@ -52,17 +66,6 @@ export default function AnimeDetailPage() {
       setProfileSaving(false);
     }
   }
-
-  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
-    posterUrl(anime.posterPath, "w500"),
-    anime.id,
-    "poster",
-  );
-  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(
-    backdropUrl(anime.backdropPath),
-    anime.id,
-    "backdrop",
-  );
 
   return (
     <div>
@@ -112,7 +115,26 @@ export default function AnimeDetailPage() {
             <span>
               {anime.episodeCountTotal ?? anime.episodes.length} episode{anime.episodeCountTotal === 1 ? "" : "s"}
             </span>
+            {extras?.voteAverage != null && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Star size={12} weight="fill" color="#E0A94A" />
+                  {extras.voteAverage.toFixed(1)} <span className="text-ghost">AniList</span>
+                </span>
+              </>
+            )}
           </div>
+
+          {extras && extras.genres.length > 0 && (
+            <div className="detail-genres">
+              {extras.genres.map((g) => (
+                <span key={g} className="genre-tag">
+                  {g}
+                </span>
+              ))}
+            </div>
+          )}
 
           {anime.overview && (
             <p className="detail-synopsis" style={{ maxWidth: "70ch" }}>
@@ -163,7 +185,23 @@ export default function AnimeDetailPage() {
           <EpisodeRow key={episode.id} episode={episode} />
         ))}
         {anime.episodes.length === 0 && <p className="text-muted">No episode data for this anime.</p>}
+
+        {extras && extras.facts.length > 0 && (
+          <div style={{ maxWidth: 420, marginTop: 32 }}>
+            <div className="section-label">Details</div>
+            <div className="fact-list">
+              {extras.facts.map((f) => (
+                <div key={f.k} className="fact-list-row">
+                  <span className="k">{f.k}</span>
+                  <span className="v">{f.v}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
+
+      <SimilarRow items={extras?.similar ?? []} />
     </div>
   );
 }

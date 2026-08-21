@@ -3,6 +3,8 @@ package de.oppahansi.kosmos.media;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateMovieRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
+import de.oppahansi.kosmos.metadata.MediaItemExternalId;
+import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import de.oppahansi.kosmos.parsing.QualityProfileService;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -69,5 +71,16 @@ public class MovieService {
               movie.qualityProfile = qualityProfileService.resolveOrThrow(qualityProfileId);
               return movie;
             });
+  }
+
+  /**
+   * Cast/genres/similar for the detail page — see {@link
+   * TmdbMetadataProvider#fetchMovieDetailExtras}.
+   */
+  public Optional<MediaDetailExtras> detailExtras(UUID movieId) {
+    return MediaItemExternalId.<MediaItemExternalId>find(
+            "mediaItem.id = ?1 and plugin.slug = 'tmdb' and supersededAt is null", movieId)
+        .firstResultOptional()
+        .flatMap(link -> tmdbMetadataProvider.fetchMovieDetailExtras(link.externalId));
   }
 }

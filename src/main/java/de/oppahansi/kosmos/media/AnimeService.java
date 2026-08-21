@@ -3,8 +3,10 @@ package de.oppahansi.kosmos.media;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateAnimeRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
+import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.anilist.AniListAnimeDetails;
 import de.oppahansi.kosmos.metadata.anilist.AniListMetadataProvider;
+import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.fribb.FribbEntry;
 import de.oppahansi.kosmos.metadata.fribb.FribbMappingProvider;
 import de.oppahansi.kosmos.metadata.thexem.TheXemMappingProvider;
@@ -151,6 +153,14 @@ public class AnimeService {
               anime.qualityProfile = qualityProfileService.resolveOrThrow(qualityProfileId);
               return anime;
             });
+  }
+
+  /** Genres/similar for the detail page — see {@link AniListMetadataProvider#fetchDetailExtras}. */
+  public Optional<MediaDetailExtras> detailExtras(UUID animeId) {
+    return MediaItemExternalId.<MediaItemExternalId>find(
+            "mediaItem.id = ?1 and plugin.slug = 'anilist' and supersededAt is null", animeId)
+        .firstResultOptional()
+        .flatMap(link -> aniListMetadataProvider.fetchDetailExtras(link.externalId));
   }
 
   /**
