@@ -3,11 +3,15 @@ package de.oppahansi.kosmos.jellyfin;
 import de.oppahansi.kosmos.auth.User;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinSyncResult;
 import de.oppahansi.kosmos.library.LibraryFile;
+import de.oppahansi.kosmos.library.LibraryRootFolder;
+import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.library.ProbeService;
 import de.oppahansi.kosmos.media.MediaItem;
 import de.oppahansi.kosmos.media.Movie;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.Plugin;
+import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
+import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -40,6 +44,8 @@ public class JellyfinSyncService {
   private static final String MATCH_METHOD = "JELLYFIN_SYNC";
 
   @Inject ProbeService probeService;
+  @Inject TmdbMetadataProvider tmdbMetadataProvider;
+  @Inject LibraryRootFolderService rootFolderService;
 
   public JellyfinSyncResult sync(UUID serverId) {
     JellyfinServer server =
@@ -115,7 +121,10 @@ public class JellyfinSyncService {
    * @return "linked", "created", or "already-synced"
    */
   private String syncOneMovie(UUID serverId, JellyfinMovie movie) {
-    if (LibraryFile.find("path", movie.path()).firstResultOptional().isPresent()) {
+    Optional<LibraryFile> existingFile =
+        LibraryFile.find("path", movie.path()).firstResultOptional();
+    if (existingFile.isPresent()) {
+      backfillIfIncomplete(existingFile.get().mediaItem, movie);
       return "already-synced";
     }
 
@@ -129,12 +138,28 @@ public class JellyfinSyncService {
     if (existingLink.isPresent()) {
       mediaItem = existingLink.get().mediaItem;
       outcome = "linked";
+      backfillIfIncomplete(mediaItem, movie);
     } else {
       mediaItem = createMovie(movie);
       outcome = "created";
     }
     createLibraryFile(mediaItem, movie);
     return outcome;
+  }
+
+  /**
+   * Self-healing for rows created before poster/root-folder backfill existed here (or from a run
+   * where the TMDB lookup itself failed) — every sync run gets another chance to fill in whatever a
+   * previously-linked item is still missing, not just brand-new ones.
+   */
+  private void backfillIfIncomplete(MediaItem mediaItem, JellyfinMovie jellyfinMovie) {
+    Movie movie = Movie.<Movie>findByIdOptional(mediaItem.id).orElse(null);
+    if (movie != null && (movie.posterPath == null || movie.posterPath.isBlank())) {
+      enrichFromTmdb(movie, jellyfinMovie.tmdbId());
+    }
+    if (mediaItem.rootFolder == null) {
+      resolveRootFolder(jellyfinMovie.path()).ifPresent(folder -> mediaItem.rootFolder = folder);
+    }
   }
 
   /**
@@ -173,13 +198,13 @@ public class JellyfinSyncService {
     mediaItem.title = jellyfinMovie.name();
     mediaItem.year = jellyfinMovie.year();
     mediaItem.addedAt = Instant.now();
+    resolveRootFolder(jellyfinMovie.path()).ifPresent(folder -> mediaItem.rootFolder = folder);
     mediaItem.persist();
 
-    // Jellyfin's ProviderIds don't include a poster/overview — those still need a TMDB lookup
-    // by this same id, which nothing does automatically yet. Left null rather than guessed at.
     Movie movie = new Movie();
     movie.mediaItem = mediaItem;
     movie.persist();
+    enrichFromTmdb(movie, jellyfinMovie.tmdbId());
 
     Plugin plugin = findOrCreateTmdbPlugin();
     MediaItemExternalId link = new MediaItemExternalId();
@@ -190,6 +215,34 @@ public class JellyfinSyncService {
     link.persist();
 
     return mediaItem;
+  }
+
+  /**
+   * Jellyfin's ProviderIds give a TMDB id but no artwork/overview of its own — one extra TMDB round
+   * trip per movie (cached 7 days, see application.properties) backfills what Kosmos's own poster
+   * rendering needs. Best-effort: a failed/unconfigured lookup leaves the movie exactly as bare as
+   * it was before, never blocks the sync.
+   */
+  private void enrichFromTmdb(Movie movie, String tmdbId) {
+    Optional<MetadataSearchResult> result = tmdbMetadataProvider.fetchMovieById(tmdbId);
+    result.ifPresent(
+        r -> {
+          movie.posterPath = r.posterPath();
+          movie.backdropPath = r.backdropPath();
+          movie.overview = r.overview();
+        });
+  }
+
+  /**
+   * Prefers the registered root folder Jellyfin's own reported path actually falls under (see
+   * {@link de.oppahansi.kosmos.library.LibraryRootFolderService#findContaining}) — e.g. a movie
+   * under {@code /media/anime-movies} lands under that folder specifically, not just "the movies
+   * default" — falling back to the general movie default only if none of the registered folders
+   * actually contain this path.
+   */
+  private Optional<LibraryRootFolder> resolveRootFolder(String path) {
+    Optional<LibraryRootFolder> containing = rootFolderService.findContaining(path);
+    return containing.isPresent() ? containing : rootFolderService.getDefault("movie");
   }
 
   private void createLibraryFile(MediaItem mediaItem, JellyfinMovie jellyfinMovie) {

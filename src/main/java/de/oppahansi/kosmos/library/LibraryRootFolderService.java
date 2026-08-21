@@ -27,6 +27,27 @@ public class LibraryRootFolderService {
     return LibraryRootFolder.findByIdOptional(id);
   }
 
+  /**
+   * The registered root folder a given on-disk file path actually lives under, if any — used when a
+   * source (e.g. Jellyfin) reports a file's real path directly, so the item lands under the correct
+   * folder rather than whatever {@link #getDefault} would guess when several exist (e.g. "movies"
+   * vs "anime-movies"). Longest matching prefix wins, so a more specific folder registered inside a
+   * broader one is preferred.
+   */
+  public Optional<LibraryRootFolder> findContaining(String filePath) {
+    if (filePath == null) {
+      return Optional.empty();
+    }
+    return listAll().stream()
+        .filter(folder -> isUnder(filePath, folder.path))
+        .max((a, b) -> Integer.compare(a.path.length(), b.path.length()));
+  }
+
+  private boolean isUnder(String filePath, String folderPath) {
+    String normalizedFolder = folderPath.endsWith("/") ? folderPath : folderPath + "/";
+    return filePath.startsWith(normalizedFolder);
+  }
+
   /** Used at title-creation time: an explicit choice if given, else {@link #getDefault(String)}. */
   @Transactional
   public Optional<LibraryRootFolder> resolveOrDefault(UUID rootFolderId, String contentType) {
