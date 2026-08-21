@@ -5,6 +5,7 @@ import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateShowRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
+import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
@@ -25,6 +26,7 @@ public class ShowService {
   @Inject LibraryRootFolderService rootFolderService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject ExternalIdLinkService externalIdLinkService;
+  @Inject SimilarEnrichmentService similarEnrichmentService;
 
   public List<Show> listAll() {
     return Show.listAll();
@@ -138,7 +140,11 @@ public class ShowService {
     return MediaItemExternalId.<MediaItemExternalId>find(
             "mediaItem.id = ?1 and plugin.slug = 'tmdb' and supersededAt is null", showId)
         .firstResultOptional()
-        .flatMap(link -> tmdbMetadataProvider.fetchTvDetailExtras(link.externalId));
+        .flatMap(link -> tmdbMetadataProvider.fetchTvDetailExtras(link.externalId))
+        .map(
+            extras ->
+                extras.withSimilar(
+                    similarEnrichmentService.enrich(extras.similar(), "tmdb", "show")));
   }
 
   private void persistStructure(Show show, TmdbShowStructure structure) {

@@ -20,4 +20,25 @@ public record MetadataSearchItem(
     Double voteAverage,
     String mediaType,
     boolean inLibrary,
-    boolean partiallyAvailable) {}
+    boolean partiallyAvailable) {
+
+  /**
+   * A result with no library-status lookup performed yet — used by providers (TMDB/AniList
+   * recommendations) that have no DB access of their own. The owning {@code media.*Service}
+   * replaces these placeholders with the real cross-referenced values before returning them.
+   */
+  public static MetadataSearchItem unenriched(MetadataSearchResult r) {
+    return new MetadataSearchItem(
+        null,
+        r.externalId(),
+        r.title(),
+        r.year(),
+        r.overview(),
+        r.posterPath(),
+        r.backdropPath(),
+        r.voteAverage(),
+        r.mediaType(),
+        false,
+        false);
+  }
+}

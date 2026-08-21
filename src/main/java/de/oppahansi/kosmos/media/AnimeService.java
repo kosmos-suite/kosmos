@@ -4,6 +4,7 @@ import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateAnimeRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
+import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.anilist.AniListAnimeDetails;
 import de.oppahansi.kosmos.metadata.anilist.AniListMetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
@@ -33,6 +34,7 @@ public class AnimeService {
   @Inject TheXemMappingProvider theXemMappingProvider;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject ExternalIdLinkService externalIdLinkService;
+  @Inject SimilarEnrichmentService similarEnrichmentService;
 
   public List<Anime> listAll() {
     return Anime.listAll();
@@ -160,7 +162,11 @@ public class AnimeService {
     return MediaItemExternalId.<MediaItemExternalId>find(
             "mediaItem.id = ?1 and plugin.slug = 'anilist' and supersededAt is null", animeId)
         .firstResultOptional()
-        .flatMap(link -> aniListMetadataProvider.fetchDetailExtras(link.externalId));
+        .flatMap(link -> aniListMetadataProvider.fetchDetailExtras(link.externalId))
+        .map(
+            extras ->
+                extras.withSimilar(
+                    similarEnrichmentService.enrich(extras.similar(), "anilist", "anime")));
   }
 
   /**

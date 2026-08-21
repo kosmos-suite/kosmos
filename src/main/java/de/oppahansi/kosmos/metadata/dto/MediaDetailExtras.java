@@ -15,7 +15,13 @@ public record MediaDetailExtras(
     Integer voteCount,
     String certification,
     List<CastMember> cast,
-    List<MetadataSearchResult> similar) {
+    List<MetadataSearchItem> similar) {
+
+  /** Replaces {@code similar} once the caller has cross-referenced it against the library. */
+  public MediaDetailExtras withSimilar(List<MetadataSearchItem> enrichedSimilar) {
+    return new MediaDetailExtras(
+        genres, facts, voteAverage, voteCount, certification, cast, enrichedSimilar);
+  }
 
   /**
    * An ordered key/value pair for the Details panel — e.g. {@code {"Director", "Denis

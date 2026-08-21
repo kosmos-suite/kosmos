@@ -1,5 +1,4 @@
 import {
-  ArrowLeftIcon as ArrowLeft,
   CaretDownIcon as CaretDown,
   CheckIcon as Check,
   EyeIcon as Eye,
@@ -83,14 +82,7 @@ export default function AnimeDetailPage() {
               }
             : { height: 220 }
         }
-      >
-        <div className="detail-hero-topbar">
-          <Link to="/" className="chip-floating">
-            <ArrowLeft size={15} weight="bold" />
-            Discover
-          </Link>
-        </div>
-      </section>
+      />
 
       <div className="detail-body2">
         <div className="detail-poster2">

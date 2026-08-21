@@ -1,5 +1,4 @@
 import {
-  ArrowLeftIcon as ArrowLeft,
   CaretDownIcon as CaretDown,
   CaretUpIcon as CaretUp,
   CheckIcon as Check,
@@ -85,14 +84,7 @@ export default function ShowDetailPage() {
               }
             : { height: 220 }
         }
-      >
-        <div className="detail-hero-topbar">
-          <Link to="/" className="chip-floating">
-            <ArrowLeft size={15} weight="bold" />
-            Discover
-          </Link>
-        </div>
-      </section>
+      />
 
       <div className="detail-body2">
         <div className="detail-poster2">

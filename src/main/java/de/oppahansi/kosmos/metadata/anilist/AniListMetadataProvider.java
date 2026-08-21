@@ -3,6 +3,7 @@ package de.oppahansi.kosmos.metadata.anilist;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.oppahansi.kosmos.metadata.MetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
+import de.oppahansi.kosmos.metadata.dto.MetadataSearchItem;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -161,12 +162,13 @@ public class AniListMetadataProvider implements MetadataProvider {
                 && !media.studios().nodes().isEmpty()
             ? media.studios().nodes().get(0).name()
             : null;
-    List<MetadataSearchResult> similar =
+    List<MetadataSearchItem> similar =
         media.recommendations() != null && media.recommendations().nodes() != null
             ? media.recommendations().nodes().stream()
                 .map(AniListMedia.Recommendations.Node::mediaRecommendation)
                 .filter(m -> m != null)
                 .map(this::toSearchResult)
+                .map(MetadataSearchItem::unenriched)
                 .toList()
             : List.of();
 

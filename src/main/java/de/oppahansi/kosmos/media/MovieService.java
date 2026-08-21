@@ -4,6 +4,7 @@ import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateMovieRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
+import de.oppahansi.kosmos.metadata.SimilarEnrichmentService;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import de.oppahansi.kosmos.parsing.QualityProfileService;
@@ -22,6 +23,7 @@ public class MovieService {
   @Inject LibraryRootFolderService rootFolderService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject ExternalIdLinkService externalIdLinkService;
+  @Inject SimilarEnrichmentService similarEnrichmentService;
 
   public List<Movie> listAll() {
     return Movie.listAll();
@@ -81,6 +83,10 @@ public class MovieService {
     return MediaItemExternalId.<MediaItemExternalId>find(
             "mediaItem.id = ?1 and plugin.slug = 'tmdb' and supersededAt is null", movieId)
         .firstResultOptional()
-        .flatMap(link -> tmdbMetadataProvider.fetchMovieDetailExtras(link.externalId));
+        .flatMap(link -> tmdbMetadataProvider.fetchMovieDetailExtras(link.externalId))
+        .map(
+            extras ->
+                extras.withSimilar(
+                    similarEnrichmentService.enrich(extras.similar(), "tmdb", "movie")));
   }
 }

@@ -1,5 +1,4 @@
 import {
-  ArrowLeftIcon as ArrowLeft,
   CaretDownIcon as CaretDown,
   CheckIcon as Check,
   DotsThreeIcon as DotsThree,
@@ -52,6 +51,7 @@ export default function MovieDetailPage() {
   const { data: extras } = useApi(() => api.getMovieDetailExtras(id!), [id]);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
   const [profileSaving, setProfileSaving] = useState(false);
+  const [pathCopied, setPathCopied] = useState(false);
 
   const { url: posterSrc, probe: posterProbe } = useArtworkFallback(
     movie ? posterUrl(movie.posterPath, "w500") : null,
@@ -85,6 +85,12 @@ export default function MovieDetailPage() {
 
   const director = extras?.facts.find((f) => f.k === "Director")?.v;
 
+  async function copyPath(path: string) {
+    await navigator.clipboard.writeText(path);
+    setPathCopied(true);
+    setTimeout(() => setPathCopied(false), 1500);
+  }
+
   return (
     <div>
       {backdropProbe}
@@ -101,12 +107,6 @@ export default function MovieDetailPage() {
             : undefined
         }
       >
-        <div className="detail-hero-topbar">
-          <Link to="/" className="chip-floating">
-            <ArrowLeft size={15} weight="bold" />
-            Discover
-          </Link>
-        </div>
         <span className="chip-floating detail-hero-trailer" title="No trailer source wired up yet">
           <PlayCircle size={16} weight="fill" />
           Trailer
@@ -232,7 +232,7 @@ export default function MovieDetailPage() {
                     imported {relativeDays(file.importedAt)}
                   </span>
                 </div>
-                <div className="info-card-facts cols-4">
+                <div className="info-card-facts">
                   <div className="info-card-fact">
                     <div className="k">Quality</div>
                     <div className="v">
@@ -257,6 +257,9 @@ export default function MovieDetailPage() {
                 <div className="info-card-footer">
                   <Info size={14} className="text-faint" />
                   <span className="info-card-path">{file.path}</span>
+                  <span className="info-card-copy" onClick={() => copyPath(file.path)}>
+                    {pathCopied ? "Copied" : "Copy"}
+                  </span>
                 </div>
               </div>
             ) : (
@@ -269,7 +272,7 @@ export default function MovieDetailPage() {
                     added {relativeDays(movie.addedAt)}
                   </span>
                 </div>
-                <div className="info-card-facts cols-3">
+                <div className="info-card-facts">
                   <div className="info-card-fact">
                     <div className="k">Quality profile</div>
                     <div className="v">{activeProfile ? activeProfile.name : "None"}</div>

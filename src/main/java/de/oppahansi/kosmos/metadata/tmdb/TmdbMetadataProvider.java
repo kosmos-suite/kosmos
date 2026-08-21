@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.oppahansi.kosmos.metadata.MetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
+import de.oppahansi.kosmos.metadata.dto.MetadataSearchItem;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
@@ -628,9 +629,12 @@ public class TmdbMetadataProvider implements MetadataProvider {
             : null;
     String certification = usCertification(d.releaseDates());
     List<MediaDetailExtras.CastMember> cast = castFrom(d.credits());
-    List<MetadataSearchResult> similar =
+    List<MetadataSearchItem> similar =
         d.recommendations() != null && d.recommendations().results() != null
-            ? d.recommendations().results().stream().map(this::toSearchResult).toList()
+            ? d.recommendations().results().stream()
+                .map(this::toSearchResult)
+                .map(MetadataSearchItem::unenriched)
+                .toList()
             : List.of();
 
     List<MediaDetailExtras.Fact> facts = new ArrayList<>();
@@ -658,9 +662,12 @@ public class TmdbMetadataProvider implements MetadataProvider {
         d.networks() != null && !d.networks().isEmpty() ? d.networks().get(0).name() : null;
     String certification = usContentRating(d.contentRatings());
     List<MediaDetailExtras.CastMember> cast = castFrom(d.credits());
-    List<MetadataSearchResult> similar =
+    List<MetadataSearchItem> similar =
         d.recommendations() != null && d.recommendations().results() != null
-            ? d.recommendations().results().stream().map(this::toSearchResult).toList()
+            ? d.recommendations().results().stream()
+                .map(this::toSearchResult)
+                .map(MetadataSearchItem::unenriched)
+                .toList()
             : List.of();
 
     List<MediaDetailExtras.Fact> facts = new ArrayList<>();
