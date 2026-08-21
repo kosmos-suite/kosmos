@@ -4,6 +4,7 @@ import de.oppahansi.kosmos.jellyfin.dto.CreateJellyfinServerRequest;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinLibraryResponse;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinServerResponse;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinSyncResult;
+import de.oppahansi.kosmos.jellyfin.dto.RootFolderAutoRegisterResult;
 import de.oppahansi.kosmos.jellyfin.dto.UpdateJellyfinLibrariesRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -65,5 +66,11 @@ public class JellyfinServerResource {
       @PathParam("id") UUID id, UpdateJellyfinLibrariesRequest request) {
     serverService.updateSelectedLibraries(id, request.libraryIds());
     return Response.noContent().build();
+  }
+
+  @POST
+  @Path("/{id}/root-folders")
+  public RootFolderAutoRegisterResult autoRegisterRootFolders(@PathParam("id") UUID id) {
+    return serverService.autoRegisterRootFolders(id);
   }
 }

@@ -137,11 +137,10 @@ export default function SetupPage() {
   const [f3, setF3] = useState({ baseUrl: DEFAULT_BASE_URL_BY_LABEL.qBittorrent, user: "", pass: "", client: "qBittorrent" as (typeof CLIENTS)[number]["label"] });
   const [rootFolders, setRootFolders] = useState<LibraryRootFolder[] | null>(null);
   const [browsingFolder, setBrowsingFolder] = useState(false);
-  const [pickedPath, setPickedPath] = useState<string | null>(null);
-  const [pickedTypes, setPickedTypes] = useState<Set<LibraryContentType>>(new Set());
   const [savingFolder, setSavingFolder] = useState(false);
   const [folderError, setFolderError] = useState<string | null>(null);
   const [removingFolderId, setRemovingFolderId] = useState<string | null>(null);
+  const [jellyfinFolderNote, setJellyfinFolderNote] = useState<string | null>(null);
 
   const [tests, setTests] = useState<Partial<Record<StepKey, TestState>>>({});
   const [failMsg, setFailMsg] = useState<Partial<Record<StepKey, string>>>({});
@@ -200,23 +199,12 @@ export default function SetupPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function toggleContentType(type: LibraryContentType) {
-    setPickedTypes((current) => {
-      const next = new Set(current);
-      if (next.has(type)) next.delete(type);
-      else next.add(type);
-      return next;
-    });
-  }
-
-  async function addRootFolder() {
-    if (!pickedPath) return;
+  async function addRootFolder(path: string, contentTypes: LibraryContentType[]) {
+    setBrowsingFolder(false);
     setSavingFolder(true);
     setFolderError(null);
     try {
-      await api.createRootFolder(pickedPath, Array.from(pickedTypes));
-      setPickedPath(null);
-      setPickedTypes(new Set());
+      await api.createRootFolder(path, contentTypes);
       reloadRootFolders();
     } catch (e) {
       setFolderError(e instanceof ApiError ? e.message : "Could not add this root folder");
@@ -470,7 +458,14 @@ export default function SetupPage() {
         )}
 
         {step === "jellyfin-libraries" && jellyfinServerId && (
-          <JellyfinLibrariesStep serverId={jellyfinServerId} onDone={next} />
+          <JellyfinLibrariesStep
+            serverId={jellyfinServerId}
+            onDone={(note) => {
+              setJellyfinFolderNote(note);
+              reloadRootFolders();
+              next();
+            }}
+          />
         )}
 
         {step === "metadata" && (
@@ -791,12 +786,18 @@ export default function SetupPage() {
             <h1 style={{ fontSize: 30, letterSpacing: "-0.028em", marginBottom: 12 }}>Where does your library live?</h1>
             <p className="text-muted" style={{ maxWidth: "50ch", fontSize: 14.5, lineHeight: 1.7, marginBottom: 22 }}>
               New grabs get organized under a root folder — <code style={{ fontFamily: "var(--font-mono)" }}>{"{title} ({year})"}</code>{" "}
-              per title. This applies even if you connected Jellyfin: that only recognizes what Jellyfin already
-              scanned, not where new downloads land. Add more than one to split movies, shows and anime across
+              per title. Jellyfin sync only recognizes what Jellyfin already scanned, not new downloads — root
+              folders are what those land in instead. Add more than one to split movies, shows and anime across
               different drives — pick which content types each accepts, or leave it open to accept anything.
             </p>
 
-            {rootFolders?.length === 0 && !pickedPath && (
+            {jellyfinFolderNote && (
+              <p className="text-muted" style={{ marginBottom: 14 }}>
+                {jellyfinFolderNote}
+              </p>
+            )}
+
+            {rootFolders?.length === 0 && (
               <p className="text-muted" style={{ marginBottom: 14 }}>
                 No root folders yet.
               </p>
@@ -824,55 +825,19 @@ export default function SetupPage() {
               ))}
             </div>
 
-            {pickedPath && (
-              <div className="setup-provider-card" style={{ marginBottom: 14 }}>
-                <p style={{ fontSize: 12.5, marginBottom: 10 }}>
-                  <span className="text-faint">Adding:</span>{" "}
-                  <span style={{ fontFamily: "var(--font-mono)" }}>{pickedPath}</span>
-                </p>
-                <div className="setup-chip-row" style={{ marginBottom: 12 }}>
-                  {CONTENT_TYPES.map(({ value, label }) => (
-                    <span
-                      key={value}
-                      className={`setup-chip${pickedTypes.has(value) ? " active" : ""}`}
-                      onClick={() => toggleContentType(value)}
-                    >
-                      {label}
-                    </span>
-                  ))}
-                </div>
-                <p className="text-faint" style={{ fontSize: 11.5, marginBottom: 12 }}>
-                  Leave all unchecked to accept any content type.
-                </p>
-                {folderError && <p className="text-muted">{folderError}</p>}
-                <div style={{ display: "flex", gap: 10 }}>
-                  <span className="setup-test-btn" onClick={() => setPickedPath(null)}>
-                    Cancel
-                  </span>
-                  <span className="setup-test-btn" onClick={savingFolder ? undefined : addRootFolder}>
-                    {savingFolder ? "Adding…" : "Add"}
-                  </span>
-                </div>
-              </div>
+            {folderError && (
+              <p className="text-muted" style={{ marginBottom: 10 }}>
+                {folderError}
+              </p>
             )}
 
-            {!pickedPath && (
-              <button type="button" className="btn btn-secondary" onClick={() => setBrowsingFolder(true)}>
-                <FolderOpen size={15} />
-                Add root folder
-              </button>
-            )}
+            <button type="button" className="btn btn-secondary" onClick={() => setBrowsingFolder(true)} disabled={savingFolder}>
+              <FolderOpen size={15} />
+              {savingFolder ? "Adding…" : "Add root folder"}
+            </button>
 
             {browsingFolder && (
-              <FolderBrowserModal
-                onClose={() => setBrowsingFolder(false)}
-                onSelect={(path) => {
-                  setBrowsingFolder(false);
-                  setPickedPath(path);
-                  setPickedTypes(new Set());
-                  setFolderError(null);
-                }}
-              />
+              <FolderBrowserModal onClose={() => setBrowsingFolder(false)} onSelect={addRootFolder} />
             )}
           </div>
         )}
@@ -1170,7 +1135,13 @@ function JellyfinAccountForm({
   );
 }
 
-function JellyfinLibrariesStep({ serverId, onDone }: { serverId: string; onDone: () => void }) {
+function JellyfinLibrariesStep({
+  serverId,
+  onDone,
+}: {
+  serverId: string;
+  onDone: (note: string | null) => void;
+}) {
   const [libraries, setLibraries] = useState<
     { id: string; name: string; collectionType: string | null; locations: string[] }[] | null
   >(null);
@@ -1202,28 +1173,27 @@ function JellyfinLibrariesStep({ serverId, onDone }: { serverId: string; onDone:
   async function finish() {
     setContinuing(true);
     const libraryIds = allSelected ? [] : Array.from(selected);
+    let note: string | null = null;
     try {
       await api.updateJellyfinLibrarySelection(serverId, libraryIds);
+      // Pre-populates root folders from Jellyfin's own reported paths, so the media folder step
+      // isn't asking for information Jellyfin already gave us. Runs server-side against Jellyfin
+      // directly (not the possibly-stale `libraries` list here), and skips any collection type
+      // with no folder equivalent (collections/boxsets are a database grouping, not a folder).
+      const result = await api.autoRegisterRootFoldersFromJellyfin(serverId);
+      if (result.registered > 0) {
+        note = `Added ${result.registered} root folder${result.registered === 1 ? "" : "s"} from Jellyfin's own libraries.`;
+      } else if (result.skipped > 0) {
+        note =
+          "Couldn't add root folders from Jellyfin automatically — its paths may not be visible from where Kosmos runs. Add them manually below.";
+      }
+    } catch {
+      // Best-effort — onboarding still continues even if this step fails outright.
     } finally {
       // Fire-and-forget: a real library sync can take a while, and there's no reason to block
       // the rest of onboarding on it — it can be re-run from Settings → Jellyfin any time.
       api.syncJellyfinServer(serverId).catch(() => undefined);
-
-      // Best-effort: pre-populate root folders from Jellyfin's own reported paths, so the media
-      // folder step isn't asking for information Jellyfin already gave us. Silently skips any
-      // path Kosmos's own process can't see (e.g. different container mounts) and any collection
-      // type with no folder-based equivalent (collections/boxsets are a curated grouping, not a
-      // physical library).
-      for (const library of (libraries ?? []).filter((l) => allSelected || selected.has(l.id))) {
-        const contentType =
-          library.collectionType === "movies" ? "movie" : library.collectionType === "tvshows" ? "show" : null;
-        if (!contentType) continue;
-        for (const location of library.locations) {
-          api.createRootFolder(location, [contentType]).catch(() => undefined);
-        }
-      }
-
-      onDone();
+      onDone(note);
     }
   }
 

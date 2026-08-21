@@ -1,5 +1,8 @@
 package de.oppahansi.kosmos.library;
 
+import de.oppahansi.kosmos.media.Anime;
+import de.oppahansi.kosmos.media.AnimeEpisode;
+import de.oppahansi.kosmos.media.Episode;
 import de.oppahansi.kosmos.media.MediaItem;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.anidb.AniDbUdpClient;
@@ -172,6 +175,12 @@ public class ImportService {
     }
   }
 
+  /**
+   * Movies land directly under {@code {Title} (Year)/}; episodes nest under their show/anime's own
+   * folder instead of one named after the episode itself — {@code {Series} (Year)/Season NN/} for
+   * TV (matching Sonarr), flat under {@code {Anime} (Year)/} for anime, which has no season concept
+   * of its own (see {@link Anime}'s own doc comment).
+   */
   private Path targetPathFor(MediaItem mediaItem, Path source) {
     LibraryRootFolder rootFolder =
         mediaItem.rootFolder != null
@@ -180,15 +189,73 @@ public class ImportService {
                 .getDefault(mediaItem.contentType)
                 .orElseThrow(
                     () -> new InternalServerErrorException("No library root folder is configured"));
-    String extension = "";
+    String extension = extensionOf(source);
+
+    return switch (mediaItem.contentType) {
+      case "episode" -> episodeTargetPath(rootFolder, mediaItem, extension);
+      case "anime_episode" -> animeEpisodeTargetPath(rootFolder, mediaItem, extension);
+      default -> {
+        String folderName = titleYear(mediaItem.title, mediaItem.year);
+        yield Path.of(rootFolder.path, folderName, folderName + extension);
+      }
+    };
+  }
+
+  private Path episodeTargetPath(
+      LibraryRootFolder rootFolder, MediaItem mediaItem, String extension) {
+    Episode episode =
+        Episode.<Episode>findByIdOptional(mediaItem.id)
+            .orElseThrow(
+                () ->
+                    new InternalServerErrorException(
+                        "No episode row for media item " + mediaItem.id));
+    MediaItem showMediaItem = episode.season.show.mediaItem;
+
+    String seriesFolder = titleYear(showMediaItem.title, showMediaItem.year);
+    String seasonFolder = "Season " + pad2(episode.season.seasonNumber);
+    String fileName =
+        sanitize(showMediaItem.title)
+            + " - S"
+            + pad2(episode.season.seasonNumber)
+            + "E"
+            + pad2(episode.episodeNumber)
+            + " - "
+            + sanitize(mediaItem.title);
+    return Path.of(rootFolder.path, seriesFolder, seasonFolder, fileName + extension);
+  }
+
+  private Path animeEpisodeTargetPath(
+      LibraryRootFolder rootFolder, MediaItem mediaItem, String extension) {
+    AnimeEpisode animeEpisode =
+        AnimeEpisode.<AnimeEpisode>findByIdOptional(mediaItem.id)
+            .orElseThrow(
+                () ->
+                    new InternalServerErrorException(
+                        "No anime episode row for media item " + mediaItem.id));
+    MediaItem animeMediaItem = animeEpisode.anime.mediaItem;
+    int number =
+        animeEpisode.absoluteEpisodeNumber != null
+            ? animeEpisode.absoluteEpisodeNumber
+            : animeEpisode.episodeNumber != null ? animeEpisode.episodeNumber : 0;
+
+    String animeFolder = titleYear(animeMediaItem.title, animeMediaItem.year);
+    String fileName =
+        sanitize(animeMediaItem.title) + " - " + pad2(number) + " - " + sanitize(mediaItem.title);
+    return Path.of(rootFolder.path, animeFolder, fileName + extension);
+  }
+
+  private String titleYear(String title, Integer year) {
+    return sanitize(title) + " (" + year + ")";
+  }
+
+  private String pad2(int number) {
+    return number < 10 ? "0" + number : String.valueOf(number);
+  }
+
+  private String extensionOf(Path source) {
     String sourceName = source.getFileName().toString();
     int dot = sourceName.lastIndexOf('.');
-    if (dot >= 0) {
-      extension = sourceName.substring(dot);
-    }
-
-    String folderName = sanitize(mediaItem.title) + " (" + mediaItem.year + ")";
-    return Path.of(rootFolder.path, folderName, folderName + extension);
+    return dot >= 0 ? sourceName.substring(dot) : "";
   }
 
   private String sanitize(String name) {

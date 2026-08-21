@@ -67,6 +67,23 @@ public class LibraryRootFolderService {
     return Arrays.asList(folder.contentTypes.split(",")).contains(contentType);
   }
 
+  /**
+   * Registers a folder without verifying Kosmos's own process can see it — used when the source
+   * (e.g. Jellyfin) has already vouched for the path, since it may run on a different host/mount
+   * than Kosmos does. Silently no-ops on a blank path or one already registered, rather than
+   * erroring — callers doing this in bulk shouldn't have to handle either as a real failure.
+   */
+  @Transactional
+  public Optional<LibraryRootFolder> createTrusted(String path, List<String> contentTypes) {
+    if (path == null || path.isBlank()) {
+      return Optional.empty();
+    }
+    if (LibraryRootFolder.find("path", path).firstResultOptional().isPresent()) {
+      return Optional.empty();
+    }
+    return Optional.of(createInternal(path, contentTypes));
+  }
+
   @Transactional
   public LibraryRootFolder create(String path, List<String> contentTypes) {
     if (path == null || path.isBlank()) {

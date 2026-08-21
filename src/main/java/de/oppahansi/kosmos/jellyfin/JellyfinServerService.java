@@ -1,7 +1,10 @@
 package de.oppahansi.kosmos.jellyfin;
 
 import de.oppahansi.kosmos.jellyfin.dto.CreateJellyfinServerRequest;
+import de.oppahansi.kosmos.jellyfin.dto.RootFolderAutoRegisterResult;
+import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.NotFoundException;
@@ -14,6 +17,8 @@ import java.util.UUID;
 
 @ApplicationScoped
 public class JellyfinServerService {
+
+  @Inject LibraryRootFolderService rootFolderService;
 
   public List<JellyfinServer> listAll() {
     return JellyfinServer.listAll();
@@ -56,6 +61,56 @@ public class JellyfinServerService {
     return server.selectedLibraryIds == null || server.selectedLibraryIds.isBlank()
         ? List.of()
         : Arrays.asList(server.selectedLibraryIds.split(","));
+  }
+
+  /**
+   * Registers a root folder per selected library's real reported path, tagged with the matching
+   * Kosmos content type — movies/tvshows only, since a "boxsets" (collections) library is a
+   * database-side grouping with no folder of its own. Uses {@link
+   * LibraryRootFolderService#createTrusted} rather than the normal validating create: Jellyfin has
+   * already vouched for these paths, and Kosmos may not share its filesystem view (a different
+   * host, different container mounts) at the moment this runs.
+   */
+  public RootFolderAutoRegisterResult autoRegisterRootFolders(UUID id) {
+    JellyfinServer server = requireServer(id);
+    List<JellyfinLibrary> libraries;
+    try {
+      libraries = new JellyfinClient(server.baseUrl).listLibraries(server.apiKey);
+    } catch (IOException | InterruptedException e) {
+      throw new BadRequestException("Could not reach Jellyfin server: " + e.getMessage());
+    }
+    List<String> selected = selectedLibraryIds(server);
+
+    int registered = 0;
+    int skipped = 0;
+    for (JellyfinLibrary library : libraries) {
+      if (!selected.isEmpty() && !selected.contains(library.id())) {
+        continue;
+      }
+      String contentType = contentTypeFor(library.collectionType());
+      if (contentType == null || library.locations().isEmpty()) {
+        skipped++;
+        continue;
+      }
+      for (String location : library.locations()) {
+        if (rootFolderService.createTrusted(location, List.of(contentType)).isPresent()) {
+          registered++;
+        } else {
+          skipped++;
+        }
+      }
+    }
+    return new RootFolderAutoRegisterResult(registered, skipped);
+  }
+
+  private String contentTypeFor(String jellyfinCollectionType) {
+    if ("movies".equals(jellyfinCollectionType)) {
+      return "movie";
+    }
+    if ("tvshows".equals(jellyfinCollectionType)) {
+      return "show";
+    }
+    return null;
   }
 
   private JellyfinServer requireServer(UUID id) {

@@ -350,6 +350,9 @@ export const api = {
   updateJellyfinLibrarySelection: (id: string, libraryIds: string[]) =>
     request<void>(`/jellyfin-servers/${id}/libraries`, { method: "PUT", body: JSON.stringify({ libraryIds }) }),
 
+  autoRegisterRootFoldersFromJellyfin: (id: string) =>
+    request<{ registered: number; skipped: number }>(`/jellyfin-servers/${id}/root-folders`, { method: "POST" }),
+
   listJobs: () => request<ScheduledJob[]>("/jobs"),
 
   setupStatus: () => request<SetupStatus>("/auth/setup-status"),
