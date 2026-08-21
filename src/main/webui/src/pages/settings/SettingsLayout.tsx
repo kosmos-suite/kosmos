@@ -1,6 +1,7 @@
 import { NavLink, Outlet } from "react-router-dom";
 
 const TABS = [
+  { to: "/settings/root-folders", label: "Root Folders" },
   { to: "/settings/indexers", label: "Indexers" },
   { to: "/settings/download-clients", label: "Download Clients" },
   { to: "/settings/plugins", label: "Plugins" },

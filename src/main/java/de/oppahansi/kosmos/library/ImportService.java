@@ -35,7 +35,7 @@ public class ImportService {
   private static final Pattern SAMPLE_NAME = Pattern.compile("(?i)\\bsample\\b");
   private static final Pattern ILLEGAL_FILENAME_CHARS = Pattern.compile("[\\\\/:*?\"<>|]");
 
-  @Inject LibrarySettingsService librarySettingsService;
+  @Inject LibraryRootFolderService rootFolderService;
   @Inject ProbeService probeService;
   @Inject AniDbUdpClient aniDbUdpClient;
   @Inject ExternalIdLinkService externalIdLinkService;
@@ -173,12 +173,13 @@ public class ImportService {
   }
 
   private Path targetPathFor(MediaItem mediaItem, Path source) {
-    String rootPath =
-        librarySettingsService
-            .getRootPath()
-            .orElseThrow(
-                () ->
-                    new InternalServerErrorException("kosmos.library.root-path is not configured"));
+    LibraryRootFolder rootFolder =
+        mediaItem.rootFolder != null
+            ? mediaItem.rootFolder
+            : rootFolderService
+                .getDefault(mediaItem.contentType)
+                .orElseThrow(
+                    () -> new InternalServerErrorException("No library root folder is configured"));
     String extension = "";
     String sourceName = source.getFileName().toString();
     int dot = sourceName.lastIndexOf('.');
@@ -187,7 +188,7 @@ public class ImportService {
     }
 
     String folderName = sanitize(mediaItem.title) + " (" + mediaItem.year + ")";
-    return Path.of(rootPath, folderName, folderName + extension);
+    return Path.of(rootFolder.path, folderName, folderName + extension);
   }
 
   private String sanitize(String name) {

@@ -16,4 +16,5 @@ public record CreateMovieRequest(
     String overview,
     String posterPath,
     String backdropPath,
-    UUID qualityProfileId) {}
+    UUID qualityProfileId,
+    UUID rootFolderId) {}

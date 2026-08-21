@@ -13,7 +13,9 @@ import type {
   JellyfinServer,
   JellyfinSyncResult,
   LibraryFile,
-  LibraryRootPath,
+  BrowseResult,
+  LibraryContentType,
+  LibraryRootFolder,
   LibraryStats,
   MediaRequest,
   MetadataSearchResult,
@@ -101,10 +103,18 @@ export const api = {
 
   libraryStats: () => request<LibraryStats>("/library/stats"),
 
-  libraryRootPath: () => request<LibraryRootPath>("/library/root-path"),
+  listRootFolders: () => request<LibraryRootFolder[]>("/library/root-folders"),
 
-  setLibraryRootPath: (rootPath: string) =>
-    request<void>("/library/root-path", { method: "PUT", body: JSON.stringify({ rootPath }) }),
+  createRootFolder: (path: string, contentTypes: LibraryContentType[] = []) =>
+    request<LibraryRootFolder>("/library/root-folders", {
+      method: "POST",
+      body: JSON.stringify({ path, contentTypes }),
+    }),
+
+  deleteRootFolder: (id: string) => request<void>(`/library/root-folders/${id}`, { method: "DELETE" }),
+
+  browseFilesystem: (path?: string) =>
+    request<BrowseResult>(`/filesystem/browse${path ? `?path=${encodeURIComponent(path)}` : ""}`),
 
   listRequests: () => request<MediaRequest[]>("/requests"),
 

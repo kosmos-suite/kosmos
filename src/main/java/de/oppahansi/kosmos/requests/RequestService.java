@@ -113,7 +113,8 @@ public class RequestService {
                             request.overview,
                             request.posterPath,
                             request.backdropPath,
-                            qualityProfileId))
+                            qualityProfileId,
+                            null))
                     .mediaItem;
             case "anime" ->
                 animeService.create(
@@ -125,7 +126,8 @@ public class RequestService {
                             request.overview,
                             request.posterPath,
                             request.backdropPath,
-                            qualityProfileId))
+                            qualityProfileId,
+                            null))
                     .mediaItem;
             default ->
                 showService.create(
@@ -137,7 +139,8 @@ public class RequestService {
                             request.overview,
                             request.posterPath,
                             request.backdropPath,
-                            qualityProfileId))
+                            qualityProfileId,
+                            null))
                     .mediaItem;
           };
     }

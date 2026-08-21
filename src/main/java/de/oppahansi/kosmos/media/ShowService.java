@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.media;
 
+import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateShowRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
@@ -17,6 +18,7 @@ import java.util.UUID;
 public class ShowService {
 
   @Inject QualityProfileService qualityProfileService;
+  @Inject LibraryRootFolderService rootFolderService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject ExternalIdLinkService externalIdLinkService;
 
@@ -49,6 +51,8 @@ public class ShowService {
     mediaItem.title = request.title();
     mediaItem.year = request.year();
     mediaItem.addedAt = Instant.now();
+    mediaItem.rootFolder =
+        rootFolderService.resolveOrDefault(request.rootFolderId(), "show").orElse(null);
     mediaItem.persist();
 
     Show show = new Show();
@@ -101,6 +105,7 @@ public class ShowService {
         episodeMediaItem.title = episodeData.title();
         episodeMediaItem.year = show.mediaItem.year;
         episodeMediaItem.addedAt = Instant.now();
+        episodeMediaItem.rootFolder = show.mediaItem.rootFolder;
         episodeMediaItem.persist();
 
         Episode episode = new Episode();

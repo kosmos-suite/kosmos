@@ -99,11 +99,16 @@ public class JellyfinClient {
 
     List<JellyfinLibrary> libraries = new ArrayList<>();
     for (JsonNode item : root) {
+      List<String> locations = new ArrayList<>();
+      for (JsonNode location : item.path("Locations")) {
+        locations.add(location.asText());
+      }
       libraries.add(
           new JellyfinLibrary(
               item.path("ItemId").asText(null),
               item.path("Name").asText(null),
-              item.path("CollectionType").asText(null)));
+              item.path("CollectionType").asText(null),
+              locations));
     }
     return libraries;
   }

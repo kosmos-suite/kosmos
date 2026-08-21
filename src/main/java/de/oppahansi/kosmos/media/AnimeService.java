@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.media;
 
+import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateAnimeRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.anilist.AniListAnimeDetails;
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class AnimeService {
 
   @Inject QualityProfileService qualityProfileService;
+  @Inject LibraryRootFolderService rootFolderService;
   @Inject AniListMetadataProvider aniListMetadataProvider;
   @Inject FribbMappingProvider fribbMappingProvider;
   @Inject TheXemMappingProvider theXemMappingProvider;
@@ -62,6 +64,8 @@ public class AnimeService {
     mediaItem.title = request.title();
     mediaItem.year = request.year();
     mediaItem.addedAt = Instant.now();
+    mediaItem.rootFolder =
+        rootFolderService.resolveOrDefault(request.rootFolderId(), "anime").orElse(null);
     mediaItem.persist();
 
     Anime anime = new Anime();
@@ -177,6 +181,7 @@ public class AnimeService {
           tmdbEpisode != null && tmdbEpisode.title() != null ? tmdbEpisode.title() : "Episode " + i;
       episodeMediaItem.year = anime.mediaItem.year;
       episodeMediaItem.addedAt = Instant.now();
+      episodeMediaItem.rootFolder = anime.mediaItem.rootFolder;
       episodeMediaItem.persist();
 
       AnimeEpisode episode = new AnimeEpisode();

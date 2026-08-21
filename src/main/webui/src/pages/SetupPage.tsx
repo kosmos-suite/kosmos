@@ -7,6 +7,7 @@ import {
   CompassIcon as Compass,
   EyeIcon as Eye,
   EyeSlashIcon as EyeSlash,
+  FolderOpenIcon as FolderOpen,
   FolderPlusIcon as FolderPlus,
   KeyIcon as Key,
   LockSimpleIcon as LockSimple,
@@ -24,6 +25,14 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, ApiError } from "../api/client";
 import { useAuth } from "../auth/AuthContext";
+import { FolderBrowserModal } from "../components/FolderBrowserModal";
+import type { LibraryContentType, LibraryRootFolder } from "../api/types";
+
+const CONTENT_TYPES: { value: LibraryContentType; label: string }[] = [
+  { value: "movie", label: "Movies" },
+  { value: "show", label: "Shows" },
+  { value: "anime", label: "Anime" },
+];
 
 type StepKey =
   | "welcome"
@@ -126,8 +135,13 @@ export default function SetupPage() {
   const [prowlarr, setProwlarr] = useState({ url: "", key: "" });
   const [indexerMode, setIndexerMode] = useState<"manual" | "prowlarr">("manual");
   const [f3, setF3] = useState({ baseUrl: DEFAULT_BASE_URL_BY_LABEL.qBittorrent, user: "", pass: "", client: "qBittorrent" as (typeof CLIENTS)[number]["label"] });
-  const [f5, setF5] = useState("");
-  const [libraryPathSource, setLibraryPathSource] = useState<"runtime" | "env" | "unset" | null>(null);
+  const [rootFolders, setRootFolders] = useState<LibraryRootFolder[] | null>(null);
+  const [browsingFolder, setBrowsingFolder] = useState(false);
+  const [pickedPath, setPickedPath] = useState<string | null>(null);
+  const [pickedTypes, setPickedTypes] = useState<Set<LibraryContentType>>(new Set());
+  const [savingFolder, setSavingFolder] = useState(false);
+  const [folderError, setFolderError] = useState<string | null>(null);
+  const [removingFolderId, setRemovingFolderId] = useState<string | null>(null);
 
   const [tests, setTests] = useState<Partial<Record<StepKey, TestState>>>({});
   const [failMsg, setFailMsg] = useState<Partial<Record<StepKey, string>>>({});
@@ -170,18 +184,58 @@ export default function SetupPage() {
     }
   }
 
-  useEffect(() => {
-    checkTmdb();
+  function reloadRootFolders() {
     api
-      .libraryRootPath()
-      .then((r) => {
-        setF5(r.rootPath ?? "");
-        setLibraryPathSource(r.source);
-        setDone((d) => ({ ...d, "media-folder": !!r.rootPath }));
+      .listRootFolders()
+      .then((folders) => {
+        setRootFolders(folders);
+        setDone((d) => ({ ...d, "media-folder": folders.length > 0 }));
       })
       .catch(() => undefined);
+  }
+
+  useEffect(() => {
+    checkTmdb();
+    reloadRootFolders();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  function toggleContentType(type: LibraryContentType) {
+    setPickedTypes((current) => {
+      const next = new Set(current);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }
+
+  async function addRootFolder() {
+    if (!pickedPath) return;
+    setSavingFolder(true);
+    setFolderError(null);
+    try {
+      await api.createRootFolder(pickedPath, Array.from(pickedTypes));
+      setPickedPath(null);
+      setPickedTypes(new Set());
+      reloadRootFolders();
+    } catch (e) {
+      setFolderError(e instanceof ApiError ? e.message : "Could not add this root folder");
+    } finally {
+      setSavingFolder(false);
+    }
+  }
+
+  async function removeRootFolder(id: string) {
+    setRemovingFolderId(id);
+    try {
+      await api.deleteRootFolder(id);
+      reloadRootFolders();
+    } catch (e) {
+      setFolderError(e instanceof ApiError ? e.message : "Could not remove this root folder");
+    } finally {
+      setRemovingFolderId(null);
+    }
+  }
 
   if (needsSetup === false && !authLoading && !user) {
     navigate("/login", { replace: true });
@@ -279,19 +333,6 @@ export default function SetupPage() {
     }
   }
 
-  async function saveLibraryPath() {
-    setTests((t) => ({ ...t, "media-folder": "testing" }));
-    try {
-      await api.setLibraryRootPath(f5.trim());
-      setTests((t) => ({ ...t, "media-folder": "ok" }));
-      setDone((d) => ({ ...d, "media-folder": true }));
-      setLibraryPathSource("runtime");
-    } catch (e) {
-      setFailMsg((m) => ({ ...m, "media-folder": e instanceof ApiError ? e.message : "Could not save this path" }));
-      setTests((t) => ({ ...t, "media-folder": "fail" }));
-    }
-  }
-
   const m1 = checkingTmdb
     ? { msg: "Checking…", fg: "var(--text-muted)", icon: CircleNotch, spin: true }
     : !tmdbConfigured
@@ -305,7 +346,6 @@ export default function SetupPage() {
             : { msg: "Key detected — not verified yet", fg: "var(--status-warn)", icon: Warning, spin: false };
   const m2 = testMsg(tests.indexer, indexerMode === "prowlarr" ? (prowlarrResultMsg ?? "Imported") : "Saved — Kosmos will search this indexer", "We'll save it to Settings → Indexers", failMsg.indexer);
   const m3 = testMsg(tests["download-client"], "Saved — Kosmos will send grabs here", "We'll save it to Settings → Download Clients", failMsg["download-client"]);
-  const m5 = testMsg(tests["media-folder"], "Saved", "We'll save it to Settings → Library", failMsg["media-folder"]);
 
   const configuredSteps: StepKey[] = ["metadata", "indexer", "download-client", "media-folder"];
   const configured = configuredSteps.filter((k) => done[k]).length;
@@ -325,7 +365,11 @@ export default function SetupPage() {
     sumRow("metadata", "Metadata source", "TMDB · key detected"),
     sumRow("indexer", "Indexer", indexerMode === "prowlarr" ? "Prowlarr" : f2.name.trim() || "indexer"),
     sumRow("download-client", "Download client", `${f3.client} · ${f3.baseUrl}`),
-    sumRow("media-folder", "Media folder", f5 || "media folder"),
+    sumRow(
+      "media-folder",
+      "Root folders",
+      rootFolders && rootFolders.length > 0 ? `${rootFolders.length} configured` : "root folder",
+    ),
   ];
 
   function next() {
@@ -745,48 +789,91 @@ export default function SetupPage() {
         {step === "media-folder" && (
           <div className="setup-step">
             <h1 style={{ fontSize: 30, letterSpacing: "-0.028em", marginBottom: 12 }}>Where does your library live?</h1>
-            <p className="text-muted" style={{ maxWidth: "50ch", fontSize: 14.5, lineHeight: 1.7, marginBottom: 26 }}>
-              New grabs get organized under this folder — <code style={{ fontFamily: "var(--font-mono)" }}>{"{title} ({year})"}</code>{" "}
+            <p className="text-muted" style={{ maxWidth: "50ch", fontSize: 14.5, lineHeight: 1.7, marginBottom: 22 }}>
+              New grabs get organized under a root folder — <code style={{ fontFamily: "var(--font-mono)" }}>{"{title} ({year})"}</code>{" "}
               per title. This applies even if you connected Jellyfin: that only recognizes what Jellyfin already
-              scanned, not where new downloads land.
+              scanned, not where new downloads land. Add more than one to split movies, shows and anime across
+              different drives — pick which content types each accepts, or leave it open to accept anything.
             </p>
 
-            <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-              <div>
-                <label style={{ display: "block", fontSize: 11.5, fontWeight: 500, color: "var(--text-secondary)", marginBottom: 7 }}>
-                  Library root path
-                </label>
-                <input
-                  className="input"
-                  style={{ fontFamily: "var(--font-mono)" }}
-                  value={f5}
-                  onChange={(e) => {
-                    setF5(e.target.value);
-                    setTests((t) => ({ ...t, "media-folder": undefined }));
-                  }}
-                  placeholder="/data/library"
-                />
-                <p className="text-faint" style={{ fontSize: 11.5, marginTop: 7 }}>
-                  A path on the server Kosmos's own process can write to — not a folder picker, since Kosmos runs
-                  server-side and this path lives on that machine, not your browser's. Can also be set via the{" "}
-                  <code style={{ fontFamily: "var(--font-mono)" }}>KOSMOS_LIBRARY_ROOT_PATH</code> environment
-                  variable; saving here overrides it at runtime, no restart needed, and is editable again any time.
-                  {libraryPathSource === "env" && " Currently set from that environment variable."}
-                  {libraryPathSource === "runtime" && " Currently set here, at runtime."}
-                </p>
-              </div>
-              <div className="setup-test-row">
-                <span
-                  className="setup-test-btn"
-                  onClick={!f5.trim() || tests["media-folder"] === "testing" ? undefined : saveLibraryPath}
-                  style={!f5.trim() ? { cursor: "default", opacity: 0.7 } : undefined}
-                >
-                  <m5.icon size={13} className={m5.spin ? "spin" : ""} />
-                  Save
-                </span>
-                <span style={{ fontSize: 11.5, color: m5.fg }}>{m5.msg}</span>
-              </div>
+            {rootFolders?.length === 0 && !pickedPath && (
+              <p className="text-muted" style={{ marginBottom: 14 }}>
+                No root folders yet.
+              </p>
+            )}
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 14 }}>
+              {rootFolders?.map((folder) => (
+                <div key={folder.id} className="setup-toggle-row">
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: 12.5, fontFamily: "var(--font-mono)" }}>{folder.path}</div>
+                    <div className="text-faint" style={{ fontSize: 11, marginTop: 2 }}>
+                      {folder.contentTypes.length === 0
+                        ? "Accepts any content type"
+                        : folder.contentTypes.map((t) => CONTENT_TYPES.find((c) => c.value === t)?.label ?? t).join(", ")}
+                    </div>
+                  </div>
+                  <span
+                    className="setup-test-btn"
+                    onClick={removingFolderId === folder.id ? undefined : () => removeRootFolder(folder.id)}
+                    style={{ flex: "none" }}
+                  >
+                    {removingFolderId === folder.id ? "Removing…" : "Remove"}
+                  </span>
+                </div>
+              ))}
             </div>
+
+            {pickedPath && (
+              <div className="setup-provider-card" style={{ marginBottom: 14 }}>
+                <p style={{ fontSize: 12.5, marginBottom: 10 }}>
+                  <span className="text-faint">Adding:</span>{" "}
+                  <span style={{ fontFamily: "var(--font-mono)" }}>{pickedPath}</span>
+                </p>
+                <div className="setup-chip-row" style={{ marginBottom: 12 }}>
+                  {CONTENT_TYPES.map(({ value, label }) => (
+                    <span
+                      key={value}
+                      className={`setup-chip${pickedTypes.has(value) ? " active" : ""}`}
+                      onClick={() => toggleContentType(value)}
+                    >
+                      {label}
+                    </span>
+                  ))}
+                </div>
+                <p className="text-faint" style={{ fontSize: 11.5, marginBottom: 12 }}>
+                  Leave all unchecked to accept any content type.
+                </p>
+                {folderError && <p className="text-muted">{folderError}</p>}
+                <div style={{ display: "flex", gap: 10 }}>
+                  <span className="setup-test-btn" onClick={() => setPickedPath(null)}>
+                    Cancel
+                  </span>
+                  <span className="setup-test-btn" onClick={savingFolder ? undefined : addRootFolder}>
+                    {savingFolder ? "Adding…" : "Add"}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {!pickedPath && (
+              <button type="button" className="btn btn-secondary" onClick={() => setBrowsingFolder(true)}>
+                <FolderOpen size={15} />
+                Add root folder
+              </button>
+            )}
+
+            {browsingFolder && (
+              <FolderBrowserModal
+                onClose={() => setBrowsingFolder(false)}
+                onSelect={(path) => {
+                  setBrowsingFolder(false);
+                  setPickedPath(path);
+                  setPickedTypes(new Set());
+                  setFolderError(null);
+                }}
+              />
+            )}
           </div>
         )}
 
@@ -1084,7 +1171,9 @@ function JellyfinAccountForm({
 }
 
 function JellyfinLibrariesStep({ serverId, onDone }: { serverId: string; onDone: () => void }) {
-  const [libraries, setLibraries] = useState<{ id: string; name: string; collectionType: string | null }[] | null>(null);
+  const [libraries, setLibraries] = useState<
+    { id: string; name: string; collectionType: string | null; locations: string[] }[] | null
+  >(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [continuing, setContinuing] = useState(false);
@@ -1119,6 +1208,21 @@ function JellyfinLibrariesStep({ serverId, onDone }: { serverId: string; onDone:
       // Fire-and-forget: a real library sync can take a while, and there's no reason to block
       // the rest of onboarding on it — it can be re-run from Settings → Jellyfin any time.
       api.syncJellyfinServer(serverId).catch(() => undefined);
+
+      // Best-effort: pre-populate root folders from Jellyfin's own reported paths, so the media
+      // folder step isn't asking for information Jellyfin already gave us. Silently skips any
+      // path Kosmos's own process can't see (e.g. different container mounts) and any collection
+      // type with no folder-based equivalent (collections/boxsets are a curated grouping, not a
+      // physical library).
+      for (const library of (libraries ?? []).filter((l) => allSelected || selected.has(l.id))) {
+        const contentType =
+          library.collectionType === "movies" ? "movie" : library.collectionType === "tvshows" ? "show" : null;
+        if (!contentType) continue;
+        for (const location of library.locations) {
+          api.createRootFolder(location, [contentType]).catch(() => undefined);
+        }
+      }
+
       onDone();
     }
   }

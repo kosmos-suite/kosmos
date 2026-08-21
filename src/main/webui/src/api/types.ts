@@ -277,6 +277,7 @@ export interface JellyfinLibrary {
   id: string;
   name: string;
   collectionType: string | null;
+  locations: string[];
 }
 
 export interface SetupStatus {
@@ -319,9 +320,24 @@ export interface LibraryStats {
   totalBytes: number | null;
 }
 
-export interface LibraryRootPath {
-  rootPath: string | null;
-  source: "runtime" | "env" | "unset";
+export type LibraryContentType = "movie" | "show" | "anime";
+
+export interface LibraryRootFolder {
+  id: string;
+  path: string;
+  contentTypes: LibraryContentType[];
+  createdAt: string;
+}
+
+export interface DirectoryEntry {
+  name: string;
+  path: string;
+}
+
+export interface BrowseResult {
+  path: string;
+  parentPath: string | null;
+  directories: DirectoryEntry[];
 }
 
 export interface TestIndexerResult {

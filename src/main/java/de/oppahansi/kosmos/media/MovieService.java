@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.media;
 
+import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateMovieRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
@@ -16,6 +17,7 @@ import java.util.UUID;
 public class MovieService {
 
   @Inject QualityProfileService qualityProfileService;
+  @Inject LibraryRootFolderService rootFolderService;
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject ExternalIdLinkService externalIdLinkService;
 
@@ -34,6 +36,8 @@ public class MovieService {
     mediaItem.title = request.title();
     mediaItem.year = request.year();
     mediaItem.addedAt = Instant.now();
+    mediaItem.rootFolder =
+        rootFolderService.resolveOrDefault(request.rootFolderId(), "movie").orElse(null);
     mediaItem.persist();
 
     Movie movie = new Movie();

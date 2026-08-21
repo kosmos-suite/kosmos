@@ -21,6 +21,7 @@ import NotificationsPage from "./pages/settings/NotificationsPage";
 import PermissionsPage from "./pages/settings/PermissionsPage";
 import PluginsPage from "./pages/settings/PluginsPage";
 import QualityPage from "./pages/settings/QualityPage";
+import RootFoldersPage from "./pages/settings/RootFoldersPage";
 import SettingsLayout from "./pages/settings/SettingsLayout";
 import SizeLimitsPage from "./pages/settings/SizeLimitsPage";
 import UsersPage from "./pages/settings/UsersPage";
@@ -53,6 +54,7 @@ function App() {
             <Route path="/activity" element={<ActivityPage />} />
 
             <Route path="/settings" element={<SettingsLayout />}>
+              <Route path="root-folders" element={<RootFoldersPage />} />
               <Route path="indexers" element={<IndexersPage />} />
               <Route path="download-clients" element={<DownloadClientsPage />} />
               <Route path="plugins" element={<PluginsPage />} />

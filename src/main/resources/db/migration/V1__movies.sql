@@ -12,12 +12,22 @@ CREATE TABLE plugin (
     installed_at      TIMESTAMP NOT NULL
 );
 
+-- Where grabbed releases for a title land — the Radarr/Sonarr "Root Folders" concept, one or
+-- more registered per install, chosen per title at add time.
+CREATE TABLE library_root_folder (
+    id             VARCHAR(36) PRIMARY KEY,
+    path           VARCHAR(1000) NOT NULL UNIQUE,
+    content_types  VARCHAR(200),
+    created_at     TIMESTAMP NOT NULL
+);
+
 CREATE TABLE media_item (
     id                VARCHAR(36) PRIMARY KEY,
     content_type      VARCHAR(20) NOT NULL,
     title             VARCHAR(500) NOT NULL,
     year              INTEGER,
-    added_at          TIMESTAMP NOT NULL
+    added_at          TIMESTAMP NOT NULL,
+    root_folder_id    VARCHAR(36) REFERENCES library_root_folder(id)
 );
 
 -- catalog cross-reference: the WORK, not a file — used for metadata fetching
@@ -312,9 +322,4 @@ CREATE TABLE anime_episode (
     air_date                DATE,
     runtime_minutes         INTEGER,
     still_path              VARCHAR(500)
-);
-
-CREATE TABLE library_setting (
-    id         VARCHAR(36) PRIMARY KEY,
-    root_path  VARCHAR(1000)
 );
