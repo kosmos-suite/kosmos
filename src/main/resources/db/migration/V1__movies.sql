@@ -233,12 +233,13 @@ CREATE TABLE notifier (
 );
 
 CREATE TABLE jellyfin_server (
-    id                VARCHAR(36) PRIMARY KEY,
-    name              VARCHAR(200) NOT NULL,
-    base_url          VARCHAR(1000) NOT NULL,
-    api_key           VARCHAR(200) NOT NULL,
-    enabled           BOOLEAN NOT NULL DEFAULT TRUE,
-    created_at        TIMESTAMP NOT NULL
+    id                    VARCHAR(36) PRIMARY KEY,
+    name                  VARCHAR(200) NOT NULL,
+    base_url              VARCHAR(1000) NOT NULL,
+    api_key               VARCHAR(200) NOT NULL,
+    selected_library_ids  VARCHAR(2000),
+    enabled               BOOLEAN NOT NULL DEFAULT TRUE,
+    created_at            TIMESTAMP NOT NULL
 );
 
 -- Either a native account (password_hash set, jellyfin_* null) or a Jellyfin-linked account
@@ -311,4 +312,9 @@ CREATE TABLE anime_episode (
     air_date                DATE,
     runtime_minutes         INTEGER,
     still_path              VARCHAR(500)
+);
+
+CREATE TABLE library_setting (
+    id         VARCHAR(36) PRIMARY KEY,
+    root_path  VARCHAR(1000)
 );

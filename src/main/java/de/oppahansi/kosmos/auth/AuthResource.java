@@ -1,6 +1,9 @@
 package de.oppahansi.kosmos.auth;
 
+import de.oppahansi.kosmos.auth.dto.BootstrapJellyfinRequest;
+import de.oppahansi.kosmos.auth.dto.BootstrapJellyfinResponse;
 import de.oppahansi.kosmos.auth.dto.LoginRequest;
+import de.oppahansi.kosmos.auth.dto.SetupStatusResponse;
 import de.oppahansi.kosmos.auth.dto.UserResponse;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
@@ -22,6 +25,24 @@ public class AuthResource {
 
   @Inject AuthService authService;
   @Inject CurrentUser currentUser;
+  @Inject UserService userService;
+
+  @GET
+  @Path("/setup-status")
+  public SetupStatusResponse setupStatus() {
+    return new SetupStatusResponse(userService.needsSetup());
+  }
+
+  @POST
+  @Path("/bootstrap/jellyfin")
+  public Response bootstrapJellyfin(BootstrapJellyfinRequest request) {
+    User user =
+        userService.createFromJellyfinBootstrap(
+            request.serverUrl(), request.username(), request.password());
+    return Response.status(Response.Status.CREATED)
+        .entity(new BootstrapJellyfinResponse(user.jellyfinServer.id))
+        .build();
+  }
 
   @POST
   @Path("/login")

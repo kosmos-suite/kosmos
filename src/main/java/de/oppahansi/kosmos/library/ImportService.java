@@ -16,11 +16,9 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
 import java.util.Comparator;
-import java.util.Optional;
 import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 
 /**
  * Imports a completed download's video file into the library: hardlink first so the source torrent
@@ -37,9 +35,7 @@ public class ImportService {
   private static final Pattern SAMPLE_NAME = Pattern.compile("(?i)\\bsample\\b");
   private static final Pattern ILLEGAL_FILENAME_CHARS = Pattern.compile("[\\\\/:*?\"<>|]");
 
-  @ConfigProperty(name = "kosmos.library.root-path")
-  Optional<String> libraryRootPath;
-
+  @Inject LibrarySettingsService librarySettingsService;
   @Inject ProbeService probeService;
   @Inject AniDbUdpClient aniDbUdpClient;
   @Inject ExternalIdLinkService externalIdLinkService;
@@ -177,9 +173,12 @@ public class ImportService {
   }
 
   private Path targetPathFor(MediaItem mediaItem, Path source) {
-    if (libraryRootPath.isEmpty()) {
-      throw new InternalServerErrorException("kosmos.library.root-path is not configured");
-    }
+    String rootPath =
+        librarySettingsService
+            .getRootPath()
+            .orElseThrow(
+                () ->
+                    new InternalServerErrorException("kosmos.library.root-path is not configured"));
     String extension = "";
     String sourceName = source.getFileName().toString();
     int dot = sourceName.lastIndexOf('.');
@@ -188,7 +187,7 @@ public class ImportService {
     }
 
     String folderName = sanitize(mediaItem.title) + " (" + mediaItem.year + ")";
-    return Path.of(libraryRootPath.get(), folderName, folderName + extension);
+    return Path.of(rootPath, folderName, folderName + extension);
   }
 
   private String sanitize(String name) {

@@ -1,8 +1,12 @@
 package de.oppahansi.kosmos.indexers;
 
 import de.oppahansi.kosmos.indexers.dto.CreateIndexerRequest;
+import de.oppahansi.kosmos.indexers.dto.ImportFromProwlarrRequest;
+import de.oppahansi.kosmos.indexers.dto.ImportFromProwlarrResult;
 import de.oppahansi.kosmos.indexers.dto.IndexerResponse;
 import de.oppahansi.kosmos.indexers.dto.ScoredSearchResult;
+import de.oppahansi.kosmos.indexers.dto.TestIndexerRequest;
+import de.oppahansi.kosmos.indexers.dto.TestIndexerResult;
 import de.oppahansi.kosmos.indexers.dto.TorznabResult;
 import de.oppahansi.kosmos.parsing.QualityDefinitionService;
 import de.oppahansi.kosmos.parsing.QualityProfile;
@@ -57,6 +61,24 @@ public class IndexerResource {
   public Response create(CreateIndexerRequest request) {
     IndexerResponse response = IndexerResponse.from(indexerService.create(request));
     return Response.status(Response.Status.CREATED).entity(response).build();
+  }
+
+  @POST
+  @Path("/import-from-prowlarr")
+  public ImportFromProwlarrResult importFromProwlarr(ImportFromProwlarrRequest request) {
+    return indexerService.importFromProwlarr(request.baseUrl(), request.apiKey());
+  }
+
+  @POST
+  @Path("/test")
+  public TestIndexerResult test(TestIndexerRequest request) {
+    return indexerService.testConnection(request.baseUrl(), request.apiKey());
+  }
+
+  @POST
+  @Path("/test-prowlarr")
+  public TestIndexerResult testProwlarr(TestIndexerRequest request) {
+    return indexerService.testProwlarrConnection(request.baseUrl(), request.apiKey());
   }
 
   @GET

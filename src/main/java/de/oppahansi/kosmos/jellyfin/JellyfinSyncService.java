@@ -55,7 +55,7 @@ public class JellyfinSyncService {
     JellyfinClient client = new JellyfinClient(server.baseUrl);
     List<JellyfinMovie> movies;
     try {
-      movies = client.listMovies(server.apiKey);
+      movies = client.listMovies(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
     } catch (IOException | InterruptedException e) {
       throw new BadRequestException("Could not reach Jellyfin server: " + e.getMessage());
     }

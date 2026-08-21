@@ -50,3 +50,6 @@ nb-configuration.xml
 # SQLite runtime database
 *.db
 *.db-journal
+
+# Quinoa's self-managed Node/npm install (only used in prod builds; see application.properties)
+.quinoa/

@@ -1,12 +1,15 @@
 package de.oppahansi.kosmos.jellyfin;
 
 import de.oppahansi.kosmos.jellyfin.dto.CreateJellyfinServerRequest;
+import de.oppahansi.kosmos.jellyfin.dto.JellyfinLibraryResponse;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinServerResponse;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinSyncResult;
+import de.oppahansi.kosmos.jellyfin.dto.UpdateJellyfinLibrariesRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -48,5 +51,19 @@ public class JellyfinServerResource {
   public Response sync(@PathParam("id") UUID id) {
     JellyfinSyncResult result = syncService.sync(id);
     return Response.ok(result).build();
+  }
+
+  @GET
+  @Path("/{id}/libraries")
+  public List<JellyfinLibraryResponse> listLibraries(@PathParam("id") UUID id) {
+    return serverService.listLibraries(id).stream().map(JellyfinLibraryResponse::from).toList();
+  }
+
+  @PUT
+  @Path("/{id}/libraries")
+  public Response updateLibraries(
+      @PathParam("id") UUID id, UpdateJellyfinLibrariesRequest request) {
+    serverService.updateSelectedLibraries(id, request.libraryIds());
+    return Response.noContent().build();
   }
 }

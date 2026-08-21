@@ -273,6 +273,16 @@ export interface JellyfinServer {
   createdAt: string;
 }
 
+export interface JellyfinLibrary {
+  id: string;
+  name: string;
+  collectionType: string | null;
+}
+
+export interface SetupStatus {
+  needsSetup: boolean;
+}
+
 export interface JellyfinSyncResult {
   scanned: number;
   linked: number;
@@ -297,12 +307,36 @@ export interface MetadataStatus {
   tmdbConfigured: boolean;
 }
 
+export interface TmdbTestResult {
+  ok: boolean;
+}
+
 export interface LibraryStats {
   movieCount: number;
   seriesCount: number;
   animeCount: number;
   usedBytes: number;
   totalBytes: number | null;
+}
+
+export interface LibraryRootPath {
+  rootPath: string | null;
+  source: "runtime" | "env" | "unset";
+}
+
+export interface TestIndexerResult {
+  ok: boolean;
+  message: string;
+}
+
+export interface TestDownloadClientResult {
+  ok: boolean;
+  message: string;
+}
+
+export interface ImportFromProwlarrResult {
+  imported: number;
+  skippedDisabled: number;
 }
 
 export interface DiscoverItem {

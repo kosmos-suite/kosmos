@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -28,18 +29,37 @@ import org.xml.sax.SAXException;
 public class TorznabClient {
 
   private static final String TORZNAB_NS = "http://torznab.com/schemas/2015/feed";
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
+  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
-  private final HttpClient httpClient = HttpClient.newHttpClient();
+  private final HttpClient httpClient =
+      HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
 
   public List<TorznabResult> search(String baseUrl, String apiKey, String query)
       throws IOException, InterruptedException {
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(buildSearchUrl(baseUrl, apiKey, query)))
+            .timeout(REQUEST_TIMEOUT)
             .GET()
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     return parse(response.body());
+  }
+
+  /** t=caps is the standard Torznab capability-check call — no search, just "does this respond". */
+  public boolean testConnection(String baseUrl, String apiKey)
+      throws IOException, InterruptedException {
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create("%s?t=caps&apikey=%s".formatted(baseUrl, apiKey)))
+            .timeout(REQUEST_TIMEOUT)
+            .GET()
+            .build();
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    return response.statusCode() == 200
+        && response.body() != null
+        && response.body().contains("<caps");
   }
 
   String buildSearchUrl(String baseUrl, String apiKey, String query) {

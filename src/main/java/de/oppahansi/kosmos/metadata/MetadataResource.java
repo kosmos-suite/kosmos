@@ -3,9 +3,11 @@ package de.oppahansi.kosmos.metadata;
 import de.oppahansi.kosmos.metadata.anilist.AniListMetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import de.oppahansi.kosmos.metadata.dto.MetadataStatusResponse;
+import de.oppahansi.kosmos.metadata.dto.TmdbTestResult;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.GET;
+import jakarta.ws.rs.POST;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.QueryParam;
@@ -39,5 +41,12 @@ public class MetadataResource {
   @Path("/status")
   public MetadataStatusResponse status() {
     return new MetadataStatusResponse(tmdbMetadataProvider.isConfigured());
+  }
+
+  /** Real check against TMDB itself — {@link #status} only reports whether a key is set. */
+  @POST
+  @Path("/tmdb/test")
+  public TmdbTestResult testTmdb() {
+    return new TmdbTestResult(tmdbMetadataProvider.testConnection());
   }
 }

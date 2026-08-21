@@ -7,14 +7,18 @@ import type {
   DownloadClient,
   EpisodeDetail,
   Grab,
+  ImportFromProwlarrResult,
   Indexer,
+  JellyfinLibrary,
   JellyfinServer,
   JellyfinSyncResult,
   LibraryFile,
+  LibraryRootPath,
   LibraryStats,
   MediaRequest,
   MetadataSearchResult,
   MetadataStatus,
+  TmdbTestResult,
   Movie,
   Notifier,
   PluginManifest,
@@ -23,8 +27,11 @@ import type {
   RegistryEntry,
   ScheduledJob,
   ScoredSearchResult,
+  SetupStatus,
   Show,
   ShowDetail,
+  TestDownloadClientResult,
+  TestIndexerResult,
   TrashImportResult,
   User,
 } from "./types";
@@ -94,6 +101,11 @@ export const api = {
 
   libraryStats: () => request<LibraryStats>("/library/stats"),
 
+  libraryRootPath: () => request<LibraryRootPath>("/library/root-path"),
+
+  setLibraryRootPath: (rootPath: string) =>
+    request<void>("/library/root-path", { method: "PUT", body: JSON.stringify({ rootPath }) }),
+
   listRequests: () => request<MediaRequest[]>("/requests"),
 
   createRequest: (body: {
@@ -124,6 +136,8 @@ export const api = {
     request<MetadataSearchResult[]>(`/metadata/search?q=${encodeURIComponent(query)}`),
 
   metadataStatus: () => request<MetadataStatus>("/metadata/status"),
+
+  testTmdb: () => request<TmdbTestResult>("/metadata/tmdb/test", { method: "POST" }),
 
   listInstalledPlugins: () => request<PluginManifest[]>("/plugins"),
 
@@ -184,6 +198,18 @@ export const api = {
   createIndexer: (body: { name: string; baseUrl: string; apiKey: string }) =>
     request<Indexer>("/indexers", { method: "POST", body: JSON.stringify(body) }),
 
+  importIndexersFromProwlarr: (body: { baseUrl: string; apiKey: string }) =>
+    request<ImportFromProwlarrResult>("/indexers/import-from-prowlarr", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
+  testIndexer: (body: { baseUrl: string; apiKey: string }) =>
+    request<TestIndexerResult>("/indexers/test", { method: "POST", body: JSON.stringify(body) }),
+
+  testProwlarrConnection: (body: { baseUrl: string; apiKey: string }) =>
+    request<TestIndexerResult>("/indexers/test-prowlarr", { method: "POST", body: JSON.stringify(body) }),
+
   searchIndexer: (indexerId: string, query: string, qualityProfileId?: string, runtimeMinutes?: number | null) =>
     request<ScoredSearchResult[]>(
       `/indexers/${indexerId}/search?q=${encodeURIComponent(query)}${qualityProfileId ? `&qualityProfileId=${qualityProfileId}` : ""}${runtimeMinutes ? `&runtimeMinutes=${runtimeMinutes}` : ""}`,
@@ -242,6 +268,9 @@ export const api = {
     password: string | null;
     category: string | null;
   }) => request<DownloadClient>("/download-clients", { method: "POST", body: JSON.stringify(body) }),
+
+  testDownloadClient: (body: { type: string; baseUrl: string; username: string | null; password: string | null }) =>
+    request<TestDownloadClientResult>("/download-clients/test", { method: "POST", body: JSON.stringify(body) }),
 
   grabRelease: (
     movieId: string,
@@ -306,7 +335,17 @@ export const api = {
   syncJellyfinServer: (id: string) =>
     request<JellyfinSyncResult>(`/jellyfin-servers/${id}/sync`, { method: "POST" }),
 
+  listJellyfinLibraries: (id: string) => request<JellyfinLibrary[]>(`/jellyfin-servers/${id}/libraries`),
+
+  updateJellyfinLibrarySelection: (id: string, libraryIds: string[]) =>
+    request<void>(`/jellyfin-servers/${id}/libraries`, { method: "PUT", body: JSON.stringify({ libraryIds }) }),
+
   listJobs: () => request<ScheduledJob[]>("/jobs"),
+
+  setupStatus: () => request<SetupStatus>("/auth/setup-status"),
+
+  bootstrapJellyfin: (body: { serverUrl: string; username: string; password: string }) =>
+    request<{ serverId: string }>("/auth/bootstrap/jellyfin", { method: "POST", body: JSON.stringify(body) }),
 
   login: (username: string, password: string) =>
     request<User>("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),

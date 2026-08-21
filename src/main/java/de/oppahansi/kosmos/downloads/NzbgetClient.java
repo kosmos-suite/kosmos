@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 
@@ -28,9 +29,12 @@ import java.util.Optional;
 public class NzbgetClient implements TorrentClient {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
+  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
   private final String rpcUrl;
-  private final HttpClient httpClient = HttpClient.newHttpClient();
+  private final HttpClient httpClient =
+      HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
   private String authHeader;
 
   public NzbgetClient(String baseUrl) {
@@ -124,6 +128,7 @@ public class NzbgetClient implements TorrentClient {
             .uri(URI.create(rpcUrl))
             .header("Content-Type", "application/json")
             .header("Authorization", authHeader)
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

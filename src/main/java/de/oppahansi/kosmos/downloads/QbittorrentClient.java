@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -17,10 +18,15 @@ import java.util.UUID;
 public class QbittorrentClient implements TorrentClient {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
+  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
   private final String baseUrl;
   private final HttpClient httpClient =
-      HttpClient.newBuilder().cookieHandler(new java.net.CookieManager()).build();
+      HttpClient.newBuilder()
+          .cookieHandler(new java.net.CookieManager())
+          .connectTimeout(CONNECT_TIMEOUT)
+          .build();
 
   public QbittorrentClient(String baseUrl) {
     this.baseUrl = baseUrl.endsWith("/") ? baseUrl.substring(0, baseUrl.length() - 1) : baseUrl;
@@ -33,6 +39,7 @@ public class QbittorrentClient implements TorrentClient {
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api/v2/auth/login"))
             .header("Content-Type", "application/x-www-form-urlencoded")
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofString(form))
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -53,6 +60,7 @@ public class QbittorrentClient implements TorrentClient {
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api/v2/torrents/add"))
             .header("Content-Type", "application/x-www-form-urlencoded")
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofString(form.toString()))
             .build();
     httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -80,6 +88,7 @@ public class QbittorrentClient implements TorrentClient {
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api/v2/torrents/add"))
             .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
             .build();
     httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -114,7 +123,11 @@ public class QbittorrentClient implements TorrentClient {
 
   public String listTorrents() throws IOException, InterruptedException {
     HttpRequest request =
-        HttpRequest.newBuilder().uri(URI.create(baseUrl + "/api/v2/torrents/info")).GET().build();
+        HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/api/v2/torrents/info"))
+            .timeout(REQUEST_TIMEOUT)
+            .GET()
+            .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
     return response.body();
   }
@@ -125,6 +138,7 @@ public class QbittorrentClient implements TorrentClient {
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api/v2/torrents/info?hashes=" + hash))
+            .timeout(REQUEST_TIMEOUT)
             .GET()
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -149,6 +163,7 @@ public class QbittorrentClient implements TorrentClient {
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api/v2/torrents/delete"))
             .header("Content-Type", "application/x-www-form-urlencoded")
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofString(form))
             .build();
     httpClient.send(request, HttpResponse.BodyHandlers.ofString());

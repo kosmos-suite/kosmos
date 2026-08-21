@@ -13,6 +13,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +28,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
   private static final String MOVIE_URL = "https://api.themoviedb.org/3/movie/";
   private static final String TRENDING_URL = "https://api.themoviedb.org/3/trending/movie/week";
   private static final String POPULAR_URL = "https://api.themoviedb.org/3/movie/popular";
+  private static final String AUTH_URL = "https://api.themoviedb.org/3/authentication";
 
   @ConfigProperty(name = "kosmos.metadata.tmdb.api-key")
   Optional<String> apiKey;
@@ -44,6 +46,31 @@ public class TmdbMetadataProvider implements MetadataProvider {
   /** Whether the API key is set — a deploy-time env var, not something the UI can save. */
   public boolean isConfigured() {
     return apiKey.isPresent();
+  }
+
+  /**
+   * Verifies the configured key actually works, via TMDB's own dedicated key-check endpoint ({@code
+   * /authentication}, {"success":true} for a valid key) rather than inferring it from a real
+   * search, which would conflate "key is bad" with "no results for this query".
+   */
+  public boolean testConnection() {
+    if (apiKey.isEmpty()) {
+      return false;
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(URI.create(AUTH_URL + "?api_key=" + apiKey.get()))
+              .timeout(Duration.ofSeconds(10))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      return response.statusCode() == 200
+          && objectMapper.readTree(response.body()).path("success").asBoolean(false);
+    } catch (IOException | InterruptedException e) {
+      return false;
+    }
   }
 
   /**

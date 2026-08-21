@@ -20,6 +20,10 @@ public class JellyfinServer extends KosmosEntity {
   @Column(name = "api_key", nullable = false, length = 200)
   public String apiKey;
 
+  // Comma-separated Jellyfin library (ItemId) ids; null/blank means "sync every library".
+  @Column(name = "selected_library_ids", length = 2000)
+  public String selectedLibraryIds;
+
   @Column(nullable = false)
   public boolean enabled;
 

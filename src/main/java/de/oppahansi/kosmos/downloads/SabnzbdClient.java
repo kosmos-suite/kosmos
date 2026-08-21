@@ -10,6 +10,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,9 +28,12 @@ import java.util.UUID;
 public class SabnzbdClient implements TorrentClient {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
+  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
   private final String baseUrl;
-  private final HttpClient httpClient = HttpClient.newHttpClient();
+  private final HttpClient httpClient =
+      HttpClient.newBuilder().connectTimeout(CONNECT_TIMEOUT).build();
   private String apiKey;
 
   public SabnzbdClient(String baseUrl) {
@@ -70,6 +74,7 @@ public class SabnzbdClient implements TorrentClient {
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api"))
             .header("Content-Type", "multipart/form-data; boundary=" + boundary)
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofByteArray(body.toByteArray()))
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
@@ -118,6 +123,7 @@ public class SabnzbdClient implements TorrentClient {
     HttpRequest request =
         HttpRequest.newBuilder()
             .uri(URI.create(baseUrl + "/api?" + query + "&apikey=" + apiKey))
+            .timeout(REQUEST_TIMEOUT)
             .GET()
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

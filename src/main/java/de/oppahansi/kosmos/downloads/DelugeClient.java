@@ -10,6 +10,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Base64;
 import java.util.Optional;
 
@@ -28,10 +29,15 @@ import java.util.Optional;
 public class DelugeClient implements TorrentClient {
 
   private static final ObjectMapper MAPPER = new ObjectMapper();
+  private static final Duration CONNECT_TIMEOUT = Duration.ofSeconds(8);
+  private static final Duration REQUEST_TIMEOUT = Duration.ofSeconds(15);
 
   private final String rpcUrl;
   private final HttpClient httpClient =
-      HttpClient.newBuilder().cookieHandler(new CookieManager()).build();
+      HttpClient.newBuilder()
+          .cookieHandler(new CookieManager())
+          .connectTimeout(CONNECT_TIMEOUT)
+          .build();
   private int nextId = 1;
 
   public DelugeClient(String baseUrl) {
@@ -112,6 +118,7 @@ public class DelugeClient implements TorrentClient {
         HttpRequest.newBuilder()
             .uri(URI.create(rpcUrl))
             .header("Content-Type", "application/json")
+            .timeout(REQUEST_TIMEOUT)
             .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
             .build();
     HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());

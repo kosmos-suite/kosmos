@@ -2,6 +2,8 @@ package de.oppahansi.kosmos.downloads;
 
 import de.oppahansi.kosmos.downloads.dto.CreateDownloadClientRequest;
 import de.oppahansi.kosmos.downloads.dto.DownloadClientResponse;
+import de.oppahansi.kosmos.downloads.dto.TestDownloadClientRequest;
+import de.oppahansi.kosmos.downloads.dto.TestDownloadClientResult;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -40,5 +42,11 @@ public class DownloadClientResource {
     DownloadClientResponse response =
         DownloadClientResponse.from(downloadClientService.create(request));
     return Response.status(Response.Status.CREATED).entity(response).build();
+  }
+
+  @POST
+  @Path("/test")
+  public TestDownloadClientResult test(TestDownloadClientRequest request) {
+    return downloadClientService.testConnection(request);
   }
 }
