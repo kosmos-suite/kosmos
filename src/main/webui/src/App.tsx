@@ -3,7 +3,6 @@ import { Layout } from "./components/layout/Layout";
 import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
 import ActivityPage from "./pages/ActivityPage";
-import AnimeDetailPage from "./pages/AnimeDetailPage";
 import DiscoverListPage from "./pages/discover/DiscoverListPage";
 import GenreDiscoverPage from "./pages/discover/GenreDiscoverPage";
 import NetworkDiscoverPage from "./pages/discover/NetworkDiscoverPage";
@@ -14,11 +13,10 @@ import InteractiveSearchPage from "./pages/InteractiveSearchPage";
 import LibraryPage from "./pages/LibraryPage";
 import LoginPage from "./pages/LoginPage";
 import ManualGrabPage from "./pages/ManualGrabPage";
-import MovieDetailPage from "./pages/MovieDetailPage";
+import MediaDetailPage from "./pages/MediaDetailPage";
 import RequestsPage from "./pages/RequestsPage";
 import SearchPage from "./pages/SearchPage";
 import SetupPage from "./pages/SetupPage";
-import ShowDetailPage from "./pages/ShowDetailPage";
 import DownloadClientsPage from "./pages/settings/DownloadClientsPage";
 import IndexersPage from "./pages/settings/IndexersPage";
 import JellyfinPage from "./pages/settings/JellyfinPage";
@@ -57,12 +55,12 @@ function App() {
             <Route path="/discover/trending" element={<TrendingDiscoverPage />} />
             <Route path="/discover/list/:kind" element={<DiscoverListPage />} />
             <Route path="/library" element={<LibraryPage />} />
-            <Route path="/movies/:id" element={<MovieDetailPage />} />
-            <Route path="/movies/tmdb/:externalId" element={<MovieDetailPage />} />
-            <Route path="/shows/:id" element={<ShowDetailPage />} />
-            <Route path="/shows/tmdb/:externalId" element={<ShowDetailPage />} />
-            <Route path="/anime/:id" element={<AnimeDetailPage />} />
-            <Route path="/anime/anilist/:externalId" element={<AnimeDetailPage />} />
+            <Route path="/movies/:id" element={<MediaDetailPage kind="movie" />} />
+            <Route path="/movies/tmdb/:externalId" element={<MediaDetailPage kind="movie" />} />
+            <Route path="/shows/:id" element={<MediaDetailPage kind="show" />} />
+            <Route path="/shows/tmdb/:externalId" element={<MediaDetailPage kind="show" />} />
+            <Route path="/anime/:id" element={<MediaDetailPage kind="anime" />} />
+            <Route path="/anime/anilist/:externalId" element={<MediaDetailPage kind="anime" />} />
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
 

@@ -1,0 +1,398 @@
+import {
+  CheckCircleIcon as CheckCircle,
+  DotsThreeIcon as DotsThree,
+  ListMagnifyingGlassIcon as ListMagnifyingGlass,
+  MagnifyingGlassIcon as MagnifyingGlass,
+  PlayCircleIcon as PlayCircle,
+  PlusIcon as Plus,
+  SparkleIcon as Sparkle,
+  SpinnerIcon as Spinner,
+  StarIcon as Star,
+  TelevisionIcon as Television,
+} from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
+import { backdropUrl, posterUrl } from "../api/tmdbImage";
+import type { AnimeDetail, AnimeEpisode, EpisodeStatus, Movie, PreviewEpisode, PreviewSeason, Season, ShowDetail } from "../api/types";
+import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
+import { type EpisodeRowData, FlatEpisodeList, GroupedEpisodeList, type SeasonRowData } from "../components/detail/EpisodeList";
+import { FileStatusCard } from "../components/detail/FileStatusCard";
+import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
+import { useAddToLibrary } from "../hooks/useAddToLibrary";
+import { useArtworkFallback } from "../hooks/useArtworkFallback";
+import { mediaTypeFor, type MediaKind, useMediaDetail } from "../hooks/useMediaDetail";
+
+function seasonsFromPreview(seasons: PreviewSeason[]): Season[] {
+  return seasons.map((s) => ({
+    id: `preview-season-${s.seasonNumber}`,
+    seasonNumber: s.seasonNumber,
+    name: s.name,
+    overview: null,
+    posterPath: null,
+    episodeCount: s.episodeCount,
+    episodes: s.episodes.map((e) => ({
+      id: `preview-episode-${s.seasonNumber}-${e.episodeNumber}`,
+      episodeNumber: e.episodeNumber,
+      title: e.title,
+      overview: null,
+      airDate: e.airDate,
+      runtimeMinutes: null,
+      stillPath: null,
+      status: "MISSING" as EpisodeStatus,
+    })),
+  }));
+}
+
+function episodesFromPreview(episodes: PreviewEpisode[]): AnimeEpisode[] {
+  return episodes.map((e) => ({
+    id: `preview-episode-${e.episodeNumber}`,
+    episodeNumber: e.episodeNumber,
+    absoluteEpisodeNumber: e.episodeNumber,
+    episodeType: "EPISODE",
+    title: e.title,
+    overview: null,
+    airDate: e.airDate,
+    runtimeMinutes: null,
+    stillPath: null,
+    status: "MISSING" as EpisodeStatus,
+  }));
+}
+
+/**
+ * The one detail screen for movies, shows, and anime alike — owned or not. Seerr uses a single
+ * layout for every media type bar a seasons list on shows; Kosmos now does the same. {@code kind}
+ * (from the matching route in App.tsx) picks which real entity/preview endpoints {@link
+ * useMediaDetail} calls and which of the few genuinely type-specific bits below render — the
+ * hero/poster/title/genres/synopsis/cast/similar layout and the owned-vs-not-owned/availability
+ * states are otherwise identical, so none of that is duplicated per type.
+ */
+export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
+  const {
+    owned,
+    ownedMedia,
+    ownedLoading,
+    ownedError,
+    extras,
+    libraryFiles,
+    profiles,
+    preview,
+    previewLoading,
+    previewError,
+    setQualityProfile,
+  } = useMediaDetail(kind);
+  const { admin, stateFor, triggerAdd } = useAddToLibrary();
+
+  const title = ownedMedia?.title ?? preview?.title ?? "";
+  const year = ownedMedia?.year ?? preview?.year ?? null;
+  const overview = ownedMedia?.overview ?? preview?.overview ?? null;
+  const posterPath = ownedMedia?.posterPath ?? preview?.posterPath ?? null;
+  const backdropPath = ownedMedia?.backdropPath ?? preview?.backdropPath ?? null;
+  const genres = extras?.genres ?? preview?.genres ?? [];
+  const facts = extras?.facts ?? preview?.facts ?? [];
+  const cast = extras?.cast ?? preview?.cast ?? [];
+  const similar = extras?.similar ?? preview?.similar ?? [];
+  const voteAverage = extras?.voteAverage ?? preview?.voteAverage ?? null;
+  const certification = extras?.certification ?? preview?.certification ?? null;
+  const trailerUrl = extras?.trailerUrl ?? preview?.trailerUrl ?? null;
+  const director = kind === "movie" ? facts.find((f) => f.k === "Director")?.v : undefined;
+
+  const { url: posterSrc, probe: posterProbe } = useArtworkFallback(posterUrl(posterPath, "w500"), ownedMedia?.id, "poster");
+  const { url: backdropArt, probe: backdropProbe } = useArtworkFallback(backdropUrl(backdropPath), ownedMedia?.id, "backdrop");
+
+  if (ownedLoading || previewLoading) return <div className="page">Loading…</div>;
+  if (owned && ownedError) return <div className="page text-muted">Failed to load: {ownedError}</div>;
+  if (!owned && previewError) return <div className="page text-muted">Failed to load: {previewError}</div>;
+  if (owned && !ownedMedia) return null;
+  if (!owned && !preview) return null;
+
+  const activeProfile = profiles?.find((p) => p.id === ownedMedia?.qualityProfileId) ?? null;
+  const file = kind === "movie" ? (libraryFiles[0] ?? null) : null;
+
+  let groupedSeasons: SeasonRowData[] | null = null;
+  let flatEpisodes: EpisodeRowData[] | null = null;
+  if (kind === "show") {
+    const seasons = owned && ownedMedia ? (ownedMedia as ShowDetail).seasons : seasonsFromPreview(preview?.seasons ?? []);
+    groupedSeasons = seasons.map((s) => ({
+      id: s.id,
+      name: s.name,
+      episodeCount: s.episodeCount,
+      episodes: s.episodes.map((e) => ({
+        id: e.id,
+        number: e.episodeNumber,
+        title: e.title,
+        airDate: e.airDate,
+        status: e.status,
+        searchHref: owned ? `/episodes/${e.id}/search` : null,
+      })),
+    }));
+  } else if (kind === "anime") {
+    const episodes = owned && ownedMedia ? (ownedMedia as AnimeDetail).episodes : episodesFromPreview(preview?.episodes ?? []);
+    flatEpisodes = episodes.map((e) => ({
+      id: e.id,
+      number: e.absoluteEpisodeNumber ?? e.episodeNumber,
+      title: e.title,
+      airDate: e.airDate,
+      status: e.status,
+      searchHref: owned ? `/anime-episodes/${e.id}/search` : null,
+    }));
+  }
+
+  let availability: "good" | "warn" | "bad" = "bad";
+  let availabilityLabel = "Missing";
+  if (kind === "movie") {
+    availability = file ? "good" : "bad";
+    availabilityLabel = file ? "In Library" : "Missing";
+  } else {
+    const episodes = kind === "show" ? (groupedSeasons ?? []).flatMap((s) => s.episodes) : (flatEpisodes ?? []);
+    const availableCount = episodes.filter((e) => e.status === "AVAILABLE").length;
+    availability = availableCount === 0 ? "bad" : availableCount === episodes.length ? "good" : "warn";
+    availabilityLabel = availability === "good" ? "In Library" : availability === "warn" ? "Partially Available" : "Missing";
+  }
+
+  const addState = preview ? stateFor(preview.externalId) : "idle";
+  const addLabel =
+    addState === "adding"
+      ? admin
+        ? "Adding…"
+        : "Requesting…"
+      : addState === "added"
+        ? admin
+          ? "Added"
+          : "Requested"
+        : admin
+          ? "Add to Library"
+          : "Request";
+
+  return (
+    <div>
+      {backdropProbe}
+      {posterProbe}
+      <section
+        className="detail-hero"
+        style={backdropArt ? { backgroundImage: `url(${backdropArt})`, backgroundSize: "cover", backgroundPosition: "center" } : undefined}
+      >
+        {trailerUrl && (
+          <a href={trailerUrl} target="_blank" rel="noopener noreferrer" className="chip-floating detail-hero-trailer">
+            <PlayCircle size={20} weight="fill" />
+            Trailer
+          </a>
+        )}
+      </section>
+
+      <div className="detail-body2">
+        <div className="detail-poster2">
+          <div className="detail-poster2-art">{posterSrc && <img src={posterSrc} alt="" />}</div>
+        </div>
+
+        <div className="detail-body2-main">
+          <div className="detail-title-row">
+            {owned ? (
+              <>
+                <span className={`status-pill ${availability}`}>
+                  <span className="dot" />
+                  {availabilityLabel}
+                </span>
+                <span className="detail-title-note">
+                  {activeProfile ? `monitored · automatic search every 6h against "${activeProfile.name}"` : "not monitored"}
+                </span>
+              </>
+            ) : (
+              <span className="status-pill accent">Not in Library</span>
+            )}
+          </div>
+
+          <h1 className="detail-h1">{title}</h1>
+
+          <div className="detail-meta-row2">
+            {year && <span>{year}</span>}
+            {kind === "movie" && owned && (
+              <>
+                <span className="sep" />
+                <span>
+                  {(ownedMedia as Movie).runtimeMinutes
+                    ? `${Math.floor((ownedMedia as Movie).runtimeMinutes! / 60)}h ${(ownedMedia as Movie).runtimeMinutes! % 60}m`
+                    : "Runtime unknown"}
+                </span>
+              </>
+            )}
+            {kind === "show" && groupedSeasons && groupedSeasons.length > 0 && (
+              <>
+                <span className="sep" />
+                <span>
+                  {groupedSeasons.length} season{groupedSeasons.length === 1 ? "" : "s"}
+                </span>
+                <span className="sep" />
+                <span>{groupedSeasons.reduce((sum, s) => sum + s.episodes.length, 0)} episodes</span>
+              </>
+            )}
+            {kind === "anime" && flatEpisodes && flatEpisodes.length > 0 && (
+              <>
+                <span className="sep" />
+                <span>
+                  {(owned ? (ownedMedia as AnimeDetail)?.episodeCountTotal : null) ?? flatEpisodes.length} episode
+                  {((owned ? (ownedMedia as AnimeDetail)?.episodeCountTotal : null) ?? flatEpisodes.length) === 1 ? "" : "s"}
+                </span>
+              </>
+            )}
+            {owned && kind === "show" && (ownedMedia as ShowDetail)?.status && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Television size={12} />
+                  {(ownedMedia as ShowDetail).status}
+                </span>
+              </>
+            )}
+            {owned && kind === "anime" && (ownedMedia as AnimeDetail)?.status && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Sparkle size={12} />
+                  {(ownedMedia as AnimeDetail).status}
+                </span>
+              </>
+            )}
+            {certification && (
+              <>
+                <span className="sep" />
+                <span className="cert-badge">{certification}</span>
+              </>
+            )}
+            {voteAverage != null && (
+              <>
+                <span className="sep" />
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                  <Star size={12} weight="fill" color="#E0A94A" />
+                  {voteAverage.toFixed(1)} <span className="text-ghost">{kind === "anime" ? "AniList" : "TMDB"}</span>
+                </span>
+              </>
+            )}
+            {director && (
+              <>
+                <span className="sep" />
+                <span>{director}</span>
+              </>
+            )}
+          </div>
+
+          {genres.length > 0 && (
+            <div className="detail-genres">
+              {genres.map((g) => (
+                <span key={g} className="genre-tag">
+                  {g}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div style={kind === "movie" ? { display: "flex", flexDirection: "column", gap: 18 } : undefined}>
+            {owned ? (
+              kind === "movie" ? (
+                <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                  <Link to={`/movies/${ownedMedia!.id}/search`} className="btn btn-hero">
+                    <MagnifyingGlass size={16} weight="bold" />
+                    Search Now
+                  </Link>
+                  <Link to={`/movies/${ownedMedia!.id}/search`} className="btn btn-secondary">
+                    <ListMagnifyingGlass size={15} />
+                    Interactive search
+                  </Link>
+                  <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
+                  <button type="button" className="btn btn-icon">
+                    <DotsThree size={17} />
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div style={{ marginTop: 14 }}>
+                    <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
+                  </div>
+                  <p className="text-faint" style={{ fontSize: 11.5, marginTop: 8 }}>
+                    {kind === "show"
+                      ? activeProfile
+                        ? `Kosmos checks every enabled indexer against "${activeProfile.name}" every 6 hours, per missing episode.`
+                        : "Assign a quality profile to let Kosmos search for missing episodes automatically."
+                      : "Automatic search runs every 6 hours against a monitored episode's absolute number — matching into a batch release isn't supported yet, so a fansub group's single-episode releases are what gets found."}
+                  </p>
+                </>
+              )
+            ) : (
+              <button
+                type="button"
+                className="btn btn-hero"
+                style={kind === "movie" ? { alignSelf: "flex-start" } : { marginTop: 14 }}
+                disabled={addState !== "idle"}
+                onClick={() =>
+                  preview &&
+                  triggerAdd({
+                    externalId: preview.externalId,
+                    title: preview.title,
+                    year: preview.year,
+                    overview: preview.overview,
+                    posterPath: preview.posterPath,
+                    backdropPath: preview.backdropPath,
+                    mediaType: mediaTypeFor(kind),
+                  })
+                }
+              >
+                {addState === "adding" ? (
+                  <Spinner size={16} className="spin" />
+                ) : addState === "added" ? (
+                  <CheckCircle size={16} weight="fill" />
+                ) : (
+                  <Plus size={16} weight="bold" />
+                )}
+                {addLabel}
+              </button>
+            )}
+
+            {kind === "movie" && owned && (
+              <FileStatusCard file={file} addedAt={(ownedMedia as Movie).addedAt} activeProfile={activeProfile} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="page">
+        <div className="detail-info-grid">
+          <div>
+            <div className="section-label">Synopsis</div>
+            {overview && <p className="detail-synopsis">{overview}</p>}
+          </div>
+          {facts.length > 0 && (
+            <div>
+              <div className="section-label">Details</div>
+              <div className="fact-list">
+                {facts.map((f) => (
+                  <div key={f.k} className="fact-list-row">
+                    <span className="k">{f.k}</span>
+                    <span className="v">{f.v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {kind === "show" && groupedSeasons && groupedSeasons.length > 0 && (
+          <div style={{ marginTop: 38 }}>
+            <div className="section-label" style={{ marginBottom: 12 }}>
+              Seasons
+            </div>
+            <GroupedEpisodeList seasons={groupedSeasons} />
+          </div>
+        )}
+        {kind === "anime" && flatEpisodes && flatEpisodes.length > 0 && (
+          <div style={{ marginTop: 38 }}>
+            <div className="section-label" style={{ marginBottom: 12 }}>
+              Episodes
+            </div>
+            <FlatEpisodeList episodes={flatEpisodes} />
+          </div>
+        )}
+
+        {kind !== "anime" && <CastRow cast={cast} />}
+        <SimilarRow items={similar} />
+      </div>
+    </div>
+  );
+}
