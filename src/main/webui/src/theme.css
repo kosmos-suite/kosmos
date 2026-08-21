@@ -111,11 +111,29 @@ a:hover {
 }
 
 .k-scroll {
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.k-scroll.is-scrolling {
+  scrollbar-color: rgba(233, 233, 237, 0.3) transparent;
 }
 .k-scroll::-webkit-scrollbar {
-  width: 0;
-  height: 0;
+  width: 7px;
+  height: 7px;
+}
+.k-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.k-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 99px;
+  transition: background 140ms;
+}
+.k-scroll.is-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(233, 233, 237, 0.28);
+}
+.k-scroll.is-scrolling::-webkit-scrollbar-thumb:hover {
+  background: rgba(233, 233, 237, 0.42);
 }
 
 /* ---- buttons ---- */
