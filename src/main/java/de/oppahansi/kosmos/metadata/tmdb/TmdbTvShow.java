@@ -10,4 +10,5 @@ record TmdbTvShow(
     @JsonProperty("first_air_date") String firstAirDate,
     String overview,
     @JsonProperty("poster_path") String posterPath,
-    @JsonProperty("backdrop_path") String backdropPath) {}
+    @JsonProperty("backdrop_path") String backdropPath,
+    @JsonProperty("original_language") String originalLanguage) {}

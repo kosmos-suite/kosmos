@@ -10,6 +10,7 @@ import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -111,24 +112,52 @@ public class DiscoverService {
     return Optional.empty();
   }
 
-  public List<DiscoverItem> trending() {
-    return withLibraryStatus(tmdbMetadataProvider.fetchTrendingMovies(), "movie");
+  /**
+   * Backs Discover/Home's hero and "Trending" row (default: mixed, week, page 1, unfiltered) and
+   * the "Trending" list page's window/type/language filters and infinite scroll. {@code mediaType}
+   * is {@code "all"} (TMDB's own mixed trending, movies and series together — matches Overseerr/
+   * Jellyseerr's own Trending row), {@code "movie"}, or {@code "tv"}. {@code excludeLanguages} is a
+   * comma-separated list of ISO 639-1 codes to drop by original language, or blank for no filter.
+   */
+  public List<DiscoverItem> trending(
+      String window, String mediaType, int page, String excludeLanguages) {
+    return switch (mediaType) {
+      case "movie" ->
+          withLibraryStatus(
+              tmdbMetadataProvider.fetchTrendingMovies(window, page, excludeLanguages), "movie");
+      case "tv" ->
+          withLibraryStatus(
+              tmdbMetadataProvider.fetchTrendingTv(window, page, excludeLanguages), "show");
+      default ->
+          withLibraryStatusMixed(
+              tmdbMetadataProvider.fetchTrendingAll(window, page, excludeLanguages));
+    };
   }
 
-  public List<DiscoverItem> popular() {
-    return withLibraryStatus(tmdbMetadataProvider.fetchPopularMovies(), "movie");
+  public List<DiscoverItem> popular(int page, String excludeLanguages) {
+    return withLibraryStatus(
+        tmdbMetadataProvider.fetchPopularMovies(page, excludeLanguages), "movie");
   }
 
-  public List<DiscoverItem> upcomingMovies() {
-    return withLibraryStatus(tmdbMetadataProvider.fetchUpcomingMovies(), "movie");
+  public List<DiscoverItem> upcomingMovies(int page, String excludeLanguages) {
+    return withLibraryStatus(
+        tmdbMetadataProvider.fetchUpcomingMovies(page, excludeLanguages), "movie");
   }
 
-  public List<DiscoverItem> popularTv() {
-    return withLibraryStatus(tmdbMetadataProvider.fetchPopularTv(), "show");
+  public List<DiscoverItem> popularTv(int page, String excludeLanguages) {
+    return withLibraryStatus(tmdbMetadataProvider.fetchPopularTv(page, excludeLanguages), "show");
   }
 
-  public List<DiscoverItem> upcomingTv() {
-    return withLibraryStatus(tmdbMetadataProvider.fetchUpcomingTv(), "show");
+  /**
+   * Page 1 reuses {@link TmdbMetadataProvider#fetchUpcomingTv(String)}'s posters-only curation;
+   * later pages (infinite scroll) are raw — see that method's own doc comment for why.
+   */
+  public List<DiscoverItem> upcomingTv(int page, String excludeLanguages) {
+    List<MetadataSearchResult> results =
+        page <= 1
+            ? tmdbMetadataProvider.fetchUpcomingTv(excludeLanguages)
+            : tmdbMetadataProvider.fetchUpcomingTv(page, excludeLanguages);
+    return withLibraryStatus(results, "show");
   }
 
   public List<GenreTile> movieGenres() {
@@ -143,12 +172,14 @@ public class DiscoverService {
         .toList();
   }
 
-  public List<DiscoverItem> moviesByGenre(int genreId) {
-    return withLibraryStatus(tmdbMetadataProvider.discoverMoviesByGenre(genreId), "movie");
+  public List<DiscoverItem> moviesByGenre(int genreId, int page, String excludeLanguages) {
+    return withLibraryStatus(
+        tmdbMetadataProvider.discoverMoviesByGenre(genreId, page, excludeLanguages), "movie");
   }
 
-  public List<DiscoverItem> tvByGenre(int genreId) {
-    return withLibraryStatus(tmdbMetadataProvider.discoverTvByGenre(genreId), "show");
+  public List<DiscoverItem> tvByGenre(int genreId, int page, String excludeLanguages) {
+    return withLibraryStatus(
+        tmdbMetadataProvider.discoverTvByGenre(genreId, page, excludeLanguages), "show");
   }
 
   public List<StudioTile> studios() {
@@ -159,12 +190,14 @@ public class DiscoverService {
     return NETWORKS;
   }
 
-  public List<DiscoverItem> moviesByStudio(int companyId) {
-    return withLibraryStatus(tmdbMetadataProvider.discoverMoviesByCompany(companyId), "movie");
+  public List<DiscoverItem> moviesByStudio(int companyId, int page, String excludeLanguages) {
+    return withLibraryStatus(
+        tmdbMetadataProvider.discoverMoviesByCompany(companyId, page, excludeLanguages), "movie");
   }
 
-  public List<DiscoverItem> tvByNetwork(int networkId) {
-    return withLibraryStatus(tmdbMetadataProvider.discoverTvByNetwork(networkId), "show");
+  public List<DiscoverItem> tvByNetwork(int networkId, int page, String excludeLanguages) {
+    return withLibraryStatus(
+        tmdbMetadataProvider.discoverTvByNetwork(networkId, page, excludeLanguages), "show");
   }
 
   /**
@@ -175,33 +208,77 @@ public class DiscoverService {
    */
   private List<DiscoverItem> withLibraryStatus(
       List<MetadataSearchResult> results, String contentType) {
-    List<String> externalIds = results.stream().map(MetadataSearchResult::externalId).toList();
+    List<MetadataSearchResult> deduped = dedupe(results);
     Map<String, UUID> inLibrary =
-        MediaItemExternalId.<MediaItemExternalId>find(
-                "plugin.slug = ?1 and externalId in ?2 and mediaItem.contentType = ?3"
-                    + " and supersededAt is null",
-                "tmdb",
-                externalIds,
-                contentType)
-            .<MediaItemExternalId>list()
-            .stream()
-            .collect(Collectors.toMap(l -> l.externalId, l -> l.mediaItem.id, (a, b) -> a));
+        lookupLibrary(deduped.stream().map(MetadataSearchResult::externalId).toList(), contentType);
+    return deduped.stream().map(r -> toDiscoverItem(r, inLibrary)).toList();
+  }
 
-    return results.stream()
-        .map(
-            r ->
-                new DiscoverItem(
-                    inLibrary.get(r.externalId()),
-                    r.externalId(),
-                    r.title(),
-                    r.year(),
-                    r.overview(),
-                    r.posterPath(),
-                    r.backdropPath(),
-                    r.voteAverage(),
-                    r.mediaType(),
-                    inLibrary.containsKey(r.externalId())))
+  /**
+   * Same idea as {@link #withLibraryStatus}, but for a mixed movie+TV list (trending's "all"
+   * filter) where a single {@code contentType} can't be assumed per item — looks each item up
+   * against the library bucket matching its own {@code mediaType} instead.
+   */
+  private List<DiscoverItem> withLibraryStatusMixed(List<MetadataSearchResult> results) {
+    List<MetadataSearchResult> deduped = dedupe(results);
+    List<String> movieIds =
+        deduped.stream()
+            .filter(r -> "movie".equals(r.mediaType()))
+            .map(MetadataSearchResult::externalId)
+            .toList();
+    List<String> tvIds =
+        deduped.stream()
+            .filter(r -> "tv".equals(r.mediaType()))
+            .map(MetadataSearchResult::externalId)
+            .toList();
+    Map<String, UUID> movieLibrary = lookupLibrary(movieIds, "movie");
+    Map<String, UUID> tvLibrary = lookupLibrary(tvIds, "show");
+    return deduped.stream()
+        .map(r -> toDiscoverItem(r, "tv".equals(r.mediaType()) ? tvLibrary : movieLibrary))
         .toList();
+  }
+
+  /**
+   * TMDB's popularity-sorted lists aren't perfectly stable between requests — an item can shift
+   * rank and end up reported on two different pages, or occasionally twice in the same response
+   * (seen with {@code with_genres} ties). Keyed by ({@code mediaType}, {@code externalId}), the
+   * only stable identity a TMDB result has; first occurrence wins.
+   */
+  private List<MetadataSearchResult> dedupe(List<MetadataSearchResult> results) {
+    Map<String, MetadataSearchResult> byKey = new LinkedHashMap<>();
+    for (MetadataSearchResult r : results) {
+      byKey.putIfAbsent(r.mediaType() + ":" + r.externalId(), r);
+    }
+    return List.copyOf(byKey.values());
+  }
+
+  private Map<String, UUID> lookupLibrary(List<String> externalIds, String contentType) {
+    if (externalIds.isEmpty()) {
+      return Map.of();
+    }
+    return MediaItemExternalId.<MediaItemExternalId>find(
+            "plugin.slug = ?1 and externalId in ?2 and mediaItem.contentType = ?3"
+                + " and supersededAt is null",
+            "tmdb",
+            externalIds,
+            contentType)
+        .<MediaItemExternalId>list()
+        .stream()
+        .collect(Collectors.toMap(l -> l.externalId, l -> l.mediaItem.id, (a, b) -> a));
+  }
+
+  private DiscoverItem toDiscoverItem(MetadataSearchResult r, Map<String, UUID> inLibrary) {
+    return new DiscoverItem(
+        inLibrary.get(r.externalId()),
+        r.externalId(),
+        r.title(),
+        r.year(),
+        r.overview(),
+        r.posterPath(),
+        r.backdropPath(),
+        r.voteAverage(),
+        r.mediaType(),
+        inLibrary.containsKey(r.externalId()));
   }
 
   /**

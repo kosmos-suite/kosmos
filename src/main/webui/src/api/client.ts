@@ -158,34 +158,60 @@ export const api = {
 
   discoverRecent: () => request<DiscoverItem[]>("/discover/recent"),
 
-  discoverTrending: () => request<DiscoverItem[]>("/discover/trending"),
+  discoverTrending: (
+    window: "day" | "week" = "week",
+    mediaType: "all" | "movie" | "tv" = "all",
+    page = 1,
+    excludeLanguages: string[] = [],
+  ) =>
+    request<DiscoverItem[]>(
+      `/discover/trending?window=${window}&mediaType=${mediaType}&page=${page}&excludeLanguages=${excludeLanguages.join(",")}`,
+    ),
 
-  discoverPopular: () => request<DiscoverItem[]>("/discover/popular"),
+  discoverPopular: (page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(`/discover/popular?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`),
 
   discoverBecauseYouAdded: () =>
     request<BecauseYouAddedResult | undefined>("/discover/because-you-added"),
 
-  discoverUpcomingMovies: () => request<DiscoverItem[]>("/discover/upcoming-movies"),
+  discoverUpcomingMovies: (page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(
+      `/discover/upcoming-movies?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`,
+    ),
 
-  discoverPopularTv: () => request<DiscoverItem[]>("/discover/popular-tv"),
+  discoverPopularTv: (page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(`/discover/popular-tv?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`),
 
-  discoverUpcomingTv: () => request<DiscoverItem[]>("/discover/upcoming-tv"),
+  discoverUpcomingTv: (page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(`/discover/upcoming-tv?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`),
 
   discoverMovieGenres: () => request<GenreTile[]>("/discover/genres/movie"),
 
   discoverTvGenres: () => request<GenreTile[]>("/discover/genres/tv"),
 
-  discoverMoviesByGenre: (id: number) => request<DiscoverItem[]>(`/discover/genre/movie/${id}`),
+  discoverMoviesByGenre: (id: number, page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(
+      `/discover/genre/movie/${id}?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`,
+    ),
 
-  discoverTvByGenre: (id: number) => request<DiscoverItem[]>(`/discover/genre/tv/${id}`),
+  discoverTvByGenre: (id: number, page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(
+      `/discover/genre/tv/${id}?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`,
+    ),
 
   discoverStudios: () => request<StudioTile[]>("/discover/studios"),
 
   discoverNetworks: () => request<StudioTile[]>("/discover/networks"),
 
-  discoverMoviesByStudio: (id: number) => request<DiscoverItem[]>(`/discover/studio/${id}`),
+  discoverMoviesByStudio: (id: number, page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(
+      `/discover/studio/${id}?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`,
+    ),
 
-  discoverTvByNetwork: (id: number) => request<DiscoverItem[]>(`/discover/network/${id}`),
+  discoverTvByNetwork: (id: number, page = 1, excludeLanguages: string[] = []) =>
+    request<DiscoverItem[]>(
+      `/discover/network/${id}?page=${page}&excludeLanguages=${excludeLanguages.join(",")}`,
+    ),
 
   listShows: () => request<Show[]>("/shows"),
 

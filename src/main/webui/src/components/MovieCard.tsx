@@ -1,4 +1,4 @@
-import { FilmStripIcon as FilmStrip } from "@phosphor-icons/react";
+import { CheckCircleIcon as CheckCircle, FilmStripIcon as FilmStrip } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
@@ -31,6 +31,10 @@ interface MovieCardProps {
    * posters, embedded cover art) before falling back to the placeholder — only meaningful for
    * items already in the library, since only those have a folder on disk to check. */
   mediaItemId?: string | null;
+  /** When present, switches to the Discover-grid card treatment: a Movie/Series type pill top-left
+   * and a compact status icon top-right, instead of the plain text status pill every other caller
+   * uses. */
+  mediaType?: "movie" | "tv";
   /** Omit for real library data with no known status yet — only pass for explicitly mocked rows. */
   status?: MovieStatus;
   /** Percent, 0-100. Renders a thin progress bar at the card's bottom edge when present. */
@@ -47,6 +51,7 @@ export function MovieCard({
   backdropPath,
   wide,
   mediaItemId,
+  mediaType,
   status,
   progress,
   placeholderBackground,
@@ -74,11 +79,22 @@ export function MovieCard({
           </div>
         )}
 
-        {status && (
-          <div className="movie-card-badge">
-            <span className={`dot ${STATUS_DOT_CLASS[status]}`} />
-            {STATUS_LABEL[status]}
-          </div>
+        {mediaType ? (
+          <>
+            <div className="movie-card-type-badge">{mediaType === "tv" ? "Series" : "Movie"}</div>
+            {status === "in-library" && (
+              <div className="movie-card-status-icon" title="In Library">
+                <CheckCircle size={13} weight="fill" style={{ color: "var(--status-good)" }} />
+              </div>
+            )}
+          </>
+        ) : (
+          status && (
+            <div className="movie-card-badge">
+              <span className={`dot ${STATUS_DOT_CLASS[status]}`} />
+              {STATUS_LABEL[status]}
+            </div>
+          )
         )}
 
         <div className="movie-card-scrim" />

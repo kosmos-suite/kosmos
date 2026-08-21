@@ -580,6 +580,33 @@ a:hover {
   letter-spacing: 0.04em;
   color: var(--text);
 }
+.movie-card-type-badge {
+  position: absolute;
+  top: 9px;
+  left: 9px;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: rgba(11, 12, 18, 0.7);
+  backdrop-filter: blur(6px);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.movie-card-status-icon {
+  position: absolute;
+  top: 9px;
+  right: 9px;
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(11, 12, 18, 0.7);
+  backdrop-filter: blur(6px);
+}
 .movie-card-scrim {
   position: absolute;
   left: 0;
@@ -629,6 +656,27 @@ a:hover {
 .movie-card-caption .year {
   font-weight: 400;
   color: var(--text-muted);
+}
+
+/* ---- discover grid pages (trending/popular/upcoming/genre/studio/network lists) ---- */
+.discover-grid-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 0 0 20px;
+}
+.discover-grid-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--accent-2);
+  margin: 0;
+}
+.discover-grid-filters {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 /* ---- poster grid / row ---- */

@@ -139,10 +139,13 @@ interface RowShellProps {
   heading: string;
   sub: string;
   wide?: boolean;
+  /** Where "See all" links to — omitted rows (genre/studio/network tile rows, where nothing is
+   * actually truncated) render without the link at all, rather than pointing it somewhere wrong. */
+  seeAllTo?: string;
   children: ReactNode;
 }
 
-function RowShell({ heading, sub, wide, children }: RowShellProps) {
+function RowShell({ heading, sub, wide, seeAllTo, children }: RowShellProps) {
   const scrollerRef = useRef<HTMLDivElement>(null);
 
   function scrollByPage(dir: 1 | -1) {
@@ -163,9 +166,11 @@ function RowShell({ heading, sub, wide, children }: RowShellProps) {
         <button type="button" className="btn btn-icon" onClick={() => scrollByPage(1)} aria-label="Scroll right">
           <CaretRight size={14} />
         </button>
-        <Link to="/library" className="text-muted" style={{ fontSize: 12.5, marginLeft: 4 }}>
-          See all
-        </Link>
+        {seeAllTo && (
+          <Link to={seeAllTo} className="text-muted" style={{ fontSize: 12.5, marginLeft: 4 }}>
+            See all
+          </Link>
+        )}
       </div>
       <div className={`poster-row k-scroll${wide ? " wide" : ""}`} ref={scrollerRef}>
         {children}
@@ -204,13 +209,14 @@ interface DiscoverRowProps {
   sub: string;
   fetcher: () => Promise<DiscoverItem[]>;
   wide?: boolean;
+  seeAllTo?: string;
 }
 
-function DiscoverRow({ heading, sub, fetcher, wide }: DiscoverRowProps) {
+function DiscoverRow({ heading, sub, fetcher, wide, seeAllTo }: DiscoverRowProps) {
   const { data, loading, error } = useApi(fetcher);
 
   return (
-    <RowShell heading={heading} sub={sub} wide={wide}>
+    <RowShell heading={heading} sub={sub} wide={wide} seeAllTo={seeAllTo}>
       {loading && <div className="text-muted" style={{ padding: "0 2px" }}>Loading…</div>}
       {error && (
         <div className="text-muted" style={{ padding: "0 2px" }}>
@@ -311,7 +317,7 @@ function RecentRequestsRow() {
   if (!loading && !error && recent.length === 0) return null;
 
   return (
-    <RowShell heading="Recent Requests" sub="latest from your users">
+    <RowShell heading="Recent Requests" sub="latest from your users" seeAllTo="/requests">
       {loading && <div className="text-muted" style={{ padding: "0 2px" }}>Loading…</div>}
       {error && (
         <div className="text-muted" style={{ padding: "0 2px" }}>
@@ -350,16 +356,42 @@ export default function HomePage() {
           sub="your latest additions"
           fetcher={api.discoverRecent}
           wide
+          seeAllTo="/library"
         />
         <RecentRequestsRow />
-        <DiscoverRow heading="Trending This Week" sub="from TMDB · updated 12h" fetcher={api.discoverTrending} />
-        <DiscoverRow heading="Popular Movies" sub="all time · from TMDB" fetcher={api.discoverPopular} />
+        <DiscoverRow
+          heading="Trending"
+          sub="movies & series · from TMDB"
+          fetcher={api.discoverTrending}
+          seeAllTo="/discover/trending"
+        />
+        <DiscoverRow
+          heading="Popular Movies"
+          sub="all time · from TMDB"
+          fetcher={api.discoverPopular}
+          seeAllTo="/discover/list/popular"
+        />
         <GenreRow heading="Movie Genres" sub="browse by genre" fetcher={api.discoverMovieGenres} mediaType="movie" />
-        <DiscoverRow heading="Upcoming Movies" sub="from TMDB" fetcher={api.discoverUpcomingMovies} />
+        <DiscoverRow
+          heading="Upcoming Movies"
+          sub="from TMDB"
+          fetcher={api.discoverUpcomingMovies}
+          seeAllTo="/discover/list/upcoming-movies"
+        />
         <StudioRow heading="Studios" sub="browse by studio" fetcher={api.discoverStudios} kind="studio" />
-        <DiscoverRow heading="Popular Series" sub="all time · from TMDB" fetcher={api.discoverPopularTv} />
+        <DiscoverRow
+          heading="Popular Series"
+          sub="all time · from TMDB"
+          fetcher={api.discoverPopularTv}
+          seeAllTo="/discover/list/popular-tv"
+        />
         <GenreRow heading="Series Genres" sub="browse by genre" fetcher={api.discoverTvGenres} mediaType="tv" />
-        <DiscoverRow heading="Upcoming Series" sub="from TMDB" fetcher={api.discoverUpcomingTv} />
+        <DiscoverRow
+          heading="Upcoming Series"
+          sub="from TMDB"
+          fetcher={api.discoverUpcomingTv}
+          seeAllTo="/discover/list/upcoming-tv"
+        />
         <StudioRow heading="Networks" sub="browse by network" fetcher={api.discoverNetworks} kind="network" />
         <BecauseYouAddedRow />
       </div>

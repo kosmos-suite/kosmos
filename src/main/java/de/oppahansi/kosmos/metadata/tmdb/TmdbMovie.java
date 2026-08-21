@@ -11,4 +11,5 @@ record TmdbMovie(
     String overview,
     @JsonProperty("poster_path") String posterPath,
     @JsonProperty("backdrop_path") String backdropPath,
-    @JsonProperty("vote_average") Double voteAverage) {}
+    @JsonProperty("vote_average") Double voteAverage,
+    @JsonProperty("original_language") String originalLanguage) {}
