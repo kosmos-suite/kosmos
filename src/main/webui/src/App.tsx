@@ -1,0 +1,73 @@
+import { Route, Routes } from "react-router-dom";
+import { Layout } from "./components/layout/Layout";
+import { AuthProvider } from "./auth/AuthContext";
+import { RequireAuth } from "./auth/RequireAuth";
+import ActivityPage from "./pages/ActivityPage";
+import AnimeDetailPage from "./pages/AnimeDetailPage";
+import HomePage from "./pages/HomePage";
+import InteractiveSearchPage from "./pages/InteractiveSearchPage";
+import LibraryPage from "./pages/LibraryPage";
+import LoginPage from "./pages/LoginPage";
+import ManualGrabPage from "./pages/ManualGrabPage";
+import MovieDetailPage from "./pages/MovieDetailPage";
+import RequestsPage from "./pages/RequestsPage";
+import SearchPage from "./pages/SearchPage";
+import SetupPage from "./pages/SetupPage";
+import ShowDetailPage from "./pages/ShowDetailPage";
+import DownloadClientsPage from "./pages/settings/DownloadClientsPage";
+import IndexersPage from "./pages/settings/IndexersPage";
+import JellyfinPage from "./pages/settings/JellyfinPage";
+import NotificationsPage from "./pages/settings/NotificationsPage";
+import PermissionsPage from "./pages/settings/PermissionsPage";
+import PluginsPage from "./pages/settings/PluginsPage";
+import QualityPage from "./pages/settings/QualityPage";
+import SettingsLayout from "./pages/settings/SettingsLayout";
+import SizeLimitsPage from "./pages/settings/SizeLimitsPage";
+import UsersPage from "./pages/settings/UsersPage";
+
+function App() {
+  return (
+    <AuthProvider>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/setup" element={<SetupPage />} />
+
+        <Route element={<RequireAuth />}>
+          {/* Full-viewport overlay panels — no sidebar/topbar chrome, per the design's blurred-backdrop modal treatment. */}
+          <Route path="/movies/:id/search" element={<InteractiveSearchPage />} />
+          <Route path="/movies/:id/grab" element={<ManualGrabPage />} />
+          <Route path="/episodes/:id/search" element={<InteractiveSearchPage />} />
+          <Route path="/episodes/:id/grab" element={<ManualGrabPage />} />
+          <Route path="/anime-episodes/:id/search" element={<InteractiveSearchPage />} />
+          <Route path="/anime-episodes/:id/grab" element={<ManualGrabPage />} />
+          {/* Search has its own full-screen shell (icon-only rail, centered command-palette input) — distinct from the standard sidebar/topbar layout. */}
+          <Route path="/search" element={<SearchPage />} />
+
+          <Route element={<Layout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/library" element={<LibraryPage />} />
+            <Route path="/movies/:id" element={<MovieDetailPage />} />
+            <Route path="/shows/:id" element={<ShowDetailPage />} />
+            <Route path="/anime/:id" element={<AnimeDetailPage />} />
+            <Route path="/requests" element={<RequestsPage />} />
+            <Route path="/activity" element={<ActivityPage />} />
+
+            <Route path="/settings" element={<SettingsLayout />}>
+              <Route path="indexers" element={<IndexersPage />} />
+              <Route path="download-clients" element={<DownloadClientsPage />} />
+              <Route path="plugins" element={<PluginsPage />} />
+              <Route path="quality" element={<QualityPage />} />
+              <Route path="size-limits" element={<SizeLimitsPage />} />
+              <Route path="notifications" element={<NotificationsPage />} />
+              <Route path="jellyfin" element={<JellyfinPage />} />
+              <Route path="users" element={<UsersPage />} />
+              <Route path="permissions" element={<PermissionsPage />} />
+            </Route>
+          </Route>
+        </Route>
+      </Routes>
+    </AuthProvider>
+  );
+}
+
+export default App;

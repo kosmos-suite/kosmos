@@ -1,0 +1,10 @@
+{
+  "slug": "ping",
+  "name": "Ping (example)",
+  "version": "0.1.0",
+  "kind": "example",
+  "entryPoint": "ping.wasm",
+  "permissions": {
+    "allowedHosts": ["localhost"]
+  }
+}

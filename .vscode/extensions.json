@@ -1,0 +1,12 @@
+{
+  "recommendations": [
+    "redhat.java",
+    "vscjava.vscode-java-pack",
+    "vscjava.vscode-gradle",
+    "redhat.vscode-quarkus",
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "ms-azuretools.vscode-docker",
+    "editorconfig.editorconfig"
+  ]
+}

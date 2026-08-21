@@ -1,0 +1,10 @@
+{
+  "slug": "tmdb-wasm",
+  "name": "TMDB Search (WASM)",
+  "version": "0.1.0",
+  "kind": "metadata",
+  "entryPoint": "tmdb-search.wasm",
+  "permissions": {
+    "allowedHosts": ["api.themoviedb.org"]
+  }
+}

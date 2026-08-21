@@ -1,0 +1,10 @@
+{
+  "slug": "ping-as",
+  "name": "Ping (AssemblyScript example)",
+  "version": "0.1.0",
+  "kind": "example",
+  "entryPoint": "ping-as.wasm",
+  "permissions": {
+    "allowedHosts": ["localhost"]
+  }
+}

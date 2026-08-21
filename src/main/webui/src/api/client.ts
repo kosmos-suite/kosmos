@@ -1,0 +1,322 @@
+import type {
+  Anime,
+  AnimeDetail,
+  AnimeEpisodeDetail,
+  CustomFormat,
+  DiscoverItem,
+  DownloadClient,
+  EpisodeDetail,
+  Grab,
+  Indexer,
+  JellyfinServer,
+  JellyfinSyncResult,
+  LibraryFile,
+  LibraryStats,
+  MediaRequest,
+  MetadataSearchResult,
+  MetadataStatus,
+  Movie,
+  Notifier,
+  PluginManifest,
+  QualityDefinition,
+  QualityProfile,
+  RegistryEntry,
+  ScheduledJob,
+  ScoredSearchResult,
+  Show,
+  ShowDetail,
+  TrashImportResult,
+  User,
+} from "./types";
+
+export class ApiError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.status = status;
+  }
+}
+
+// REST resources are mounted under /api (quarkus.rest.path) precisely so a full-page reload on
+// a frontend detail route like /anime/:id never collides with the backend's own @Path("/anime/{id}")
+// and gets served raw JSON instead of the SPA shell. Call sites below stay written as the bare
+// resource path ("/movies", "/anime/{id}") — this is the one place that adds the prefix.
+const API_BASE = "/api";
+
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(API_BASE + path, {
+    headers: { "Content-Type": "application/json" },
+    ...init,
+  });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new ApiError(response.status, body || `${init?.method ?? "GET"} ${path} failed: ${response.status}`);
+  }
+  if (response.status === 204) {
+    return undefined as T;
+  }
+  return response.json() as Promise<T>;
+}
+
+// No Content-Type header here on purpose — fetch sets the multipart boundary itself from the
+// FormData body, and forcing application/json (like request() does) would break the upload.
+async function requestMultipart<T>(path: string, formData: FormData): Promise<T> {
+  const response = await fetch(API_BASE + path, { method: "POST", body: formData });
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    throw new ApiError(response.status, body || `POST ${path} failed: ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+export const api = {
+  listMovies: () => request<Movie[]>("/movies"),
+
+  getMovie: (id: string) => request<Movie>(`/movies/${id}`),
+
+  createMovie: (body: {
+    externalId?: string;
+    pluginSlug?: string;
+    title: string;
+    year: number | null;
+    overview: string | null;
+    posterPath: string | null;
+    backdropPath: string | null;
+  }) => request<Movie>("/movies", { method: "POST", body: JSON.stringify(body) }),
+
+  updateMovieQualityProfile: (id: string, qualityProfileId: string | null) =>
+    request<Movie>(`/movies/${id}/quality-profile`, {
+      method: "PUT",
+      body: JSON.stringify({ qualityProfileId }),
+    }),
+
+  listMovieLibraryFiles: (id: string) => request<LibraryFile[]>(`/movies/${id}/library-files`),
+
+  libraryStats: () => request<LibraryStats>("/library/stats"),
+
+  listRequests: () => request<MediaRequest[]>("/requests"),
+
+  createRequest: (body: {
+    externalId: string;
+    pluginSlug: string;
+    mediaType: "movie" | "tv" | "anime";
+    title: string;
+    year: number | null;
+    overview: string | null;
+    posterPath: string | null;
+    backdropPath: string | null;
+    qualityProfileId?: string | null;
+  }) => request<MediaRequest>("/requests", { method: "POST", body: JSON.stringify(body) }),
+
+  approveRequest: (id: string, qualityProfileId?: string | null) =>
+    request<MediaRequest>(`/requests/${id}/approve`, {
+      method: "POST",
+      body: JSON.stringify({ qualityProfileId: qualityProfileId ?? null }),
+    }),
+
+  declineRequest: (id: string, note?: string | null) =>
+    request<MediaRequest>(`/requests/${id}/decline`, {
+      method: "POST",
+      body: JSON.stringify({ note: note ?? null }),
+    }),
+
+  searchMetadata: (query: string) =>
+    request<MetadataSearchResult[]>(`/metadata/search?q=${encodeURIComponent(query)}`),
+
+  metadataStatus: () => request<MetadataStatus>("/metadata/status"),
+
+  listInstalledPlugins: () => request<PluginManifest[]>("/plugins"),
+
+  listRegistryPlugins: () => request<RegistryEntry[]>("/plugins/registry"),
+
+  discoverRecent: () => request<DiscoverItem[]>("/discover/recent"),
+
+  discoverTrending: () => request<DiscoverItem[]>("/discover/trending"),
+
+  discoverPopular: () => request<DiscoverItem[]>("/discover/popular"),
+
+  listShows: () => request<Show[]>("/shows"),
+
+  getShow: (id: string) => request<ShowDetail>(`/shows/${id}`),
+
+  updateShowQualityProfile: (id: string, qualityProfileId: string | null) =>
+    request<ShowDetail>(`/shows/${id}/quality-profile`, {
+      method: "PUT",
+      body: JSON.stringify({ qualityProfileId }),
+    }),
+
+  createShow: (body: {
+    externalId?: string;
+    pluginSlug?: string;
+    title: string;
+    year: number | null;
+    overview: string | null;
+    posterPath: string | null;
+    backdropPath: string | null;
+  }) => request<Show>("/shows", { method: "POST", body: JSON.stringify(body) }),
+
+  getEpisode: (id: string) => request<EpisodeDetail>(`/episodes/${id}`),
+
+  getAnimeEpisode: (id: string) => request<AnimeEpisodeDetail>(`/anime-episodes/${id}`),
+
+  listAnime: () => request<Anime[]>("/anime"),
+
+  getAnime: (id: string) => request<AnimeDetail>(`/anime/${id}`),
+
+  updateAnimeQualityProfile: (id: string, qualityProfileId: string | null) =>
+    request<AnimeDetail>(`/anime/${id}/quality-profile`, {
+      method: "PUT",
+      body: JSON.stringify({ qualityProfileId }),
+    }),
+
+  createAnime: (body: {
+    externalId?: string;
+    pluginSlug?: string;
+    title: string;
+    year: number | null;
+    overview: string | null;
+    posterPath: string | null;
+    backdropPath: string | null;
+  }) => request<Anime>("/anime", { method: "POST", body: JSON.stringify(body) }),
+
+  listIndexers: () => request<Indexer[]>("/indexers"),
+
+  createIndexer: (body: { name: string; baseUrl: string; apiKey: string }) =>
+    request<Indexer>("/indexers", { method: "POST", body: JSON.stringify(body) }),
+
+  searchIndexer: (indexerId: string, query: string, qualityProfileId?: string, runtimeMinutes?: number | null) =>
+    request<ScoredSearchResult[]>(
+      `/indexers/${indexerId}/search?q=${encodeURIComponent(query)}${qualityProfileId ? `&qualityProfileId=${qualityProfileId}` : ""}${runtimeMinutes ? `&runtimeMinutes=${runtimeMinutes}` : ""}`,
+    ),
+
+  searchIndexerScored: (indexerId: string, query: string, qualityProfileId: string, runtimeMinutes?: number | null) =>
+    request<ScoredSearchResult[]>(
+      `/indexers/${indexerId}/search?q=${encodeURIComponent(query)}&qualityProfileId=${qualityProfileId}${runtimeMinutes ? `&runtimeMinutes=${runtimeMinutes}` : ""}`,
+    ),
+
+  listQualityProfiles: () => request<QualityProfile[]>("/quality-profiles"),
+
+  createQualityProfile: (body: { name: string; cutoffScore: number; customFormatIds: string[] }) =>
+    request<QualityProfile>("/quality-profiles", { method: "POST", body: JSON.stringify(body) }),
+
+  updateQualityProfile: (id: string, body: { name: string; cutoffScore: number; customFormatIds: string[] }) =>
+    request<QualityProfile>(`/quality-profiles/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+
+  deleteQualityProfile: (id: string) => request<void>(`/quality-profiles/${id}`, { method: "DELETE" }),
+
+  listCustomFormats: () => request<CustomFormat[]>("/custom-formats"),
+
+  createCustomFormat: (body: { name: string; score: number; rule: string }) =>
+    request<CustomFormat>("/custom-formats", { method: "POST", body: JSON.stringify(body) }),
+
+  updateCustomFormat: (id: string, body: { name: string; score: number; rule: string }) =>
+    request<CustomFormat>(`/custom-formats/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+
+  deleteCustomFormat: (id: string) => request<void>(`/custom-formats/${id}`, { method: "DELETE" }),
+
+  importTrashGuides: () =>
+    request<TrashImportResult>("/custom-formats/import/trash-guides", { method: "POST" }),
+
+  listQualityDefinitions: () => request<QualityDefinition[]>("/quality-definitions"),
+
+  createQualityDefinition: (body: { resolution: string; source: string; minMbPerMinute: number; maxMbPerMinute: number }) =>
+    request<QualityDefinition>("/quality-definitions", { method: "POST", body: JSON.stringify(body) }),
+
+  updateQualityDefinition: (
+    id: string,
+    body: { resolution: string; source: string; minMbPerMinute: number; maxMbPerMinute: number },
+  ) => request<QualityDefinition>(`/quality-definitions/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+
+  deleteQualityDefinition: (id: string) => request<void>(`/quality-definitions/${id}`, { method: "DELETE" }),
+
+  importQualityDefinitionsTrashGuides: () =>
+    request<TrashImportResult>("/quality-definitions/import/trash-guides", { method: "POST" }),
+
+  listDownloadClients: () => request<DownloadClient[]>("/download-clients"),
+
+  createDownloadClient: (body: {
+    name: string;
+    type?: string;
+    baseUrl: string;
+    username: string | null;
+    password: string | null;
+    category: string | null;
+  }) => request<DownloadClient>("/download-clients", { method: "POST", body: JSON.stringify(body) }),
+
+  grabRelease: (
+    movieId: string,
+    body: {
+      title: string;
+      downloadUrl: string;
+      resolution: string | null;
+      source: string | null;
+      videoCodec: string | null;
+      score: number | null;
+      downloadClientId: string;
+    },
+  ) => request<Grab>(`/movies/${movieId}/grab`, { method: "POST", body: JSON.stringify(body) }),
+
+  grabFile: (movieId: string, file: File, title: string, downloadClientId: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", title);
+    formData.append("downloadClientId", downloadClientId);
+    return requestMultipart<Grab>(`/movies/${movieId}/grab/file`, formData);
+  },
+
+  grabEpisodeRelease: (
+    episodeId: string,
+    body: {
+      title: string;
+      downloadUrl: string;
+      resolution: string | null;
+      source: string | null;
+      videoCodec: string | null;
+      score: number | null;
+      downloadClientId: string;
+    },
+  ) => request<Grab>(`/episodes/${episodeId}/grab`, { method: "POST", body: JSON.stringify(body) }),
+
+  grabEpisodeFile: (episodeId: string, file: File, title: string, downloadClientId: string) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("title", title);
+    formData.append("downloadClientId", downloadClientId);
+    return requestMultipart<Grab>(`/episodes/${episodeId}/grab/file`, formData);
+  },
+
+  importPath: (movieId: string, sourcePath: string) =>
+    request<LibraryFile>(`/movies/${movieId}/import`, {
+      method: "POST",
+      body: JSON.stringify({ sourcePath }),
+    }),
+
+  probeLibraryFile: (id: string) => request<LibraryFile>(`/library-files/${id}/probe`, { method: "POST" }),
+
+  listNotifiers: () => request<Notifier[]>("/notifiers"),
+
+  createNotifier: (body: { name: string; type: string; url: string | null; token: string | null; target: string | null }) =>
+    request<Notifier>("/notifiers", { method: "POST", body: JSON.stringify(body) }),
+
+  listJellyfinServers: () => request<JellyfinServer[]>("/jellyfin-servers"),
+
+  createJellyfinServer: (body: { name: string; baseUrl: string; apiKey: string }) =>
+    request<JellyfinServer>("/jellyfin-servers", { method: "POST", body: JSON.stringify(body) }),
+
+  syncJellyfinServer: (id: string) =>
+    request<JellyfinSyncResult>(`/jellyfin-servers/${id}/sync`, { method: "POST" }),
+
+  listJobs: () => request<ScheduledJob[]>("/jobs"),
+
+  login: (username: string, password: string) =>
+    request<User>("/auth/login", { method: "POST", body: JSON.stringify({ username, password }) }),
+
+  logout: () => request<void>("/auth/logout", { method: "POST" }),
+
+  me: () => request<User>("/auth/me"),
+
+  listUsers: () => request<User[]>("/users"),
+
+  createUser: (body: { username: string; displayName: string; password: string; role?: string }) =>
+    request<User>("/users", { method: "POST", body: JSON.stringify(body) }),
+};

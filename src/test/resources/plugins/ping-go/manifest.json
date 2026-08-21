@@ -1,0 +1,10 @@
+{
+  "slug": "ping-go",
+  "name": "Ping (Go example)",
+  "version": "0.1.0",
+  "kind": "example",
+  "entryPoint": "ping-go.wasm",
+  "permissions": {
+    "allowedHosts": ["localhost"]
+  }
+}
