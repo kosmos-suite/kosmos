@@ -229,7 +229,7 @@ export default function AnimeDetailPage() {
           ) : (
             <button
               type="button"
-              className="btn btn-hero"
+              className="btn btn-secondary"
               style={{ marginTop: 14 }}
               disabled={addState !== "idle"}
               onClick={() =>
