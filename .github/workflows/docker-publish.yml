@@ -1,9 +1,10 @@
 name: docker-publish
 
+# Manual only for now — trigger from the Actions tab, or `gh workflow run docker-publish.yml`
+# (add --ref <tag> to build a specific version) once a release is actually ready to ship, rather
+# than publishing an image on every push to main.
 on:
-  push:
-    branches: [main]
-    tags: ["v*"]
+  workflow_dispatch: {}
 
 jobs:
   build-and-push:
