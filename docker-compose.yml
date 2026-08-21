@@ -15,9 +15,11 @@ services:
       retries: 10
 
   kosmos:
-    build:
-      context: .
-      dockerfile: src/main/docker/${KOSMOS_DOCKERFILE:-Dockerfile.jvm}
+    # Published by .github/workflows/docker-publish.yml on every push to main (as :latest) and on
+    # version tags (as :X.Y.Z). To build from source instead (e.g. local changes not pushed yet):
+    # docker build -f src/main/docker/Dockerfile.jvm -t kosmos-local . , then set
+    # KOSMOS_IMAGE=kosmos-local below.
+    image: ${KOSMOS_IMAGE:-ghcr.io/kosmos-suite/kosmos}:${KOSMOS_IMAGE_TAG:-latest}
     restart: unless-stopped
     depends_on:
       db:
