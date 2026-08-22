@@ -21,6 +21,7 @@ import DownloadClientsPage from "./pages/settings/DownloadClientsPage";
 import IndexersPage from "./pages/settings/IndexersPage";
 import JellyfinPage from "./pages/settings/JellyfinPage";
 import JobsPage from "./pages/settings/JobsPage";
+import NamingPage from "./pages/settings/NamingPage";
 import NotificationsPage from "./pages/settings/NotificationsPage";
 import PermissionsPage from "./pages/settings/PermissionsPage";
 import PluginsPage from "./pages/settings/PluginsPage";
@@ -72,6 +73,7 @@ function App() {
               <Route path="plugins" element={<PluginsPage />} />
               <Route path="quality" element={<QualityPage />} />
               <Route path="size-limits" element={<SizeLimitsPage />} />
+              <Route path="naming" element={<NamingPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="jobs" element={<JobsPage />} />
               <Route path="jellyfin" element={<JellyfinPage />} />

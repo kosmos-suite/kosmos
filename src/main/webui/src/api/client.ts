@@ -26,6 +26,7 @@ import type {
   MediaRequest,
   MetadataSearchResult,
   MetadataStatus,
+  NamingSettings,
   TmdbTestResult,
   Movie,
   Notifier,
@@ -124,6 +125,17 @@ export const api = {
     }),
 
   deleteRootFolder: (id: string) => request<void>(`/library/root-folders/${id}`, { method: "DELETE" }),
+
+  listNamingSettings: () => request<NamingSettings[]>("/naming-settings"),
+
+  updateNamingSettings: (
+    contentType: string,
+    body: { folderTemplate: string; fileTemplate: string; seasonFolderTemplate: string | null },
+  ) =>
+    request<NamingSettings>(`/naming-settings/${contentType}`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
 
   browseFilesystem: (path?: string) =>
     request<BrowseResult>(`/filesystem/browse${path ? `?path=${encodeURIComponent(path)}` : ""}`),

@@ -3,9 +3,10 @@ package de.oppahansi.kosmos.library;
 import java.util.regex.Pattern;
 
 /**
- * Shared "{Title} (Year)" on-disk directory naming for movies/shows/anime — kept in one place so
- * {@link ImportService} (which writes there) and {@link LocalArtworkService} (which reads back from
- * there for a local-poster fallback) can't silently diverge on where a title's files live.
+ * Filesystem-safety for a rendered naming-template segment — stripping characters no common
+ * filesystem allows in a name. Used by {@link
+ * de.oppahansi.kosmos.library.naming.NamingTemplateEngine} so every folder/file name Kosmos writes,
+ * however its template is configured, goes through the same final sanitization.
  */
 public final class LibraryPathNaming {
 
@@ -15,9 +16,5 @@ public final class LibraryPathNaming {
 
   public static String sanitize(String name) {
     return ILLEGAL_FILENAME_CHARS.matcher(name).replaceAll("").trim();
-  }
-
-  public static String titleYear(String title, Integer year) {
-    return sanitize(title) + " (" + year + ")";
   }
 }

@@ -381,6 +381,19 @@ CREATE TABLE unclassified_show (
 -- irrelevant to every other. AutomaticSearchJob/TvAutomaticSearchJob/AnimeAutomaticSearchJob skip
 -- any candidate whose download_url is already blocklisted for the media item being searched,
 -- rather than re-grabbing the same dead release every run.
+-- One row per content type (movie/show/anime), each holding that type's on-disk naming templates
+-- (see library.naming.NamingTemplateEngine for the {Token} syntax). No row is required to exist —
+-- NamingSettingsService falls back to the same defaults ImportService used to hardcode, so an
+-- instance nobody has customized behaves exactly as before.
+CREATE TABLE naming_settings (
+    id                      VARCHAR(36) PRIMARY KEY,
+    content_type            VARCHAR(20) NOT NULL UNIQUE,
+    folder_template         VARCHAR(500) NOT NULL,
+    file_template           VARCHAR(500) NOT NULL,
+    -- show only; null for movie/anime, which have no season subfolder.
+    season_folder_template  VARCHAR(200)
+);
+
 CREATE TABLE blocklist (
     id             VARCHAR(36) PRIMARY KEY,
     media_item_id  VARCHAR(36) NOT NULL REFERENCES media_item(id),

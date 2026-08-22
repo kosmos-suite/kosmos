@@ -1,6 +1,9 @@
 package de.oppahansi.kosmos.library;
 
-import de.oppahansi.kosmos.media.Anime;
+import de.oppahansi.kosmos.library.naming.NamingContext;
+import de.oppahansi.kosmos.library.naming.NamingSettings;
+import de.oppahansi.kosmos.library.naming.NamingSettingsService;
+import de.oppahansi.kosmos.library.naming.NamingTemplateEngine;
 import de.oppahansi.kosmos.media.AnimeEpisode;
 import de.oppahansi.kosmos.media.Episode;
 import de.oppahansi.kosmos.media.MediaItem;
@@ -42,6 +45,9 @@ public class ImportService {
   @Inject AniDbUdpClient aniDbUdpClient;
   @Inject ExternalIdLinkService externalIdLinkService;
   @Inject Event<MovieImportedEvent> movieImportedEvent;
+  @Inject NamingSettingsService namingSettingsService;
+
+  private final NamingTemplateEngine namingTemplateEngine = new NamingTemplateEngine();
 
   @Transactional
   public LibraryFile importPath(MediaItem mediaItem, String sourcePathRaw) {
@@ -175,10 +181,12 @@ public class ImportService {
   }
 
   /**
-   * Movies land directly under {@code {Title} (Year)/}; episodes nest under their show/anime's own
-   * folder instead of one named after the episode itself — {@code {Series} (Year)/Season NN/} for
-   * TV (matching Sonarr), flat under {@code {Anime} (Year)/} for anime, which has no season concept
-   * of its own (see {@link Anime}'s own doc comment).
+   * Movies land directly under their own folder; episodes nest under their show/anime's own folder
+   * instead of one named after the episode itself — a season subfolder for TV (matching Sonarr),
+   * flat for anime, which has no season subfolder of its own yet. The exact shape of every folder
+   * and file name comes from {@link NamingSettingsService}/{@link NamingTemplateEngine} — see the
+   * former for the default templates this behaves as if hardcoded to when nobody has customized
+   * them.
    */
   private Path targetPathFor(MediaItem mediaItem, Path source) {
     LibraryRootFolder rootFolder =
@@ -194,8 +202,11 @@ public class ImportService {
       case "episode" -> episodeTargetPath(rootFolder, mediaItem, extension);
       case "anime_episode" -> animeEpisodeTargetPath(rootFolder, mediaItem, extension);
       default -> {
-        String folderName = titleYear(mediaItem.title, mediaItem.year);
-        yield Path.of(rootFolder.path, folderName, folderName + extension);
+        NamingSettings settings = namingSettingsService.forContentType("movie");
+        NamingContext context = NamingContext.forMovie(mediaItem.title, mediaItem.year);
+        String folderName = namingTemplateEngine.render(settings.folderTemplate, context);
+        String fileName = namingTemplateEngine.render(settings.fileTemplate, context);
+        yield Path.of(rootFolder.path, folderName, fileName + extension);
       }
     };
   }
@@ -210,16 +221,20 @@ public class ImportService {
                         "No episode row for media item " + mediaItem.id));
     MediaItem showMediaItem = episode.season.show.mediaItem;
 
-    String seriesFolder = titleYear(showMediaItem.title, showMediaItem.year);
-    String seasonFolder = "Season " + pad2(episode.season.seasonNumber);
-    String fileName =
-        sanitize(showMediaItem.title)
-            + " - S"
-            + pad2(episode.season.seasonNumber)
-            + "E"
-            + pad2(episode.episodeNumber)
-            + " - "
-            + sanitize(mediaItem.title);
+    NamingSettings settings = namingSettingsService.forContentType("show");
+    NamingContext seriesContext = NamingContext.forShow(showMediaItem.title, showMediaItem.year);
+    NamingContext episodeContext =
+        NamingContext.forEpisode(
+            showMediaItem.title,
+            showMediaItem.year,
+            mediaItem.title,
+            episode.season.seasonNumber,
+            episode.episodeNumber);
+
+    String seriesFolder = namingTemplateEngine.render(settings.folderTemplate, seriesContext);
+    String seasonFolder =
+        namingTemplateEngine.render(settings.seasonFolderTemplate, episodeContext);
+    String fileName = namingTemplateEngine.render(settings.fileTemplate, episodeContext);
     return Path.of(rootFolder.path, seriesFolder, seasonFolder, fileName + extension);
   }
 
@@ -232,33 +247,26 @@ public class ImportService {
                     new InternalServerErrorException(
                         "No anime episode row for media item " + mediaItem.id));
     MediaItem animeMediaItem = animeEpisode.season.anime.mediaItem;
-    int number =
+    Integer number =
         animeEpisode.absoluteEpisodeNumber != null
             ? animeEpisode.absoluteEpisodeNumber
-            : animeEpisode.episodeNumber != null ? animeEpisode.episodeNumber : 0;
+            : animeEpisode.episodeNumber;
 
-    String animeFolder = titleYear(animeMediaItem.title, animeMediaItem.year);
-    String fileName =
-        sanitize(animeMediaItem.title) + " - " + pad2(number) + " - " + sanitize(mediaItem.title);
+    NamingSettings settings = namingSettingsService.forContentType("anime");
+    NamingContext animeContext = NamingContext.forShow(animeMediaItem.title, animeMediaItem.year);
+    NamingContext episodeContext =
+        NamingContext.forAnimeEpisode(
+            animeMediaItem.title, animeMediaItem.year, mediaItem.title, number);
+
+    String animeFolder = namingTemplateEngine.render(settings.folderTemplate, animeContext);
+    String fileName = namingTemplateEngine.render(settings.fileTemplate, episodeContext);
     return Path.of(rootFolder.path, animeFolder, fileName + extension);
-  }
-
-  private String titleYear(String title, Integer year) {
-    return LibraryPathNaming.titleYear(title, year);
-  }
-
-  private String pad2(int number) {
-    return number < 10 ? "0" + number : String.valueOf(number);
   }
 
   private String extensionOf(Path source) {
     String sourceName = source.getFileName().toString();
     int dot = sourceName.lastIndexOf('.');
     return dot >= 0 ? sourceName.substring(dot) : "";
-  }
-
-  private String sanitize(String name) {
-    return LibraryPathNaming.sanitize(name);
   }
 
   /**

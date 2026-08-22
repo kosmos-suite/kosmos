@@ -457,6 +457,14 @@ export interface LibraryRootFolder {
   createdAt: string;
 }
 
+export interface NamingSettings {
+  contentType: "movie" | "show" | "anime";
+  folderTemplate: string;
+  fileTemplate: string;
+  /** Show only — null for movie/anime, which have no season subfolder. */
+  seasonFolderTemplate: string | null;
+}
+
 export interface DirectoryEntry {
   name: string;
   path: string;

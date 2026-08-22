@@ -2,6 +2,10 @@ package de.oppahansi.kosmos.library;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.oppahansi.kosmos.library.naming.NamingContext;
+import de.oppahansi.kosmos.library.naming.NamingSettings;
+import de.oppahansi.kosmos.library.naming.NamingSettingsService;
+import de.oppahansi.kosmos.library.naming.NamingTemplateEngine;
 import de.oppahansi.kosmos.media.MediaItem;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -39,6 +43,9 @@ public class LocalArtworkService {
   }
 
   @Inject ObjectMapper objectMapper;
+  @Inject NamingSettingsService namingSettingsService;
+
+  private final NamingTemplateEngine namingTemplateEngine = new NamingTemplateEngine();
 
   public record Artwork(byte[] bytes, String contentType) {}
 
@@ -52,11 +59,19 @@ public class LocalArtworkService {
         : Optional.empty();
   }
 
+  /**
+   * Same folder {@link de.oppahansi.kosmos.library.ImportService} just wrote (or would write) this
+   * item under — has to stay in sync with {@link NamingSettingsService}'s templates, not a separate
+   * hardcoded guess, or a customized naming scheme would silently break local-artwork lookup.
+   */
   private Optional<Path> itemDirectory(MediaItem mediaItem) {
-    if (mediaItem.rootFolder == null) {
+    if (mediaItem.rootFolder == null
+        || !NamingSettingsService.CONTENT_TYPES.contains(mediaItem.contentType)) {
       return Optional.empty();
     }
-    String folderName = LibraryPathNaming.titleYear(mediaItem.title, mediaItem.year);
+    NamingSettings settings = namingSettingsService.forContentType(mediaItem.contentType);
+    NamingContext context = NamingContext.forMovie(mediaItem.title, mediaItem.year);
+    String folderName = namingTemplateEngine.render(settings.folderTemplate, context);
     Path dir = Path.of(mediaItem.rootFolder.path, folderName);
     return Files.isDirectory(dir) ? Optional.of(dir) : Optional.empty();
   }
