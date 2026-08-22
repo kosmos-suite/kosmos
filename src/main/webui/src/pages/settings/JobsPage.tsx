@@ -11,8 +11,10 @@ import {
 import { useState } from "react";
 import { api } from "../../api/client";
 import type { JobRun, ScheduledJob } from "../../api/types";
+import { JobProgressBar } from "../../components/JobProgressBar";
 import { Toggle } from "../../components/Toggle";
 import { useApi } from "../../hooks/useApi";
+import { useJobPoll } from "../../hooks/useJobPoll";
 import { relativeTime, relativeTimeUntil } from "../../utils/relativeTime";
 
 function healthMeta(job: ScheduledJob): { kind: string; icon: JSX.Element; label: string } {
@@ -103,6 +105,7 @@ export default function JobsPage() {
             patchJob(job.name, updated);
             showToast(`${job.displayName}'s interval saved`);
           }}
+          onLiveUpdate={(updated) => patchJob(job.name, updated)}
         />
       ))}
 
@@ -126,6 +129,7 @@ function JobRow({
   onRunNow,
   running,
   onSaved,
+  onLiveUpdate,
 }: {
   job: ScheduledJob;
   expanded: boolean;
@@ -134,6 +138,7 @@ function JobRow({
   onRunNow: () => void;
   running: boolean;
   onSaved: (updated: ScheduledJob) => void;
+  onLiveUpdate: (updated: ScheduledJob) => void;
 }) {
   const health = healthMeta(job);
   const { data: runs, loading: runsLoading } = useApi(
@@ -142,6 +147,11 @@ function JobRow({
   );
   const [interval, setInterval] = useState(String(job.intervalSeconds));
   const [saving, setSaving] = useState(false);
+
+  // Ambient truth (another tab, another run trigger, or the schedule could have started this),
+  // not just whether this row's own "Run Now" click is still in flight.
+  const isRunning = running || job.running;
+  useJobPoll(job.name, isRunning, onLiveUpdate);
 
   async function saveInterval() {
     const parsed = Number.parseInt(interval, 10);
@@ -192,18 +202,24 @@ function JobRow({
           <button
             type="button"
             className="btn btn-secondary"
-            disabled={running || job.running}
+            disabled={isRunning}
             onClick={(e) => {
               e.stopPropagation();
               onRunNow();
             }}
           >
-            {running ? <Spinner size={14} className="spin" /> : <Play size={14} weight="fill" />}
-            {running ? "Running…" : "Run Now"}
+            {isRunning ? <Spinner size={14} className="spin" /> : <Play size={14} weight="fill" />}
+            {isRunning ? "Running…" : "Run Now"}
           </button>
           <CaretDown size={14} className={`job-row-chevron${expanded ? " open" : ""}`} />
         </div>
       </div>
+
+      {isRunning && (
+        <div style={{ padding: "0 16px 14px" }}>
+          <JobProgressBar job={job} />
+        </div>
+      )}
 
       {expanded && (
         <div className="job-row-panel">

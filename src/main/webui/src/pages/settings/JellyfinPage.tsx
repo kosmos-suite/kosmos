@@ -11,68 +11,12 @@ import {
   WarningCircleIcon as WarningCircle,
   XIcon as X,
 } from "@phosphor-icons/react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { api, ApiError } from "../../api/client";
 import type { JellyfinServer, ScheduledJob } from "../../api/types";
+import { JobProgressBar } from "../../components/JobProgressBar";
 import { useApi } from "../../hooks/useApi";
-
-const JOB_POLL_MS = 1000;
-
-/**
- * Polls one job's live state the whole time this panel is mounted (i.e. its server row is
- * expanded) — not just while a click made here is in flight. A sync/import can be running because
- * another tab, another user, or the recurring schedule started it; this is what lets the button
- * and progress bar reflect that ambient truth instead of only this component's own request.
- */
-function useJobState(jobName: string): ScheduledJob | null {
-  const [job, setJob] = useState<ScheduledJob | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const poll = () => {
-      api
-        .getJob(jobName)
-        .then((j) => {
-          if (!cancelled) setJob(j);
-        })
-        .catch(() => undefined);
-    };
-    poll();
-    const id = window.setInterval(poll, JOB_POLL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
-  }, [jobName]);
-
-  return job;
-}
-
-function ProgressBar({ job }: { job: ScheduledJob | null }) {
-  if (!job || job.progressTotal === null || job.progressCurrent === null) {
-    return (
-      <p className="text-faint" style={{ fontSize: 12, marginTop: 10 }}>
-        Starting…
-      </p>
-    );
-  }
-  const pct = job.progressTotal > 0 ? (job.progressCurrent / job.progressTotal) * 100 : 0;
-  return (
-    <div style={{ marginTop: 10 }}>
-      <div className="progress-track" style={{ marginBottom: 6 }}>
-        <div className="progress-fill" style={{ width: `${pct}%`, background: "var(--accent-gradient)" }} />
-      </div>
-      <div className="text-faint" style={{ fontSize: 11.5, display: "flex", justifyContent: "space-between" }}>
-        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-          {job.progressMessage}
-        </span>
-        <span style={{ flex: "none", marginLeft: 10, fontFamily: "var(--font-mono)" }}>
-          {job.progressCurrent}/{job.progressTotal}
-        </span>
-      </div>
-    </div>
-  );
-}
+import { useJobPoll } from "../../hooks/useJobPoll";
 
 export default function JellyfinPage() {
   const { data: servers, error: loadError, setData: setServers, reload } = useApi(
@@ -195,12 +139,13 @@ function LibrarySelectionPanel({
   const { data: libraries, loading, error } = useApi(() => api.listJellyfinLibraries(server.id), [server.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedLibraryIds));
   const [clicking, setClicking] = useState(false);
+  const [liveJob, setLiveJob] = useState<ScheduledJob | null>(null);
 
   const jobName = `jellyfin-library-sync-${server.id}`;
-  const liveJob = useJobState(jobName);
   // Ambient truth (another tab, another user, or the schedule could have started this), not just
-  // whether this component's own click is still in flight — see useJobState.
+  // whether this component's own click is still in flight.
   const running = clicking || liveJob?.running === true;
+  useJobPoll(jobName, true, setLiveJob);
 
   // Empty selection means "every library" — same convention the backend uses.
   const allSelected = selected.size === 0;
@@ -233,7 +178,7 @@ function LibrarySelectionPanel({
       );
     } catch (e) {
       // 409 means it was already running by the time the request landed — not a real failure,
-      // and the progress bar (driven by useJobState) already reflects it.
+      // and the progress bar (driven by useJobPoll) already reflects it.
       if (!(e instanceof ApiError && e.status === 409)) {
         showToast(e instanceof ApiError ? `Library sync failed: ${e.message}` : "Library sync failed");
       }
@@ -303,7 +248,7 @@ function LibrarySelectionPanel({
         </>
       )}
 
-      {running && <ProgressBar job={liveJob} />}
+      {running && <JobProgressBar job={liveJob} />}
     </div>
   );
 }
@@ -320,10 +265,11 @@ function UserSelectionPanel({
   const { data: users, loading, error } = useApi(() => api.listJellyfinUsers(server.id), [server.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedUserIds));
   const [clicking, setClicking] = useState(false);
+  const [liveJob, setLiveJob] = useState<ScheduledJob | null>(null);
 
   const jobName = `jellyfin-user-import-${server.id}`;
-  const liveJob = useJobState(jobName);
   const running = clicking || liveJob?.running === true;
+  useJobPoll(jobName, true, setLiveJob);
 
   // Empty selection means "every account" — same convention the backend uses.
   const allSelected = selected.size === 0;
@@ -424,7 +370,7 @@ function UserSelectionPanel({
         </>
       )}
 
-      {running && <ProgressBar job={liveJob} />}
+      {running && <JobProgressBar job={liveJob} />}
     </div>
   );
 }
