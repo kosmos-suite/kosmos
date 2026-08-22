@@ -22,6 +22,7 @@ import SetupPage from "./pages/SetupPage";
 import BackupPage from "./pages/settings/BackupPage";
 import DownloadClientsPage from "./pages/settings/DownloadClientsPage";
 import HealthPage from "./pages/settings/HealthPage";
+import ImportListsPage from "./pages/settings/ImportListsPage";
 import IndexersPage from "./pages/settings/IndexersPage";
 import JellyfinPage from "./pages/settings/JellyfinPage";
 import JobsPage from "./pages/settings/JobsPage";
@@ -76,6 +77,7 @@ function App() {
               <Route path="root-folders" element={<RootFoldersPage />} />
               <Route path="indexers" element={<IndexersPage />} />
               <Route path="download-clients" element={<DownloadClientsPage />} />
+              <Route path="import-lists" element={<ImportListsPage />} />
               <Route path="plugins" element={<PluginsPage />} />
               <Route path="quality" element={<QualityPage />} />
               <Route path="size-limits" element={<SizeLimitsPage />} />

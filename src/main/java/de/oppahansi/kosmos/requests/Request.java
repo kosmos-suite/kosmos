@@ -17,14 +17,21 @@ import java.time.Instant;
  * render even for a declined request, and a decline shouldn't depend on a still-working TMDB call.
  * {@code mediaItemId} is null until approved, at which point it points at the real {@link
  * MediaItem} created (or already existing) for {@code externalId}.
+ *
+ * <p>{@code requestedBy} is null for a request {@code ImportListSyncJob} filed rather than a user —
+ * {@code sourceListName} is set instead, and the Requests queue shows "List: &lt;name&gt;" in place
+ * of a requester for these.
  */
 @Entity
 @Table(name = "request")
 public class Request extends KosmosEntity {
 
-  @ManyToOne(optional = false)
+  @ManyToOne
   @JoinColumn(name = "requested_by_id")
   public User requestedBy;
+
+  @Column(name = "source_list_name", length = 200)
+  public String sourceListName;
 
   @Column(name = "media_type", nullable = false, length = 10)
   public String mediaType;

@@ -4,6 +4,7 @@ const TABS = [
   { to: "/settings/root-folders", label: "Media Folders" },
   { to: "/settings/indexers", label: "Indexers" },
   { to: "/settings/download-clients", label: "Download Clients" },
+  { to: "/settings/import-lists", label: "Import Lists" },
   { to: "/settings/plugins", label: "Plugins" },
   { to: "/settings/quality", label: "Quality Profiles" },
   { to: "/settings/size-limits", label: "Size Limits" },

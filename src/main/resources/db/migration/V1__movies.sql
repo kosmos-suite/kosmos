@@ -300,7 +300,13 @@ CREATE TABLE user_session (
 -- a title someone asked for, before (or instead of) it becomes a movie/show row
 CREATE TABLE request (
     id                    VARCHAR(36) PRIMARY KEY,
-    requested_by_id       VARCHAR(36) NOT NULL REFERENCES app_user(id),
+    -- Null for a list-sourced request (see source_list_name) — every user-filed request still
+    -- requires one.
+    requested_by_id       VARCHAR(36) REFERENCES app_user(id),
+    -- Set only for a request ImportListSyncJob filed, not a user — "List: <name>" is what the
+    -- Requests queue shows in place of a requester for these. Mutually exclusive with
+    -- requested_by_id in practice, though nothing besides application code enforces that.
+    source_list_name      VARCHAR(200),
     media_type            VARCHAR(10) NOT NULL,
     external_id           VARCHAR(200) NOT NULL,
     plugin_slug           VARCHAR(100) NOT NULL,
@@ -414,4 +420,28 @@ CREATE TABLE blocklist (
     reason         VARCHAR(500) NOT NULL,
     blocked_at     TIMESTAMP NOT NULL,
     UNIQUE (media_item_id, download_url)
+);
+
+-- A configured list feed (see ImportListService) — syncing one files a Request per new candidate
+-- rather than silently adding it, unless trusted is set.
+CREATE TABLE import_list (
+    id                  VARCHAR(36) PRIMARY KEY,
+    name                VARCHAR(200) NOT NULL,
+    source_type         VARCHAR(50) NOT NULL,
+    enabled             BOOLEAN NOT NULL DEFAULT TRUE,
+    trusted             BOOLEAN NOT NULL DEFAULT FALSE,
+    quality_profile_id  VARCHAR(36) REFERENCES quality_profile(id),
+    created_at          TIMESTAMP NOT NULL,
+    last_synced_at      TIMESTAMP
+);
+
+-- A permanent "never suggest this title again", checked by every list's sync — ports directly
+-- from Radarr/Sonarr's own List Exclusions.
+CREATE TABLE import_list_exclusion (
+    id             VARCHAR(36) PRIMARY KEY,
+    plugin_slug    VARCHAR(100) NOT NULL,
+    external_id    VARCHAR(200) NOT NULL,
+    title          VARCHAR(500) NOT NULL,
+    excluded_at    TIMESTAMP NOT NULL,
+    UNIQUE (plugin_slug, external_id)
 );

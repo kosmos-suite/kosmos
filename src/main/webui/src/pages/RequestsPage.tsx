@@ -60,6 +60,7 @@ export default function RequestsPage() {
   const [tab, setTab] = useState<Tab>("All");
   const [decliningId, setDecliningId] = useState<string | null>(null);
   const [reasons, setReasons] = useState<Record<string, string>>({});
+  const [neverSuggest, setNeverSuggest] = useState<Record<string, boolean>>({});
   const [toast, setToast] = useState<Toast | null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -100,6 +101,13 @@ export default function RequestsPage() {
     setBusyId(request.id);
     try {
       await api.declineRequest(request.id, why || null);
+      if (neverSuggest[request.id]) {
+        await api.excludeFromImportLists({
+          pluginSlug: request.pluginSlug,
+          externalId: request.externalId,
+          title: request.title,
+        });
+      }
       await reload();
       setDecliningId(null);
       say(`${request.title} declined`, "no");
@@ -246,6 +254,14 @@ export default function RequestsPage() {
                   onChange={(e) => setReasons((s) => ({ ...s, [request.id]: e.target.value }))}
                   placeholder="or type a note the requester will see"
                 />
+                <label style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11.5, flex: "none" }}>
+                  <input
+                    type="checkbox"
+                    checked={neverSuggest[request.id] ?? false}
+                    onChange={(e) => setNeverSuggest((s) => ({ ...s, [request.id]: e.target.checked }))}
+                  />
+                  Never suggest again
+                </label>
                 <button type="button" className="btn btn-ghost" onClick={() => setDecliningId(null)}>
                   Cancel
                 </button>

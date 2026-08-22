@@ -78,6 +78,43 @@ public class RequestService {
   }
 
   /**
+   * The {@link de.oppahansi.kosmos.importlists.ImportListSyncJob} equivalent of {@link #create} —
+   * {@code requestedBy} is left null and {@code sourceListName} set instead (see {@link Request}'s
+   * own doc). Auto-approves immediately when {@code trusted}, reusing {@link #approve} with a null
+   * {@code admin} (that field is nullable exactly for this — a system action has no human decider).
+   */
+  @Transactional
+  public Request createFromList(
+      String listName,
+      boolean trusted,
+      String mediaType,
+      String externalId,
+      String pluginSlug,
+      String title,
+      Integer year,
+      String overview,
+      String posterPath,
+      String backdropPath,
+      UUID qualityProfileId) {
+    Request request = new Request();
+    request.sourceListName = listName;
+    request.mediaType = mediaType;
+    request.externalId = externalId;
+    request.pluginSlug = pluginSlug;
+    request.title = title;
+    request.year = year;
+    request.overview = overview;
+    request.posterPath = posterPath;
+    request.backdropPath = backdropPath;
+    request.qualityProfile =
+        qualityProfileId != null ? findQualityProfileOrThrow(qualityProfileId) : null;
+    request.status = "PENDING";
+    request.requestedAt = Instant.now();
+    request.persist();
+    return trusted ? approve(request.id, null, qualityProfileId) : request;
+  }
+
+  /**
    * Reuses the same create path a direct admin add goes through ({@link MovieService#create}/
    * {@link ShowService#create}) — if the title was added to the library by someone else since the
    * request was filed, links the existing item instead of creating a duplicate.

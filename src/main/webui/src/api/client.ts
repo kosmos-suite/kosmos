@@ -17,6 +17,8 @@ import type {
   Indexer,
   CommitImportResult,
   ImportCandidate,
+  ImportList,
+  ImportListExclusion,
   JellyfinLibrary,
   JellyfinServer,
   JellyfinUser,
@@ -395,6 +397,26 @@ export const api = {
 
   calendar: (from: string, to: string, monitoredOnly: boolean) =>
     request<CalendarEntry[]>(`/calendar?from=${from}&to=${to}&monitoredOnly=${monitoredOnly}`),
+
+  listImportLists: () => request<ImportList[]>("/import-lists"),
+
+  createImportList: (body: { name: string; sourceType: string; trusted: boolean; qualityProfileId: string | null }) =>
+    request<ImportList>("/import-lists", { method: "POST", body: JSON.stringify(body) }),
+
+  updateImportList: (
+    id: string,
+    body: { name: string; enabled: boolean; trusted: boolean; qualityProfileId: string | null },
+  ) => request<ImportList>(`/import-lists/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+
+  deleteImportList: (id: string) => request<void>(`/import-lists/${id}`, { method: "DELETE" }),
+
+  listImportListExclusions: () => request<ImportListExclusion[]>("/import-lists/exclusions"),
+
+  excludeFromImportLists: (body: { pluginSlug: string; externalId: string; title: string }) =>
+    request<void>("/import-lists/exclusions", { method: "POST", body: JSON.stringify(body) }),
+
+  removeImportListExclusion: (id: string) =>
+    request<void>(`/import-lists/exclusions/${id}`, { method: "DELETE" }),
 
   grabRelease: (
     movieId: string,

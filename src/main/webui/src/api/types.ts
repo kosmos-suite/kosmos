@@ -317,6 +317,34 @@ export interface BackupFile {
   createdAt: string;
 }
 
+export type ImportListSourceType =
+  | "TMDB_POPULAR_MOVIES"
+  | "TMDB_UPCOMING_MOVIES"
+  | "TMDB_TRENDING_MOVIES"
+  | "TMDB_POPULAR_TV"
+  | "TMDB_UPCOMING_TV"
+  | "TMDB_TRENDING_TV";
+
+export interface ImportList {
+  id: string;
+  name: string;
+  sourceType: ImportListSourceType;
+  mediaType: "movie" | "tv";
+  enabled: boolean;
+  trusted: boolean;
+  qualityProfileId: string | null;
+  qualityProfileName: string | null;
+  lastSyncedAt: string | null;
+}
+
+export interface ImportListExclusion {
+  id: string;
+  pluginSlug: string;
+  externalId: string;
+  title: string;
+  excludedAt: string;
+}
+
 export interface CalendarEntry {
   mediaItemId: string;
   contentType: "movie" | "episode" | "anime_episode";
@@ -578,6 +606,7 @@ export interface MediaRequest {
   mine: boolean;
   mediaType: "movie" | "tv";
   externalId: string;
+  pluginSlug: string;
   title: string;
   year: number | null;
   overview: string | null;

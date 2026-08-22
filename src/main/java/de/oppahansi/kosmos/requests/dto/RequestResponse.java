@@ -16,6 +16,7 @@ public record RequestResponse(
     boolean mine,
     String mediaType,
     String externalId,
+    String pluginSlug,
     String title,
     Integer year,
     String overview,
@@ -36,10 +37,13 @@ public record RequestResponse(
             && LibraryFile.count("mediaItem.id", request.mediaItem.id) > 0;
     return new RequestResponse(
         request.id,
-        request.requestedBy.displayName,
-        request.requestedBy.id.equals(currentUserId),
+        request.sourceListName != null
+            ? "List: " + request.sourceListName
+            : request.requestedBy.displayName,
+        request.requestedBy != null && request.requestedBy.id.equals(currentUserId),
         request.mediaType,
         request.externalId,
+        request.pluginSlug,
         request.title,
         request.year,
         request.overview,
