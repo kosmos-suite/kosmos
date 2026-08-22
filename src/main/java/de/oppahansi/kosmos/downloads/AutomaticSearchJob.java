@@ -17,6 +17,8 @@ import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.IOException;
+import java.time.Duration;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -35,6 +37,10 @@ import java.util.UUID;
  * shortcut the frontend's search/grab pages already take, not a new inconsistency. A movie with no
  * quality profile assigned is simply never considered, which is the opt-in signal — there's no
  * separate "monitored" flag yet.
+ *
+ * <p>A profile with {@code grabDelayMinutes > 0} (Radarr's Delay Profile, simplified — see {@link
+ * de.oppahansi.kosmos.parsing.QualityProfile}'s own doc) doesn't grab {@code best} outright; see
+ * {@link #clearsDelay}.
  */
 @ApplicationScoped
 public class AutomaticSearchJob implements JobHandler {
@@ -134,7 +140,11 @@ public class AutomaticSearchJob implements JobHandler {
     if (best == null) {
       return;
     }
+    if (!clearsDelay(movie, best)) {
+      return;
+    }
 
+    PendingCandidate.delete("mediaItem.id", movieId);
     grabService.grab(
         movieId,
         new GrabRequest(
@@ -145,6 +155,45 @@ public class AutomaticSearchJob implements JobHandler {
             best.parsed.videoCodec(),
             best.scored.totalScore(),
             client.id));
+  }
+
+  /**
+   * {@code grabDelayMinutes == 0} (every profile's default) always clears immediately — existing
+   * behavior, unchanged. Otherwise grabs right away if {@code bypassScore} is met, or if {@code
+   * best} is the same release {@link PendingCandidate} has been tracking for at least the delay; a
+   * new or first-seen candidate just gets recorded and waits for a later run.
+   */
+  private boolean clearsDelay(Movie movie, Best best) {
+    int delayMinutes = movie.qualityProfile.grabDelayMinutes;
+    if (delayMinutes <= 0) {
+      return true;
+    }
+    Integer bypassScore = movie.qualityProfile.bypassScore;
+    if (bypassScore != null && best.scored.totalScore() >= bypassScore) {
+      return true;
+    }
+
+    PendingCandidate pending =
+        PendingCandidate.<PendingCandidate>find("mediaItem.id", movie.mediaItemId).firstResult();
+    if (pending == null || !pending.downloadUrl.equals(best.raw.downloadUrl())) {
+      if (pending == null) {
+        pending = new PendingCandidate();
+        pending.mediaItem = movie.mediaItem;
+        pending.persist();
+      }
+      pending.downloadUrl = best.raw.downloadUrl();
+      pending.firstSeenAt = Instant.now();
+      return false;
+    }
+    return delayElapsed(pending.firstSeenAt, delayMinutes, Instant.now());
+  }
+
+  /**
+   * Pulled out as a pure function so the boundary (exactly at the delay) is unit-testable without
+   * CDI.
+   */
+  static boolean delayElapsed(Instant firstSeenAt, int delayMinutes, Instant now) {
+    return !Duration.between(firstSeenAt, now).minus(Duration.ofMinutes(delayMinutes)).isNegative();
   }
 
   private record Best(TorznabResult raw, ParsedRelease parsed, ScoredRelease scored) {}

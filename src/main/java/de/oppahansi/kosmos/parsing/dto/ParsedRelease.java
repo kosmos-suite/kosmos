@@ -25,6 +25,12 @@ public record ParsedRelease(
     String releaseGroup,
     boolean proper,
     boolean repack,
+    /**
+     * Radarr's "Quality Modifier: Remux" — a distinct token from {@code source} (a BluRay Remux is
+     * still {@code source == "Blu-ray"}, plus this flag), matching how TRaSH-Guides' own Remux-tier
+     * custom formats model it as a separate {@code QualityModifierSpecification}.
+     */
+    boolean remux,
     /** Null for a release with no season/episode marker at all (a movie, most commonly). */
     Integer seasonNumber,
     /** Null for a season-pack release ({@code seasonNumber} set, no specific episode). */

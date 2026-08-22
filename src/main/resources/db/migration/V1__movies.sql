@@ -117,9 +117,12 @@ CREATE TABLE quality_definition (
 );
 
 CREATE TABLE quality_profile (
-    id                VARCHAR(36) PRIMARY KEY,
-    name              VARCHAR(200) NOT NULL,
-    cutoff_score      INTEGER NOT NULL
+    id                  VARCHAR(36) PRIMARY KEY,
+    name                VARCHAR(200) NOT NULL,
+    cutoff_score        INTEGER NOT NULL,
+    -- Simplified Delay Profile — see QualityProfile#grabDelayMinutes/#bypassScore.
+    grab_delay_minutes  INTEGER NOT NULL DEFAULT 0,
+    bypass_score        INTEGER
 );
 
 CREATE TABLE custom_format (
@@ -462,4 +465,13 @@ CREATE TABLE movie_collection (
     quality_profile_id  VARCHAR(36) REFERENCES quality_profile(id),
     created_at          TIMESTAMP NOT NULL,
     last_synced_at      TIMESTAMP
+);
+
+-- The current best release AutomaticSearchJob has seen for one media item, so a quality profile's
+-- grab_delay_minutes can be honored across job runs — see PendingCandidate's own doc.
+CREATE TABLE pending_candidate (
+    id             VARCHAR(36) PRIMARY KEY,
+    media_item_id  VARCHAR(36) NOT NULL UNIQUE REFERENCES media_item(id),
+    download_url   VARCHAR(2000) NOT NULL,
+    first_seen_at  TIMESTAMP NOT NULL
 );

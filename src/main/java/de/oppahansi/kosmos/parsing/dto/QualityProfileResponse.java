@@ -5,13 +5,20 @@ import java.util.List;
 import java.util.UUID;
 
 public record QualityProfileResponse(
-    UUID id, String name, int cutoffScore, List<CustomFormatResponse> customFormats) {
+    UUID id,
+    String name,
+    int cutoffScore,
+    List<CustomFormatResponse> customFormats,
+    int grabDelayMinutes,
+    Integer bypassScore) {
 
   public static QualityProfileResponse from(QualityProfile profile) {
     return new QualityProfileResponse(
         profile.id,
         profile.name,
         profile.cutoffScore,
-        profile.customFormats.stream().map(CustomFormatResponse::from).toList());
+        profile.customFormats.stream().map(CustomFormatResponse::from).toList(),
+        profile.grabDelayMinutes,
+        profile.bypassScore);
   }
 }

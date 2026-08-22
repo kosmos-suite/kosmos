@@ -28,6 +28,9 @@ public class ReleaseParser {
   private static final Pattern REPACK =
       Pattern.compile("\\b(repack\\d*|rerip\\d*)\\b", Pattern.CASE_INSENSITIVE);
 
+  // Radarr's "Quality Modifier: Remux" — a distinct token from Source (see ParsedRelease#remux).
+  private static final Pattern REMUX = Pattern.compile("\\bremux\\b", Pattern.CASE_INSENSITIVE);
+
   // Ported from guessit's release_group property: the group tag is the final hyphen-separated
   // token in a scene-style release title (Movie.2020.1080p.BluRay.x264-GROUP). Anime's bracketed
   // fansub-group convention ([SubsPlease] Show - 01) is a different grammar entirely — deferred
@@ -58,6 +61,7 @@ public class ReleaseParser {
     String edition = ReleaseToken.match(Edition.values(), normalized);
     boolean proper = PROPER.matcher(normalized).find();
     boolean repack = REPACK.matcher(normalized).find();
+    boolean remux = REMUX.matcher(normalized).find();
     Integer[] seasonEpisode = extractSeasonEpisode(normalized);
     String cleanTitle = extractCleanTitle(normalized);
 
@@ -73,6 +77,7 @@ public class ReleaseParser {
         releaseGroup,
         proper,
         repack,
+        remux,
         seasonEpisode[0],
         seasonEpisode[1]);
   }

@@ -171,6 +171,19 @@ class CustomFormatMatcherTest {
   }
 
   @Test
+  void remuxConditionMatchesOnlyRemuxReleases() {
+    String rule =
+        """
+        [{"field":"remux","matchType":"equals","value":"true","negate":false,"required":true}]
+        """;
+    assertTrue(
+        matcher.matches(
+            matcher.parseRule(rule), parse("A.Movie.2021.2160p.BluRay.REMUX.x265-GROUP")));
+    assertFalse(
+        matcher.matches(matcher.parseRule(rule), parse("A.Movie.2021.1080p.BluRay.x264-GROUP")));
+  }
+
+  @Test
   void seasonPackConditionMatchesAPackButNotASingleEpisode() {
     String rule =
         """

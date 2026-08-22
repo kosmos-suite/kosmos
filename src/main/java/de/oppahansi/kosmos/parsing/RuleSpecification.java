@@ -29,6 +29,7 @@ public record RuleSpecification(
           "releaseGroup",
           "proper",
           "repack",
+          "remux",
           "seasonPack");
 
   static final Set<String> MATCH_TYPES = Set.of("equals", "regex");

@@ -353,11 +353,24 @@ export const api = {
 
   listQualityProfiles: () => request<QualityProfile[]>("/quality-profiles"),
 
-  createQualityProfile: (body: { name: string; cutoffScore: number; customFormatIds: string[] }) =>
-    request<QualityProfile>("/quality-profiles", { method: "POST", body: JSON.stringify(body) }),
+  createQualityProfile: (body: {
+    name: string;
+    cutoffScore: number;
+    customFormatIds: string[];
+    grabDelayMinutes?: number;
+    bypassScore?: number | null;
+  }) => request<QualityProfile>("/quality-profiles", { method: "POST", body: JSON.stringify(body) }),
 
-  updateQualityProfile: (id: string, body: { name: string; cutoffScore: number; customFormatIds: string[] }) =>
-    request<QualityProfile>(`/quality-profiles/${id}`, { method: "PUT", body: JSON.stringify(body) }),
+  updateQualityProfile: (
+    id: string,
+    body: {
+      name: string;
+      cutoffScore: number;
+      customFormatIds: string[];
+      grabDelayMinutes: number;
+      bypassScore: number | null;
+    },
+  ) => request<QualityProfile>(`/quality-profiles/${id}`, { method: "PUT", body: JSON.stringify(body) }),
 
   deleteQualityProfile: (id: string) => request<void>(`/quality-profiles/${id}`, { method: "DELETE" }),
 

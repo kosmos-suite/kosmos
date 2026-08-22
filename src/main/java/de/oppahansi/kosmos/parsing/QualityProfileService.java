@@ -65,6 +65,8 @@ public class QualityProfileService {
     profile.name = request.name();
     profile.cutoffScore = request.cutoffScore();
     profile.customFormats = resolveCustomFormats(request.customFormatIds());
+    profile.grabDelayMinutes = Math.max(0, request.grabDelayMinutes());
+    profile.bypassScore = request.bypassScore();
     return profile;
   }
 

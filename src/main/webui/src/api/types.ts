@@ -334,6 +334,8 @@ export interface QualityProfile {
   name: string;
   cutoffScore: number;
   customFormats: CustomFormat[];
+  grabDelayMinutes: number;
+  bypassScore: number | null;
 }
 
 export interface DownloadClient {

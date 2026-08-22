@@ -71,6 +71,21 @@ class ReleaseParserTest {
   }
 
   @Test
+  void parsesRemuxFlagSeparatelyFromSource() {
+    ParsedRelease result = parser.parse("A.Movie.2021.2160p.UHD.BluRay.REMUX.HDR.x265-GROUP");
+
+    assertTrue(result.remux());
+    assertEquals("Blu-ray", result.source());
+  }
+
+  @Test
+  void nonRemuxReleaseHasRemuxFalse() {
+    ParsedRelease result = parser.parse("A.Movie.2021.1080p.BluRay.x264-GROUP");
+
+    assertFalse(result.remux());
+  }
+
+  @Test
   void parsesAudioCodecAndDoesNotConfuseDtsHdWithDts() {
     ParsedRelease result = parser.parse("A.Movie.2018.2160p.UHD.BluRay.DTS-HD.MA.5.1.x265-GROUP");
 

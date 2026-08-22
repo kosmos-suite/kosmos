@@ -170,6 +170,7 @@ public class AnimeAutomaticSearchJob implements JobHandler {
         parsed.releaseGroup(),
         false,
         false,
+        false,
         null,
         parsed.episodeNumber());
   }

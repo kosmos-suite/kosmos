@@ -25,6 +25,7 @@ const FIELDS = [
   { value: "edition", label: "Edition" },
   { value: "releaseGroup", label: "Release group" },
   { value: "seasonPack", label: "Season pack" },
+  { value: "remux", label: "Remux" },
 ] as const;
 const OPS = ["contains", "is", "starts with"] as const;
 const OP_WORDS: Record<(typeof OPS)[number], string> = {
@@ -108,6 +109,24 @@ export default function QualityPage() {
         name: profile.name,
         cutoffScore: clamped,
         customFormatIds: profile.customFormats.map((f) => f.id),
+        grabDelayMinutes: profile.grabDelayMinutes,
+        bypassScore: profile.bypassScore,
+      });
+      reloadProfiles();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    }
+  }
+
+  async function setDelaySettings(grabDelayMinutes: number, bypassScore: number | null) {
+    if (!profile) return;
+    try {
+      await api.updateQualityProfile(profile.id, {
+        name: profile.name,
+        cutoffScore: profile.cutoffScore,
+        customFormatIds: profile.customFormats.map((f) => f.id),
+        grabDelayMinutes,
+        bypassScore,
       });
       reloadProfiles();
     } catch (e) {
@@ -128,6 +147,8 @@ export default function QualityPage() {
         name: profile.name,
         cutoffScore: profile.cutoffScore,
         customFormatIds: [...ids],
+        grabDelayMinutes: profile.grabDelayMinutes,
+        bypassScore: profile.bypassScore,
       });
       reloadProfiles();
     } catch (e) {
@@ -175,6 +196,8 @@ export default function QualityPage() {
         name: profile.name,
         cutoffScore: profile.cutoffScore,
         customFormatIds: [...profile.customFormats.map((f) => f.id), created.id],
+        grabDelayMinutes: profile.grabDelayMinutes,
+        bypassScore: profile.bypassScore,
       });
       await Promise.all([reloadProfiles(), reloadFormats()]);
       setBuilder({ name: "", field: "title", op: "contains", value: "", score: 20 });
@@ -317,6 +340,45 @@ export default function QualityPage() {
               </div>
               <div className="text-faint" style={{ fontSize: 11.5, marginTop: 10 }}>
                 This profile's formats currently total {total} pts against real releases you score with it.
+              </div>
+            </div>
+
+            <div className="score-card" style={{ marginTop: 16 }}>
+              <div className="score-card-head">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 500, fontSize: 14, marginBottom: 5 }}>Grab delay</div>
+                  <div className="text-muted" style={{ fontSize: 12, maxWidth: "52ch" }}>
+                    Wait this many minutes after finding a qualifying release before grabbing it, in case a
+                    better one shows up on a later search. 0 grabs immediately.
+                  </div>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 16, marginTop: 12, flexWrap: "wrap" }}>
+                <div className="field" style={{ flex: "none", width: 160 }}>
+                  <label>Delay (minutes)</label>
+                  <input
+                    className="input"
+                    value={profile.grabDelayMinutes}
+                    onChange={(e) =>
+                      setDelaySettings(
+                        Math.max(0, parseInt(e.target.value.replace(/[^0-9]/g, ""), 10) || 0),
+                        profile.bypassScore,
+                      )
+                    }
+                  />
+                </div>
+                <div className="field" style={{ flex: "none", width: 200 }}>
+                  <label>Bypass score (optional)</label>
+                  <input
+                    className="input"
+                    placeholder="grab immediately if ≥"
+                    value={profile.bypassScore ?? ""}
+                    onChange={(e) => {
+                      const raw = e.target.value.replace(/[^0-9]/g, "");
+                      setDelaySettings(profile.grabDelayMinutes, raw === "" ? null : parseInt(raw, 10));
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
