@@ -2,7 +2,9 @@ import {
   ArrowsClockwiseIcon as ArrowsClockwise,
   CheckCircleIcon as CheckCircle,
   KeyIcon as Key,
+  PlugsIcon as Plugs,
   PlusIcon as Plus,
+  WarningCircleIcon as WarningCircle,
   XIcon as X,
 } from "@phosphor-icons/react";
 import { useState } from "react";
@@ -116,7 +118,33 @@ function AddJellyfinServerModal({ onClose, onCreated }: { onClose: () => void; o
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const valid = name.trim().length > 0 && baseUrl.trim().length > 0 && apiKey.trim().length > 0;
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; message: string } | null>(null);
+  const [testedKey, setTestedKey] = useState<string | null>(null);
+
+  // Re-keyed on every baseUrl/apiKey edit — a passing test only counts for the values it actually
+  // checked, so editing either field after a successful test silently un-verifies the form again.
+  const connectionKey = `${baseUrl.trim()}|${apiKey.trim()}`;
+  const verified = testResult?.ok === true && testedKey === connectionKey;
+  const showTestResult = testResult !== null && testedKey === connectionKey;
+
+  const canTest = baseUrl.trim().length > 0 && apiKey.trim().length > 0 && !testing;
+  const valid = name.trim().length > 0 && verified;
+
+  async function testConnection() {
+    if (!canTest) return;
+    setTesting(true);
+    try {
+      const result = await api.testJellyfinConnection({ baseUrl: baseUrl.trim(), apiKey: apiKey.trim() });
+      setTestedKey(connectionKey);
+      setTestResult({ ok: result.ok, message: result.message });
+    } catch (e) {
+      setTestedKey(connectionKey);
+      setTestResult({ ok: false, message: e instanceof Error ? e.message : "Connection failed" });
+    } finally {
+      setTesting(false);
+    }
+  }
 
   async function save() {
     if (!valid || saving) return;
@@ -183,6 +211,33 @@ function AddJellyfinServerModal({ onClose, onCreated }: { onClose: () => void; o
               {showKey ? "hide" : "show"}
             </button>
           </div>
+        </div>
+
+        <div className="field">
+          <button type="button" className="btn btn-secondary" onClick={testConnection} disabled={!canTest}>
+            <Plugs size={14} />
+            {testing ? "Testing…" : "Test Connection"}
+          </button>
+          {showTestResult && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 7,
+                marginTop: 8,
+                fontSize: 12.5,
+                color: testResult?.ok ? "var(--status-good-text)" : "var(--status-bad-text)",
+              }}
+            >
+              {testResult?.ok ? <CheckCircle size={14} weight="fill" /> : <WarningCircle size={14} weight="fill" />}
+              {testResult?.message}
+            </div>
+          )}
+          {!showTestResult && (
+            <p className="text-faint" style={{ fontSize: 11.5, marginTop: 8 }}>
+              A successful test is required before this server can be saved.
+            </p>
+          )}
         </div>
 
         {error && <p className="text-muted">{error}</p>}

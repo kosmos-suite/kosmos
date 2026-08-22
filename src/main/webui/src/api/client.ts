@@ -410,6 +410,12 @@ export const api = {
   createJellyfinServer: (body: { name: string; baseUrl: string; apiKey: string }) =>
     request<JellyfinServer>("/jellyfin-servers", { method: "POST", body: JSON.stringify(body) }),
 
+  testJellyfinConnection: (body: { baseUrl: string; apiKey: string }) =>
+    request<{ ok: boolean; message: string; libraryCount: number }>("/jellyfin-servers/test-connection", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
+
   syncJellyfinServer: (id: string) =>
     request<JobRun>(`/jellyfin-servers/${id}/sync`, { method: "POST" }),
 

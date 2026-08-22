@@ -4,6 +4,8 @@ import de.oppahansi.kosmos.jellyfin.dto.CreateJellyfinServerRequest;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinLibraryResponse;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinServerResponse;
 import de.oppahansi.kosmos.jellyfin.dto.RootFolderAutoRegisterResult;
+import de.oppahansi.kosmos.jellyfin.dto.TestJellyfinConnectionRequest;
+import de.oppahansi.kosmos.jellyfin.dto.TestJellyfinConnectionResult;
 import de.oppahansi.kosmos.jellyfin.dto.UpdateJellyfinLibrariesRequest;
 import de.oppahansi.kosmos.scheduler.JobHandler;
 import de.oppahansi.kosmos.scheduler.JobRunner;
@@ -49,6 +51,17 @@ public class JellyfinServerResource {
   public Response create(CreateJellyfinServerRequest request) {
     JellyfinServerResponse response = JellyfinServerResponse.from(serverService.create(request));
     return Response.status(Response.Status.CREATED).entity(response).build();
+  }
+
+  /**
+   * Checked before a server is persisted — what the "Add server" modal's Test Connection button
+   * calls. A {@link jakarta.ws.rs.BadRequestException} (unreachable host, bad API key) surfaces as
+   * a 400 the modal shows inline.
+   */
+  @POST
+  @Path("/test-connection")
+  public TestJellyfinConnectionResult testConnection(TestJellyfinConnectionRequest request) {
+    return serverService.testConnection(request.baseUrl(), request.apiKey());
   }
 
   /**

@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.jellyfin;
 
 import de.oppahansi.kosmos.jellyfin.dto.CreateJellyfinServerRequest;
 import de.oppahansi.kosmos.jellyfin.dto.RootFolderAutoRegisterResult;
+import de.oppahansi.kosmos.jellyfin.dto.TestJellyfinConnectionResult;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -26,6 +27,24 @@ public class JellyfinServerService {
 
   public Optional<JellyfinServer> findById(UUID id) {
     return JellyfinServer.findByIdOptional(id);
+  }
+
+  /**
+   * Same reachability/auth check {@link #listLibraries} does for an already-saved server, but
+   * against a baseUrl/apiKey pair that hasn't been persisted yet — what the "Add server" modal's
+   * Test Connection button calls before Save is enabled.
+   */
+  public TestJellyfinConnectionResult testConnection(String baseUrl, String apiKey) {
+    try {
+      List<JellyfinLibrary> libraries = new JellyfinClient(baseUrl).listLibraries(apiKey);
+      int count = libraries.size();
+      String message =
+          "Connected — found %d %s.".formatted(count, count == 1 ? "library" : "libraries");
+      return new TestJellyfinConnectionResult(true, message, count);
+    } catch (IOException | InterruptedException e) {
+      return new TestJellyfinConnectionResult(
+          false, "Could not reach Jellyfin server: " + e.getMessage(), 0);
+    }
   }
 
   @Transactional
