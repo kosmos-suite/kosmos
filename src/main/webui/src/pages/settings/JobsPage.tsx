@@ -123,7 +123,7 @@ function JobRow({
   const health = healthMeta(job);
   const { data: runs, loading: runsLoading } = useApi(
     () => (expanded ? api.listJobRuns(job.name, 10) : Promise.resolve([])),
-    [expanded, job.name],
+    [expanded, job.name, job.lastRunAt],
   );
   const [interval, setInterval] = useState(String(job.intervalSeconds));
   const [saving, setSaving] = useState(false);

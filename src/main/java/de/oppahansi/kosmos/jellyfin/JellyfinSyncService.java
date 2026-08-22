@@ -147,12 +147,12 @@ public class JellyfinSyncService {
     int usersUpdated = 0;
     for (JellyfinUser jellyfinUser : jellyfinUsers) {
       try {
-        boolean wasCreated =
+        String outcome =
             QuarkusTransaction.requiringNew().call(() -> syncOneUser(serverId, jellyfinUser));
-        if (wasCreated) {
-          usersCreated++;
-        } else {
-          usersUpdated++;
+        switch (outcome) {
+          case "created" -> usersCreated++;
+          case "updated" -> usersUpdated++;
+          default -> {} // "unchanged" — not worth reporting
         }
       } catch (RuntimeException e) {
         // e.g. this account's display name collides with an existing native username —
@@ -330,10 +330,9 @@ public class JellyfinSyncService {
   }
 
   /**
-   * @return true if a new User row was created, false if an existing one was found (and possibly
-   *     updated)
+   * @return "created", "updated" (role or display name actually changed), or "unchanged"
    */
-  private boolean syncOneUser(UUID serverId, JellyfinUser jellyfinUser) {
+  private String syncOneUser(UUID serverId, JellyfinUser jellyfinUser) {
     JellyfinServer server = JellyfinServer.<JellyfinServer>findById(serverId);
     String role = jellyfinUser.isAdmin() ? "ADMIN" : "USER";
     Optional<User> existing =
@@ -342,9 +341,10 @@ public class JellyfinSyncService {
 
     if (existing.isPresent()) {
       User user = existing.get();
+      boolean changed = !role.equals(user.role) || !jellyfinUser.name().equals(user.displayName);
       user.role = role;
       user.displayName = jellyfinUser.name();
-      return false;
+      return changed ? "updated" : "unchanged";
     }
 
     User user = new User();
@@ -356,7 +356,7 @@ public class JellyfinSyncService {
     user.enabled = true;
     user.createdAt = Instant.now();
     user.persist();
-    return true;
+    return "created";
   }
 
   private MediaItem createMovie(JellyfinMovie jellyfinMovie) {
