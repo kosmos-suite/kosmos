@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -51,5 +52,27 @@ public class FribbMappingProvider {
     } catch (IOException | InterruptedException e) {
       return Map.of();
     }
+  }
+
+  /**
+   * The same table, reversed to TMDB TV id — Kosmos's only reliable way to tell a Jellyfin
+   * "tvshows" item is actually anime: Jellyfin's own {@code CollectionType} doesn't distinguish
+   * them (both are just "tvshows"), but this table is curated by the anime-tracking community
+   * specifically to link each AniList entry to its TMDB id, so a hit here is a real
+   * cross-reference, not a guess. Cached independently of {@link #loadMapping} (same TTL/shape)
+   * since it's rebuilt from that map's values rather than re-fetched — a cache hit on one likely
+   * means a cache hit on the other, but each still needs its own entry to avoid rebuilding the
+   * reverse index on every call once {@link #loadMapping} is warm.
+   */
+  @CacheResult(cacheName = "fribb-by-tmdb-tv")
+  public Map<Integer, FribbEntry> loadMappingByTmdbTvId() {
+    Map<Integer, FribbEntry> byTmdbTvId = new LinkedHashMap<>();
+    for (FribbEntry entry : loadMapping().values()) {
+      Integer tmdbTvId = entry.themoviedbId() != null ? entry.themoviedbId().tv() : null;
+      if (tmdbTvId != null) {
+        byTmdbTvId.putIfAbsent(tmdbTvId, entry);
+      }
+    }
+    return byTmdbTvId;
   }
 }

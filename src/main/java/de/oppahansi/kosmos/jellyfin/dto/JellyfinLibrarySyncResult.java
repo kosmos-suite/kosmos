@@ -1,11 +1,11 @@
 package de.oppahansi.kosmos.jellyfin.dto;
 
 /**
- * Outcome of one library sync run. linked = existing Kosmos movie/show, newly-recorded file.
- * created = brand-new movie/show. Show fields mirror the movie ones one level up (per-series, not
- * per-file — a series is "linked" if any new episode file was matched to it). episodeFilesLinked is
- * the total episode file count across every show, since per-show file counts wouldn't fit this flat
- * a result.
+ * Outcome of one library sync run. linked = existing Kosmos movie/show/anime, newly-recorded file.
+ * created = brand-new movie/show/anime. Show and anime fields mirror the movie ones one level up
+ * (per-series, not per-file — a series is "linked" if any new episode file was matched to it).
+ * Anime is counted separately from shows even though both come from the same Jellyfin "tvshows"
+ * item type — see {@code JellyfinSyncService#resolveAnimeMatch}. episodeFilesLinked covers both.
  */
 public record JellyfinLibrarySyncResult(
     int scanned,
@@ -18,4 +18,7 @@ public record JellyfinLibrarySyncResult(
     int showsCreated,
     int showsSkippedNoTmdbId,
     int showsAlreadySynced,
+    int animeLinked,
+    int animeCreated,
+    int animeAlreadySynced,
     int episodeFilesLinked) {}

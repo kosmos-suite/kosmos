@@ -7,6 +7,9 @@ import de.oppahansi.kosmos.library.LibraryFile;
 import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.library.ProbeService;
+import de.oppahansi.kosmos.media.Anime;
+import de.oppahansi.kosmos.media.AnimeEpisode;
+import de.oppahansi.kosmos.media.AnimeService;
 import de.oppahansi.kosmos.media.Episode;
 import de.oppahansi.kosmos.media.MediaItem;
 import de.oppahansi.kosmos.media.Movie;
@@ -15,6 +18,8 @@ import de.oppahansi.kosmos.media.ShowService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.Plugin;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
+import de.oppahansi.kosmos.metadata.fribb.FribbEntry;
+import de.oppahansi.kosmos.metadata.fribb.FribbMappingProvider;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
 import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import io.quarkus.narayana.jta.QuarkusTransaction;
@@ -42,9 +47,13 @@ import java.util.stream.Collectors;
  * separate operation — mirroring each Jellyfin account's admin flag into Kosmos — so libraries and
  * users can be scheduled, selected, and run independently.
  *
- * <p>Every movie/show/user gets its own transaction (like {@code DownloadStatusPollJob}): this runs
- * over a potentially large real library, and one bad item (a duplicate path, a colliding username)
- * must never roll back everything else already synced in the same run.
+ * <p>A Jellyfin "tvshows" item routes to {@link Show} or {@link Anime} depending on {@link
+ * #resolveAnimeMatch} — Jellyfin's own {@code CollectionType} can't tell them apart, only a reverse
+ * Fribb/anime-lists lookup by TMDB id can (see that method's own doc).
+ *
+ * <p>Every movie/show/anime/user gets its own transaction (like {@code DownloadStatusPollJob}):
+ * this runs over a potentially large real library, and one bad item (a duplicate path, a colliding
+ * username) must never roll back everything else already synced in the same run.
  */
 @ApplicationScoped
 public class JellyfinSyncService {
@@ -56,6 +65,8 @@ public class JellyfinSyncService {
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ShowService showService;
+  @Inject AnimeService animeService;
+  @Inject FribbMappingProvider fribbMappingProvider;
   @Inject JellyfinServerService serverService;
 
   public JellyfinLibrarySyncResult syncLibraries(UUID serverId, ProgressReporter progress) {
@@ -115,6 +126,9 @@ public class JellyfinSyncService {
     int showsCreated = 0;
     int showsSkipped = 0;
     int showsAlreadySynced = 0;
+    int animeLinked = 0;
+    int animeCreated = 0;
+    int animeAlreadySynced = 0;
     int episodeFilesLinked = 0;
 
     for (JellyfinShow show : shows) {
@@ -125,17 +139,42 @@ public class JellyfinSyncService {
         continue;
       }
       List<JellyfinEpisode> showEpisodes = episodesBySeriesId.getOrDefault(show.id(), List.of());
+      FribbEntry animeMatch = resolveAnimeMatch(show.tmdbId());
+      // A title already synced as a Show in a run before this classification existed keeps its
+      // Show identity rather than getting duplicated as a second, separate Anime MediaItem —
+      // reclassifying an existing Show into Anime (moving its episode structure across two very
+      // different episode models) is a different problem from classifying a new title correctly.
+      boolean routeToAnime =
+          animeMatch != null
+              && !QuarkusTransaction.requiringNew().call(() -> alreadySyncedAsShow(show.tmdbId()));
       try {
-        ShowSyncOutcome outcome =
-            QuarkusTransaction.requiringNew().call(() -> syncOneShow(show, showEpisodes));
-        switch (outcome.outcome()) {
-          case "linked" -> showsLinked++;
-          case "created" -> showsCreated++;
-          default -> showsAlreadySynced++;
+        if (routeToAnime) {
+          ShowSyncOutcome outcome =
+              QuarkusTransaction.requiringNew()
+                  .call(() -> syncOneAnime(show, showEpisodes, animeMatch));
+          switch (outcome.outcome()) {
+            case "linked" -> animeLinked++;
+            case "created" -> animeCreated++;
+            default -> animeAlreadySynced++;
+          }
+          episodeFilesLinked += outcome.episodeFilesLinked();
+        } else {
+          ShowSyncOutcome outcome =
+              QuarkusTransaction.requiringNew().call(() -> syncOneShow(show, showEpisodes));
+          switch (outcome.outcome()) {
+            case "linked" -> showsLinked++;
+            case "created" -> showsCreated++;
+            default -> showsAlreadySynced++;
+          }
+          episodeFilesLinked += outcome.episodeFilesLinked();
         }
-        episodeFilesLinked += outcome.episodeFilesLinked();
       } catch (RuntimeException e) {
-        showsAlreadySynced++; // most likely a race, or this show's TMDB fetch failed; skip for now
+        // most likely a race, or this show's/anime's metadata fetch failed; retried next sync
+        if (routeToAnime) {
+          animeAlreadySynced++;
+        } else {
+          showsAlreadySynced++;
+        }
       }
     }
 
@@ -151,6 +190,9 @@ public class JellyfinSyncService {
         showsCreated,
         showsSkipped,
         showsAlreadySynced,
+        animeLinked,
+        animeCreated,
+        animeAlreadySynced,
         episodeFilesLinked);
   }
 
@@ -276,6 +318,70 @@ public class JellyfinSyncService {
   }
 
   /**
+   * Jellyfin's own {@code CollectionType} can't tell a "tvshows" item is anime — both are just
+   * "tvshows" — so this is a reverse lookup through Fribb/anime-lists' TMDB-TV-id cross-reference
+   * instead: a hit means the anime-tracking community has already matched this exact TMDB id to an
+   * AniList entry, which is as reliable a signal as Kosmos has without relying on a Jellyfin plugin
+   * the user may not have installed. {@code loadMappingByTmdbTvId} is a single cached bulk fetch
+   * (see {@link FribbMappingProvider}), not a per-show network call, so checking every show against
+   * it costs nothing extra per item.
+   */
+  private FribbEntry resolveAnimeMatch(String tmdbId) {
+    try {
+      return fribbMappingProvider.loadMappingByTmdbTvId().get(Integer.parseInt(tmdbId));
+    } catch (NumberFormatException e) {
+      return null;
+    }
+  }
+
+  private boolean alreadySyncedAsShow(String tmdbId) {
+    return MediaItemExternalId.find(
+            "plugin.slug = ?1 and externalId = ?2 and mediaItem.contentType = 'show'"
+                + " and supersededAt is null",
+            TMDB_PLUGIN_SLUG,
+            tmdbId)
+        .firstResultOptional()
+        .isPresent();
+  }
+
+  /** Same shape as {@link #syncOneShow}, routed to {@link Anime} instead of {@link Show}. */
+  private ShowSyncOutcome syncOneAnime(
+      JellyfinShow show, List<JellyfinEpisode> episodes, FribbEntry fribbEntry) {
+    Optional<MediaItemExternalId> existingLink =
+        MediaItemExternalId.find(
+                "plugin.slug = ?1 and externalId = ?2 and mediaItem.contentType = 'anime'"
+                    + " and supersededAt is null",
+                "anilist",
+                String.valueOf(fribbEntry.anilistId()))
+            .firstResultOptional();
+
+    MediaItem mediaItem;
+    boolean created;
+    if (existingLink.isPresent()) {
+      mediaItem = existingLink.get().mediaItem;
+      created = false;
+      if (mediaItem.rootFolder == null) {
+        resolveRootFolder(show.path(), "anime").ifPresent(folder -> mediaItem.rootFolder = folder);
+      }
+    } else {
+      mediaItem = createAnime(show, fribbEntry);
+      created = true;
+    }
+
+    int linkedFiles = linkAnimeEpisodeFiles(mediaItem, episodes);
+    String outcome = created ? "created" : (linkedFiles > 0 ? "linked" : "already-synced");
+    return new ShowSyncOutcome(outcome, linkedFiles);
+  }
+
+  private MediaItem createAnime(JellyfinShow jellyfinShow, FribbEntry fribbEntry) {
+    LibraryRootFolder rootFolder = resolveRootFolder(jellyfinShow.path(), "anime").orElse(null);
+    Anime anime =
+        animeService.createFromJellyfin(
+            jellyfinShow.name(), jellyfinShow.year(), fribbEntry, rootFolder);
+    return anime.mediaItem;
+  }
+
+  /**
    * Matches each Jellyfin episode file to the Kosmos {@link Episode} at the same (season, episode)
    * number under this show — Jellyfin's own episode-level ProviderIds aren't reliably populated, so
    * season/episode number is the only stable join key available. An episode Jellyfin has but TMDB's
@@ -316,6 +422,64 @@ public class JellyfinSyncService {
                   show,
                   jellyfinEpisode.seasonNumber(),
                   jellyfinEpisode.episodeNumber())
+              .firstResultOptional();
+      if (episode.isEmpty()) {
+        continue;
+      }
+      if (LibraryFile.find("path", jellyfinEpisode.path()).firstResultOptional().isPresent()) {
+        continue;
+      }
+
+      LibraryFile file = new LibraryFile();
+      file.mediaItem = episode.get().mediaItem;
+      file.path = jellyfinEpisode.path();
+      file.sizeBytes = sizeOrZero(jellyfinEpisode.path());
+      file.matchMethod = MATCH_METHOD;
+      file.matchConfidence = 1.0f;
+      file.matchPinned = false;
+      file.matchedAt = Instant.now();
+      file.verified = false;
+      file.importedAt = Instant.now();
+      probeService.tryProbe(file);
+      file.persist();
+      linked++;
+    }
+    return linked;
+  }
+
+  /**
+   * Same idea as {@link #linkEpisodeFiles}, but {@link AnimeEpisode} carries no season — a Kosmos
+   * {@link Anime} row is per-cour, matching one AniList entry's own episode count, so matching is
+   * by episode number alone rather than (season, episode). This is correct for a single-cour anime
+   * (the common case) but can misassign episodes for a multi-cour franchise if Jellyfin's own
+   * season numbering doesn't line up with Kosmos's per-cour rows — reconciling that is a separate
+   * problem from classifying the title as anime in the first place.
+   */
+  private int linkAnimeEpisodeFiles(
+      MediaItem animeMediaItem, List<JellyfinEpisode> jellyfinEpisodes) {
+    if (jellyfinEpisodes.isEmpty()) {
+      return 0;
+    }
+    Anime anime = Anime.<Anime>findByIdOptional(animeMediaItem.id).orElse(null);
+    if (anime == null) {
+      return 0;
+    }
+
+    Map<String, JellyfinEpisode> byPath = new LinkedHashMap<>();
+    for (JellyfinEpisode jellyfinEpisode : jellyfinEpisodes) {
+      if (jellyfinEpisode.path() != null) {
+        byPath.putIfAbsent(jellyfinEpisode.path(), jellyfinEpisode);
+      }
+    }
+
+    int linked = 0;
+    for (JellyfinEpisode jellyfinEpisode : byPath.values()) {
+      if (jellyfinEpisode.episodeNumber() == null || jellyfinEpisode.path() == null) {
+        continue;
+      }
+      Optional<AnimeEpisode> episode =
+          AnimeEpisode.<AnimeEpisode>find(
+                  "anime = ?1 and episodeNumber = ?2", anime, jellyfinEpisode.episodeNumber())
               .firstResultOptional();
       if (episode.isEmpty()) {
         continue;

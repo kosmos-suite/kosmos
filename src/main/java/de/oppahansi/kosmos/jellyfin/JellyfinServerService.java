@@ -129,13 +129,13 @@ public class JellyfinServerService {
       if (!selected.isEmpty() && !selected.contains(library.id())) {
         continue;
       }
-      String contentType = contentTypeFor(library.collectionType());
-      if (contentType == null || library.locations().isEmpty()) {
+      List<String> contentTypes = contentTypesFor(library.collectionType());
+      if (contentTypes.isEmpty() || library.locations().isEmpty()) {
         skipped++;
         continue;
       }
       for (String location : library.locations()) {
-        if (rootFolderService.createTrusted(location, List.of(contentType)).isPresent()) {
+        if (rootFolderService.createTrusted(location, contentTypes).isPresent()) {
           registered++;
         } else {
           skipped++;
@@ -145,14 +145,22 @@ public class JellyfinServerService {
     return new RootFolderAutoRegisterResult(registered, skipped);
   }
 
-  private String contentTypeFor(String jellyfinCollectionType) {
+  /**
+   * "tvshows" accepts both {@code show} and {@code anime}, not just {@code show} — Jellyfin's
+   * {@code CollectionType} doesn't distinguish them (both are just "tvshows"; see {@code
+   * JellyfinSyncService}'s Fribb-based per-title classification), and this user's own library setup
+   * shows why that matters: a library literally named "Anime" and one named "Shows" both report
+   * collectionType "tvshows", so tagging the folder narrowly as {@code show} would leave anime
+   * titles synced from it unable to find their own root folder.
+   */
+  private List<String> contentTypesFor(String jellyfinCollectionType) {
     if ("movies".equals(jellyfinCollectionType)) {
-      return "movie";
+      return List.of("movie");
     }
     if ("tvshows".equals(jellyfinCollectionType)) {
-      return "show";
+      return List.of("show", "anime");
     }
-    return null;
+    return List.of();
   }
 
   private JellyfinServer requireServer(UUID id) {

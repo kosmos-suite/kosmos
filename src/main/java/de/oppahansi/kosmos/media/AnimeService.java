@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.media;
 
+import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
 import de.oppahansi.kosmos.media.dto.CreateAnimeRequest;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
@@ -98,6 +99,47 @@ public class AnimeService {
       externalIdLinkService.link(mediaItem, request.pluginSlug(), request.externalId());
     }
 
+    return anime;
+  }
+
+  /**
+   * Used by {@code JellyfinSyncService} — same AniList-driven episode tree as {@link #create}, but
+   * from a server-reported title/year/root-folder and an already-resolved {@link FribbEntry} (found
+   * by reverse Fribb lookup on the Jellyfin item's TMDB id) rather than a user-submitted request,
+   * and with no quality profile assigned — matches Jellyfin-synced movies/shows, which are also
+   * unmonitored until the user assigns one. Unlike {@link #create}, the AniList fetch failing still
+   * fails this call (same reasoning as there): the caller's per-item transaction just gets retried
+   * next sync, consistent with how a movie/show's own fetch failure is handled.
+   */
+  @Transactional
+  public Anime createFromJellyfin(
+      String title, Integer year, FribbEntry fribbEntry, LibraryRootFolder rootFolder) {
+    String anilistId = String.valueOf(fribbEntry.anilistId());
+    AniListAnimeDetails details =
+        aniListMetadataProvider
+            .fetchById(anilistId)
+            .orElseThrow(() -> new BadRequestException("AniList entry not found: " + anilistId));
+
+    MediaItem mediaItem = new MediaItem();
+    mediaItem.contentType = "anime";
+    mediaItem.title = title;
+    mediaItem.year = year;
+    mediaItem.addedAt = Instant.now();
+    mediaItem.rootFolder = rootFolder;
+    mediaItem.persist();
+
+    Anime anime = new Anime();
+    anime.mediaItem = mediaItem;
+    anime.overview = details.overview();
+    anime.posterPath = details.posterPath();
+    anime.status = details.status();
+    anime.episodeCountTotal = details.episodeCount();
+    anime.persist();
+
+    linkFribbExternalIds(mediaItem, fribbEntry);
+    persistEpisodes(anime, details.episodeCount(), fribbEnrichmentFrom(fribbEntry));
+
+    externalIdLinkService.link(mediaItem, "anilist", anilistId);
     return anime;
   }
 
