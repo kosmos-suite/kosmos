@@ -21,6 +21,7 @@ import type {
   ImportListExclusion,
   MovieCollection,
   MovieCollectionDetail,
+  SeasonPassEntry,
   JellyfinLibrary,
   JellyfinServer,
   JellyfinUser,
@@ -264,6 +265,14 @@ export const api = {
       method: "PUT",
       body: JSON.stringify({ qualityProfileId }),
     }),
+
+  updateShowSeasonFolder: (id: string, seasonFolderEnabled: boolean | null) =>
+    request<ShowDetail>(`/shows/${id}/season-folder`, {
+      method: "PUT",
+      body: JSON.stringify({ seasonFolderEnabled }),
+    }),
+
+  getSeasonPass: () => request<SeasonPassEntry[]>("/season-pass"),
 
   createShow: (body: {
     externalId?: string;

@@ -50,4 +50,13 @@ public class Show extends PanacheEntityBase {
   @ManyToOne
   @JoinColumn(name = "quality_profile_id")
   public QualityProfile qualityProfile;
+
+  /**
+   * Per-show override of whether episodes land in a "Season N" subfolder — null means "use the
+   * global show naming settings' season folder template" (the only behavior before this existed),
+   * {@code false} means every episode goes straight in the series folder for this show regardless
+   * of the global setting. See {@code ImportService#episodeTargetPath}.
+   */
+  @Column(name = "season_folder_enabled")
+  public Boolean seasonFolderEnabled;
 }

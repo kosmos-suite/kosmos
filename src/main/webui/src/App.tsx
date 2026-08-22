@@ -19,6 +19,7 @@ import ManualImportPage from "./pages/ManualImportPage";
 import MediaDetailPage from "./pages/MediaDetailPage";
 import RequestsPage from "./pages/RequestsPage";
 import SearchPage from "./pages/SearchPage";
+import SeasonPassPage from "./pages/SeasonPassPage";
 import SetupPage from "./pages/SetupPage";
 import BackupPage from "./pages/settings/BackupPage";
 import DownloadClientsPage from "./pages/settings/DownloadClientsPage";
@@ -73,6 +74,7 @@ function App() {
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
+            <Route path="/season-pass" element={<SeasonPassPage />} />
             <Route path="/import" element={<ManualImportPage />} />
 
             <Route path="/settings" element={<SettingsLayout />}>

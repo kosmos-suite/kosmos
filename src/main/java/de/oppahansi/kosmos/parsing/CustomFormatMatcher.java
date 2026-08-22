@@ -85,6 +85,13 @@ public class CustomFormatMatcher {
       case "releaseGroup" -> release.releaseGroup();
       case "proper" -> String.valueOf(release.proper());
       case "repack" -> String.valueOf(release.repack());
+      // A season pack has a season number but no specific episode — see
+      // ParsedRelease#episodeNumber's
+      // own doc. Lets a Custom Format prefer or deprioritize pack releases (Phase 09 of the
+      // roadmap),
+      // building on Phase 03's season-pack-aware import.
+      case "seasonPack" ->
+          String.valueOf(release.seasonNumber() != null && release.episodeNumber() == null);
       default -> null;
     };
   }

@@ -17,6 +17,7 @@ import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
 import { GroupedEpisodeList, type SeasonRowData } from "../components/detail/EpisodeList";
 import { FileStatusCard } from "../components/detail/FileStatusCard";
 import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
+import { Toggle } from "../components/Toggle";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
 import { useArtworkFallback } from "../hooks/useArtworkFallback";
 import { mediaTypeFor, type MediaKind, ownedPathFor, useMediaDetail } from "../hooks/useMediaDetail";
@@ -86,6 +87,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     previewError,
     setQualityProfile,
     setMinimumAvailability,
+    setSeasonFolderEnabled,
   } = useMediaDetail(kind);
   const { admin, stateFor, triggerAdd } = useAddToLibrary();
   const navigate = useNavigate();
@@ -321,8 +323,20 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                 </div>
               ) : (
                 <>
-                  <div style={{ marginTop: 14 }}>
+                  <div style={{ marginTop: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
                     <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
+                    {kind === "show" && (
+                      <label
+                        style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13 }}
+                        title="Off puts every episode straight in the series folder, skipping the Season N subfolder"
+                      >
+                        <Toggle
+                          on={(ownedMedia as ShowDetail).seasonFolderEnabled !== false}
+                          onChange={(next) => setSeasonFolderEnabled(next ? null : false)}
+                        />
+                        Season folders
+                      </label>
+                    )}
                   </div>
                   <p className="text-faint" style={{ fontSize: 11.5, marginTop: 8 }}>
                     {kind === "show"

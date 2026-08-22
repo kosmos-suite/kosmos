@@ -211,9 +211,17 @@ public class ImportService {
             episode.episodeNumber);
 
     String seriesFolder = namingTemplateEngine.render(settings.folderTemplate, seriesContext);
+    String fileName = namingTemplateEngine.render(settings.fileTemplate, episodeContext);
+    // null (the default) defers to the global show naming setting; an explicit per-show false
+    // skips the season subfolder regardless of it — see Show#seasonFolderEnabled.
+    boolean useSeasonFolder =
+        Boolean.TRUE.equals(episode.season.show.seasonFolderEnabled)
+            || episode.season.show.seasonFolderEnabled == null;
+    if (!useSeasonFolder) {
+      return Path.of(rootFolder.path, seriesFolder, fileName + extension);
+    }
     String seasonFolder =
         namingTemplateEngine.render(settings.seasonFolderTemplate, episodeContext);
-    String fileName = namingTemplateEngine.render(settings.fileTemplate, episodeContext);
     return Path.of(rootFolder.path, seriesFolder, seasonFolder, fileName + extension);
   }
 

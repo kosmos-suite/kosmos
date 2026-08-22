@@ -343,6 +343,11 @@ export default function LibraryPage() {
             ? `${filtered.length} of ${libraryItems.length} ${config.noun}`
             : `${libraryItems.length} ${config.noun}`}
         </span>
+        {(kind === "show" || kind === "anime") && (
+          <Link to="/season-pass" className="btn btn-secondary" style={{ marginLeft: "auto" }}>
+            Season Pass
+          </Link>
+        )}
       </div>
 
       {loadError && <p className="text-muted">Failed to load library: {loadError}</p>}

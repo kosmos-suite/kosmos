@@ -142,12 +142,14 @@ ALTER TABLE movie ADD COLUMN quality_profile_id VARCHAR(36) REFERENCES quality_p
 -- Show catalog (Phase 2) — mirrors Movie's shared-PK pattern with media_item. Season/episode are
 -- plain metadata rows for now, not media_items themselves — see Episode's own comment.
 CREATE TABLE show (
-    media_item_id      VARCHAR(36) PRIMARY KEY REFERENCES media_item(id),
-    overview            VARCHAR(4000),
-    poster_path          VARCHAR(500),
-    backdrop_path        VARCHAR(500),
-    status               VARCHAR(30),
-    quality_profile_id  VARCHAR(36) REFERENCES quality_profile(id)
+    media_item_id         VARCHAR(36) PRIMARY KEY REFERENCES media_item(id),
+    overview              VARCHAR(4000),
+    poster_path           VARCHAR(500),
+    backdrop_path         VARCHAR(500),
+    status                VARCHAR(30),
+    quality_profile_id    VARCHAR(36) REFERENCES quality_profile(id),
+    -- Null means "use the global show naming settings" — see Show#seasonFolderEnabled.
+    season_folder_enabled BOOLEAN
 );
 
 CREATE TABLE season (

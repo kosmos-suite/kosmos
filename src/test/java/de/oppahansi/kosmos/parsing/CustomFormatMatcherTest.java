@@ -169,4 +169,19 @@ class CustomFormatMatcherTest {
     assertTrue(
         matcher.matches(matcher.parseRule("[]"), parse("Inception.2010.1080p.BluRay.x264-GROUP")));
   }
+
+  @Test
+  void seasonPackConditionMatchesAPackButNotASingleEpisode() {
+    String rule =
+        """
+        [{"field":"seasonPack","matchType":"equals","value":"true","negate":false,"required":true}]
+        """;
+    assertTrue(
+        matcher.matches(matcher.parseRule(rule), parse("Show.Name.S01.1080p.WEB-DL.x264-GROUP")));
+    assertFalse(
+        matcher.matches(
+            matcher.parseRule(rule), parse("Show.Name.S01E05.1080p.WEB-DL.x264-GROUP")));
+    assertFalse(
+        matcher.matches(matcher.parseRule(rule), parse("Inception.2010.1080p.BluRay.x264-GROUP")));
+  }
 }

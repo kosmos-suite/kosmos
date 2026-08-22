@@ -93,6 +93,12 @@ export function useMediaDetail(kind: MediaKind) {
     reload();
   }
 
+  async function setSeasonFolderEnabled(seasonFolderEnabled: boolean | null) {
+    if (!id || kind !== "show") return;
+    await api.updateShowSeasonFolder(id, seasonFolderEnabled);
+    reload();
+  }
+
   return {
     owned,
     ownedMedia,
@@ -106,5 +112,6 @@ export function useMediaDetail(kind: MediaKind) {
     previewError,
     setQualityProfile,
     setMinimumAvailability,
+    setSeasonFolderEnabled,
   };
 }

@@ -64,6 +64,7 @@ export interface Season {
 }
 
 export interface ShowDetail extends Show {
+  seasonFolderEnabled: boolean | null;
   seasons: Season[];
 }
 
@@ -387,6 +388,20 @@ export interface ImportListExclusion {
   externalId: string;
   title: string;
   excludedAt: string;
+}
+
+export interface SeasonPassSeason {
+  seasonNumber: number;
+  haveCount: number;
+  totalCount: number;
+}
+
+export interface SeasonPassEntry {
+  mediaItemId: string;
+  title: string;
+  posterPath: string | null;
+  contentType: "show" | "anime";
+  seasons: SeasonPassSeason[];
 }
 
 export interface CalendarEntry {

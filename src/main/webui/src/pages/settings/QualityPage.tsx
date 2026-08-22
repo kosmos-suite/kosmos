@@ -24,6 +24,7 @@ const FIELDS = [
   { value: "audioCodec", label: "Audio codec" },
   { value: "edition", label: "Edition" },
   { value: "releaseGroup", label: "Release group" },
+  { value: "seasonPack", label: "Season pack" },
 ] as const;
 const OPS = ["contains", "is", "starts with"] as const;
 const OP_WORDS: Record<(typeof OPS)[number], string> = {

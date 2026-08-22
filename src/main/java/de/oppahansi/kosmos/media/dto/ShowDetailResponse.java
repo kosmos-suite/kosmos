@@ -15,6 +15,7 @@ public record ShowDetailResponse(
     String status,
     Instant addedAt,
     UUID qualityProfileId,
+    Boolean seasonFolderEnabled,
     List<SeasonResponse> seasons) {
 
   public static ShowDetailResponse from(Show show, List<SeasonResponse> seasons) {
@@ -28,6 +29,7 @@ public record ShowDetailResponse(
         show.status,
         show.mediaItem.addedAt,
         show.qualityProfile == null ? null : show.qualityProfile.id,
+        show.seasonFolderEnabled,
         seasons);
   }
 }

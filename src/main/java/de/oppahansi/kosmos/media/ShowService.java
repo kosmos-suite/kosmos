@@ -134,6 +134,20 @@ public class ShowService {
   }
 
   /**
+   * {@code null} resets to "use the global show naming settings" — see {@link
+   * Show#seasonFolderEnabled}.
+   */
+  @Transactional
+  public Optional<Show> updateSeasonFolderEnabled(UUID showId, Boolean seasonFolderEnabled) {
+    return findById(showId)
+        .map(
+            show -> {
+              show.seasonFolderEnabled = seasonFolderEnabled;
+              return show;
+            });
+  }
+
+  /**
    * Cast/genres/similar for the detail page — see {@link TmdbMetadataProvider#fetchTvDetailExtras}.
    */
   public Optional<MediaDetailExtras> detailExtras(UUID showId) {
