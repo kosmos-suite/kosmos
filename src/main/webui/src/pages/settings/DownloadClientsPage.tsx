@@ -2,16 +2,19 @@ import {
   CheckCircleIcon as CheckCircle,
   DownloadIcon as Download,
   KeyIcon as Key,
+  MapPinIcon as MapPin,
   PlusIcon as Plus,
   XIcon as X,
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { api } from "../../api/client";
 import { useApi } from "../../hooks/useApi";
+import type { DownloadClient } from "../../api/types";
 
 export default function DownloadClientsPage() {
   const { data: clients, error: loadError, reload } = useApi(() => api.listDownloadClients(), []);
   const [modalOpen, setModalOpen] = useState(false);
+  const [mappingClient, setMappingClient] = useState<DownloadClient | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   function showToast(message: string) {
@@ -54,7 +57,21 @@ export default function DownloadClientsPage() {
               <span>{client.category ? `category: ${client.category}` : "no category"}</span>
               <span className="text-faint">·</span>
               <span>{client.passwordSet ? "credentials set" : "no password"}</span>
+              {client.remotePath && (
+                <>
+                  <span className="text-faint">·</span>
+                  <span>
+                    remaps {client.remotePath} → {client.localPath}
+                  </span>
+                </>
+              )}
             </div>
+          </div>
+          <div className="indexer-row-actions">
+            <button type="button" className="btn btn-secondary" onClick={() => setMappingClient(client)}>
+              <MapPin size={14} />
+              Path Mapping
+            </button>
           </div>
         </div>
       ))}
@@ -66,6 +83,18 @@ export default function DownloadClientsPage() {
             setModalOpen(false);
             reload();
             showToast("Download client added");
+          }}
+        />
+      )}
+
+      {mappingClient && (
+        <PathMappingModal
+          client={mappingClient}
+          onClose={() => setMappingClient(null)}
+          onSaved={() => {
+            setMappingClient(null);
+            reload();
+            showToast("Path mapping saved");
           }}
         />
       )}
@@ -217,6 +246,93 @@ function AddDownloadClientModal({ onClose, onCreated }: { onClose: () => void; o
             Cancel
           </button>
           <button type="button" className="btn btn-hero" onClick={save} disabled={!valid || saving}>
+            {saving ? "Saving…" : "Save"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PathMappingModal({
+  client,
+  onClose,
+  onSaved,
+}: {
+  client: DownloadClient;
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const [remotePath, setRemotePath] = useState(client.remotePath ?? "");
+  const [localPath, setLocalPath] = useState(client.localPath ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    setError(null);
+    try {
+      await api.updateDownloadClientPathMapping(client.id, {
+        remotePath: remotePath.trim() || null,
+        localPath: localPath.trim() || null,
+      });
+      onSaved();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="dialog-backdrop" onClick={onClose}>
+      <div className="dialog" onClick={(e) => e.stopPropagation()}>
+        <div className="dialog-header">
+          <span className="icon-tile">
+            <MapPin size={16} />
+          </span>
+          <div className="dialog-header-body">
+            <div className="dialog-title">Path mapping — {client.name}</div>
+            <div className="dialog-sub">
+              For a client that doesn't see the same filesystem Kosmos does (split-host, a different Docker bind
+              mount). Leave both blank to disable remapping.
+            </div>
+          </div>
+          <button type="button" className="dialog-close" onClick={onClose}>
+            <X size={15} />
+          </button>
+        </div>
+
+        <div className="field">
+          <label>Remote path (as the client reports it)</label>
+          <input
+            className="input"
+            style={{ fontFamily: "var(--font-mono)" }}
+            value={remotePath}
+            onChange={(e) => setRemotePath(e.target.value)}
+            placeholder="/downloads"
+          />
+        </div>
+
+        <div className="field">
+          <label>Local path (as Kosmos sees it)</label>
+          <input
+            className="input"
+            style={{ fontFamily: "var(--font-mono)" }}
+            value={localPath}
+            onChange={(e) => setLocalPath(e.target.value)}
+            placeholder="/Volumes/library/downloads"
+          />
+        </div>
+
+        {error && <p className="text-muted">{error}</p>}
+
+        <div className="dialog-footer">
+          <button type="button" className="btn btn-secondary" onClick={onClose}>
+            Cancel
+          </button>
+          <button type="button" className="btn btn-hero" onClick={save} disabled={saving}>
             {saving ? "Saving…" : "Save"}
           </button>
         </div>

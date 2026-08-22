@@ -18,7 +18,9 @@ import MediaDetailPage from "./pages/MediaDetailPage";
 import RequestsPage from "./pages/RequestsPage";
 import SearchPage from "./pages/SearchPage";
 import SetupPage from "./pages/SetupPage";
+import BackupPage from "./pages/settings/BackupPage";
 import DownloadClientsPage from "./pages/settings/DownloadClientsPage";
+import HealthPage from "./pages/settings/HealthPage";
 import IndexersPage from "./pages/settings/IndexersPage";
 import JellyfinPage from "./pages/settings/JellyfinPage";
 import JobsPage from "./pages/settings/JobsPage";
@@ -78,6 +80,8 @@ function App() {
               <Route path="naming" element={<NamingPage />} />
               <Route path="notifications" element={<NotificationsPage />} />
               <Route path="jobs" element={<JobsPage />} />
+              <Route path="health" element={<HealthPage />} />
+              <Route path="backup" element={<BackupPage />} />
               <Route path="jellyfin" element={<JellyfinPage />} />
               <Route path="users" element={<UsersPage />} />
               <Route path="permissions" element={<PermissionsPage />} />

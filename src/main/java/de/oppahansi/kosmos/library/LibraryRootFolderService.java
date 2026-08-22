@@ -81,6 +81,15 @@ public class LibraryRootFolderService {
         .map(path -> createInternal(path, null));
   }
 
+  /**
+   * Read-only variant of {@link #getDefault(String)} for callers that must never trigger its
+   * legacy-env-var auto-create fallback as a side effect (e.g. a health check run on every job
+   * tick) — just "is there a folder {@code contentType} could land in right now."
+   */
+  public boolean hasFolderAccepting(String contentType) {
+    return listAll().stream().anyMatch(folder -> accepts(folder, contentType));
+  }
+
   private boolean accepts(LibraryRootFolder folder, String contentType) {
     if (folder.contentTypes == null || folder.contentTypes.isBlank()) {
       return true;

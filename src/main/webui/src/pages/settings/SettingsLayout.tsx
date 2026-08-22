@@ -10,6 +10,8 @@ const TABS = [
   { to: "/settings/naming", label: "Naming" },
   { to: "/settings/notifications", label: "Notifications" },
   { to: "/settings/jobs", label: "Jobs" },
+  { to: "/settings/health", label: "Health" },
+  { to: "/settings/backup", label: "Backup" },
   { to: "/settings/jellyfin", label: "Jellyfin" },
   { to: "/settings/users", label: "Users" },
   { to: "/settings/permissions", label: "Permissions" },

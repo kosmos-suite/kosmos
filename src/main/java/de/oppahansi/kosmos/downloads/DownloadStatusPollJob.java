@@ -15,9 +15,10 @@ import java.util.UUID;
  * Polls each in-flight {@link Grab} against its download client; once it completes, hands its
  * content path to {@link ImportService} and marks the Grab imported. This is what actually makes
  * {@link Grab#status} reach anything past {@code GRABBED} — see the field's own comment. Only Grabs
- * with a known {@code jobId} are pollable (see {@link GrabService} for which grabs get one), and
- * the download client must see the same filesystem paths Kosmos does — same constraint every *arr
- * app has, no path-remapping support yet.
+ * with a known {@code jobId} are pollable (see {@link GrabService} for which grabs get one). A
+ * client that doesn't see the same filesystem paths Kosmos does (split-host, Docker with a
+ * different bind mount) needs {@link DownloadClient#remotePath}/{@link DownloadClient#localPath}
+ * configured — applied below via {@link DownloadClient#remapPath}.
  *
  * <p>A download the client itself reports failed (password-protected archive, missing files, a
  * local filesystem error — see each {@link TorrentClient}'s own {@code getTorrentInfo} for what
@@ -102,7 +103,7 @@ public class DownloadStatusPollJob implements JobHandler {
       return;
     }
 
-    String contentPath = status.get().contentPath();
+    String contentPath = client.remapPath(status.get().contentPath());
     if (contentPath == null || contentPath.isBlank()) {
       return;
     }

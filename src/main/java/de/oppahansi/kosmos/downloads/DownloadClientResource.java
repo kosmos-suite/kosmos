@@ -4,10 +4,12 @@ import de.oppahansi.kosmos.downloads.dto.CreateDownloadClientRequest;
 import de.oppahansi.kosmos.downloads.dto.DownloadClientResponse;
 import de.oppahansi.kosmos.downloads.dto.TestDownloadClientRequest;
 import de.oppahansi.kosmos.downloads.dto.TestDownloadClientResult;
+import de.oppahansi.kosmos.downloads.dto.UpdatePathMappingRequest;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
 import jakarta.ws.rs.POST;
+import jakarta.ws.rs.PUT;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
@@ -42,6 +44,13 @@ public class DownloadClientResource {
     DownloadClientResponse response =
         DownloadClientResponse.from(downloadClientService.create(request));
     return Response.status(Response.Status.CREATED).entity(response).build();
+  }
+
+  @PUT
+  @Path("/{id}/path-mapping")
+  public DownloadClientResponse updatePathMapping(
+      @PathParam("id") UUID id, UpdatePathMappingRequest request) {
+    return DownloadClientResponse.from(downloadClientService.updatePathMapping(id, request));
   }
 
   @POST

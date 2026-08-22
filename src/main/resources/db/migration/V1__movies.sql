@@ -197,6 +197,12 @@ CREATE TABLE download_client (
     username          VARCHAR(200),
     password          VARCHAR(200),
     category          VARCHAR(100),
+    -- Path remapping for a client that doesn't see the same filesystem Kosmos does (split-host,
+    -- Docker with a different bind mount). Both null/blank means no remapping — DownloadClient's
+    -- own remapPath() then returns the reported content path unchanged, same as before this
+    -- existed. See DownloadStatusPollJob.
+    remote_path       VARCHAR(1000),
+    local_path        VARCHAR(1000),
     enabled           BOOLEAN NOT NULL DEFAULT TRUE,
     created_at        TIMESTAMP NOT NULL
 );

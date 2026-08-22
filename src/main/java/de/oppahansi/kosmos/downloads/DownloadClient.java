@@ -30,9 +30,31 @@ public class DownloadClient extends KosmosEntity {
   @Column(length = 100)
   public String category;
 
+  @Column(name = "remote_path", length = 1000)
+  public String remotePath;
+
+  @Column(name = "local_path", length = 1000)
+  public String localPath;
+
   @Column(nullable = false)
   public boolean enabled;
 
   @Column(name = "created_at", nullable = false)
   public Instant createdAt;
+
+  /**
+   * Rewrites a content path this client reported into the path Kosmos's own filesystem sees, when
+   * {@link #remotePath}/{@link #localPath} are configured and the path actually starts under {@link
+   * #remotePath}. Returns the path unchanged otherwise — the common case, and always the case
+   * before either field was ever set.
+   */
+  public String remapPath(String contentPath) {
+    if (remotePath == null || remotePath.isBlank() || localPath == null || localPath.isBlank()) {
+      return contentPath;
+    }
+    if (contentPath == null || !contentPath.startsWith(remotePath)) {
+      return contentPath;
+    }
+    return localPath + contentPath.substring(remotePath.length());
+  }
 }

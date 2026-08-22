@@ -2,6 +2,7 @@ import type {
   Anime,
   AnimeDetail,
   AnimeEpisodeDetail,
+  BackupFile,
   BecauseYouAddedResult,
   BlocklistEntry,
   CustomFormat,
@@ -10,6 +11,7 @@ import type {
   EpisodeDetail,
   GenreTile,
   Grab,
+  HealthCheckEntry,
   ImportFromProwlarrResult,
   Indexer,
   CommitImportResult,
@@ -379,6 +381,16 @@ export const api = {
 
   testDownloadClient: (body: { type: string; baseUrl: string; username: string | null; password: string | null }) =>
     request<TestDownloadClientResult>("/download-clients/test", { method: "POST", body: JSON.stringify(body) }),
+
+  updateDownloadClientPathMapping: (id: string, body: { remotePath: string | null; localPath: string | null }) =>
+    request<DownloadClient>(`/download-clients/${id}/path-mapping`, { method: "PUT", body: JSON.stringify(body) }),
+
+  listSystemChecks: () => request<HealthCheckEntry[]>("/system-checks"),
+
+  listBackups: () => request<BackupFile[]>("/backups"),
+
+  deleteBackup: (filename: string) =>
+    request<void>(`/backups/${encodeURIComponent(filename)}`, { method: "DELETE" }),
 
   grabRelease: (
     movieId: string,

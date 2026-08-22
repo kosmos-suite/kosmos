@@ -13,6 +13,8 @@ public record DownloadClientResponse(
     String username,
     boolean passwordSet,
     String category,
+    String remotePath,
+    String localPath,
     boolean enabled,
     Instant createdAt) {
 
@@ -25,6 +27,8 @@ public record DownloadClientResponse(
         client.username,
         client.password != null && !client.password.isBlank(),
         client.category,
+        client.remotePath,
+        client.localPath,
         client.enabled,
         client.createdAt);
   }

@@ -3,8 +3,10 @@ package de.oppahansi.kosmos.downloads;
 import de.oppahansi.kosmos.downloads.dto.CreateDownloadClientRequest;
 import de.oppahansi.kosmos.downloads.dto.TestDownloadClientRequest;
 import de.oppahansi.kosmos.downloads.dto.TestDownloadClientResult;
+import de.oppahansi.kosmos.downloads.dto.UpdatePathMappingRequest;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.transaction.Transactional;
+import jakarta.ws.rs.NotFoundException;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
@@ -38,6 +40,19 @@ public class DownloadClientService {
     client.createdAt = Instant.now();
     client.persist();
     return client;
+  }
+
+  @Transactional
+  public DownloadClient updatePathMapping(UUID id, UpdatePathMappingRequest request) {
+    DownloadClient client =
+        findById(id).orElseThrow(() -> new NotFoundException("Unknown download client id: " + id));
+    client.remotePath = blankToNull(request.remotePath());
+    client.localPath = blankToNull(request.localPath());
+    return client;
+  }
+
+  private String blankToNull(String value) {
+    return value == null || value.isBlank() ? null : value;
   }
 
   public TestDownloadClientResult testConnection(TestDownloadClientRequest request) {

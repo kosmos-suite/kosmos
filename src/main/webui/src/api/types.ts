@@ -299,7 +299,21 @@ export interface DownloadClient {
   username: string | null;
   passwordSet: boolean;
   category: string | null;
+  remotePath: string | null;
+  localPath: string | null;
   enabled: boolean;
+  createdAt: string;
+}
+
+export interface HealthCheckEntry {
+  source: string;
+  severity: "OK" | "WARNING" | "ERROR";
+  message: string | null;
+}
+
+export interface BackupFile {
+  filename: string;
+  sizeBytes: number;
   createdAt: string;
 }
 
