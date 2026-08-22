@@ -1,5 +1,5 @@
 import { CaretDoubleLeftIcon as CaretDoubleLeft, CaretDoubleRightIcon as CaretDoubleRight } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
@@ -9,6 +9,11 @@ import { formatTb } from "../../utils/formatBytes";
 import { navItems } from "./navItems";
 
 const activeJobCount = activeDownloadSources.filter((d) => d.state === "downloading").length;
+
+/** Library stats change from several places (Jellyfin sync, manual add, import) rather than one
+ * single event stream worth subscribing to — a light periodic refresh keeps the sidebar's counts
+ * from going stale for the whole session without needing every write path to announce itself. */
+const LIBRARY_STATS_REFRESH_MS = 30_000;
 
 /** Collections sidebar tints — no smart-collections feature exists yet (see LibraryResource.stats), just these three real content-type counts. */
 const COLLECTION_TINTS: Record<string, string> = {
@@ -24,7 +29,13 @@ export function Sidebar() {
   const showDiskFree = location.pathname.startsWith("/activity");
   const { user } = useAuth();
   const { data: requests } = useApi(() => api.listRequests(), [user?.id]);
-  const { data: stats } = useApi(() => api.libraryStats(), []);
+  const { data: stats, reload: reloadStats } = useApi(() => api.libraryStats(), []);
+
+  useEffect(() => {
+    const id = window.setInterval(reloadStats, LIBRARY_STATS_REFRESH_MS);
+    return () => window.clearInterval(id);
+  }, [reloadStats]);
+
   const pendingRequestCount = requests?.filter((r) => r.status === "PENDING").length ?? 0;
   const libraryCount = stats ? stats.movieCount + stats.seriesCount + stats.animeCount : null;
 
