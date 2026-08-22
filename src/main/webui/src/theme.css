@@ -1269,7 +1269,6 @@ a:hover {
   gap: 14px;
   padding: 14px 16px;
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   margin-bottom: 8px;
 }
@@ -1358,7 +1357,6 @@ a:hover {
 .plugin-card {
   padding: 18px;
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   position: relative;
 }
@@ -3487,7 +3485,6 @@ a:hover {
   gap: 14px;
   padding: 13px 16px;
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   margin-bottom: 8px;
   transition: opacity 160ms;
@@ -3577,7 +3574,6 @@ a:hover {
 /* ---- settings: jobs ---- */
 .job-row {
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   margin-bottom: 8px;
   transition: opacity 160ms;
@@ -3755,7 +3751,6 @@ a:hover {
 .registry-card {
   padding: 15px;
   border-radius: var(--radius-md);
-  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   display: flex;
   flex-direction: column;
