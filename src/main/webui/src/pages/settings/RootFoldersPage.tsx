@@ -26,7 +26,7 @@ export default function RootFoldersPage() {
       await api.createRootFolder(path, contentTypes);
       reload();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not add this root folder");
+      setError(e instanceof ApiError ? e.message : "Could not add this media folder");
     } finally {
       setSaving(false);
     }
@@ -38,7 +38,7 @@ export default function RootFoldersPage() {
       await api.deleteRootFolder(id);
       reload();
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "Could not remove this root folder");
+      setError(e instanceof ApiError ? e.message : "Could not remove this media folder");
     } finally {
       setDeletingId(null);
     }
@@ -48,7 +48,7 @@ export default function RootFoldersPage() {
     <div>
       <div className="page-header" style={{ padding: "0 0 4px" }}>
         <div style={{ flex: 1, minWidth: 280 }}>
-          <h2 style={{ marginBottom: 6 }}>Root Folders</h2>
+          <h2 style={{ marginBottom: 6 }}>Media Folders</h2>
           <p className="text-muted" style={{ maxWidth: "60ch" }}>
             Where grabbed releases get organized to. Add more than one to split movies, shows and anime across
             different drives or mounts — pick which content types each one accepts, or leave it open to accept
@@ -57,13 +57,13 @@ export default function RootFoldersPage() {
         </div>
         <button type="button" className="btn btn-hero" onClick={() => setBrowsing(true)} disabled={saving}>
           <Plus size={15} weight="bold" />
-          {saving ? "Adding…" : "Add Root Folder"}
+          {saving ? "Adding…" : "Add Media Folder"}
         </button>
       </div>
 
-      {loadError && <p className="text-muted">Failed to load root folders: {loadError}</p>}
+      {loadError && <p className="text-muted">Failed to load media folders: {loadError}</p>}
       {error && <p className="text-muted">{error}</p>}
-      {folders?.length === 0 && <p className="text-muted">No root folders registered yet.</p>}
+      {folders?.length === 0 && <p className="text-muted">No media folders registered yet.</p>}
 
       {folders?.map((folder) => (
         <div key={folder.id} className="indexer-row">

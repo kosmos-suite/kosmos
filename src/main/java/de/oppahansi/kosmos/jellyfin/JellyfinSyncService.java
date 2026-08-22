@@ -56,9 +56,15 @@ public class JellyfinSyncService {
   @Inject TmdbMetadataProvider tmdbMetadataProvider;
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ShowService showService;
+  @Inject JellyfinServerService serverService;
 
   public JellyfinLibrarySyncResult syncLibraries(UUID serverId, ProgressReporter progress) {
     JellyfinServer server = requireServer(serverId);
+    // Same auto-register the setup wizard does explicitly, folded into every library sync —
+    // otherwise a server added directly from Settings (skipping onboarding) or a library selected
+    // after setup never gets a media folder registered for it at all, so newly-synced titles have
+    // nowhere to be organized under.
+    serverService.autoRegisterRootFolders(serverId);
     JellyfinClient client = new JellyfinClient(server.baseUrl);
     List<JellyfinMovie> movies;
     List<JellyfinShow> shows;
