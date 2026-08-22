@@ -10,11 +10,11 @@ import {
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { api } from "../../api/client";
-import type { JobRun, ScheduledJob } from "../../api/types";
+import type { JobProgressEvent, JobRun, ScheduledJob } from "../../api/types";
 import { JobProgressBar } from "../../components/JobProgressBar";
 import { Toggle } from "../../components/Toggle";
 import { useApi } from "../../hooks/useApi";
-import { useJobPoll } from "../../hooks/useJobPoll";
+import { useJobProgress } from "../../hooks/useJobProgress";
 import { relativeTime, relativeTimeUntil } from "../../utils/relativeTime";
 
 function healthMeta(job: ScheduledJob): { kind: string; icon: JSX.Element; label: string } {
@@ -147,11 +147,25 @@ function JobRow({
   );
   const [interval, setInterval] = useState(String(job.intervalSeconds));
   const [saving, setSaving] = useState(false);
+  const [progressEvent, setProgressEvent] = useState<JobProgressEvent | null>(null);
+
+  useJobProgress(job.name, (event) => {
+    setProgressEvent(event);
+    if (event.kind === "finished") {
+      onLiveUpdate({
+        ...job,
+        running: false,
+        lastStatus: event.status ?? job.lastStatus,
+        lastMessage: event.message ?? job.lastMessage,
+        lastRunAt: new Date().toISOString(),
+      });
+    }
+  });
 
   // Ambient truth (another tab, another run trigger, or the schedule could have started this),
   // not just whether this row's own "Run Now" click is still in flight.
-  const isRunning = running || job.running;
-  useJobPoll(job.name, isRunning, onLiveUpdate);
+  const isRunning =
+    running || job.running || progressEvent?.kind === "started" || progressEvent?.kind === "progress";
 
   async function saveInterval() {
     const parsed = Number.parseInt(interval, 10);
@@ -217,7 +231,7 @@ function JobRow({
 
       {isRunning && (
         <div style={{ padding: "0 16px 14px" }}>
-          <JobProgressBar job={job} />
+          <JobProgressBar event={progressEvent} />
         </div>
       )}
 

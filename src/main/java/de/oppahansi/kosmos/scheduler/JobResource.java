@@ -1,8 +1,11 @@
 package de.oppahansi.kosmos.scheduler;
 
+import de.oppahansi.kosmos.scheduler.dto.JobProgressEvent;
 import de.oppahansi.kosmos.scheduler.dto.JobRunResponse;
 import de.oppahansi.kosmos.scheduler.dto.ScheduledJobResponse;
 import de.oppahansi.kosmos.scheduler.dto.UpdateScheduledJobRequest;
+import io.smallrye.common.annotation.Blocking;
+import io.smallrye.mutiny.Multi;
 import jakarta.inject.Inject;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.GET;
@@ -15,6 +18,7 @@ import jakarta.ws.rs.QueryParam;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
+import org.jboss.resteasy.reactive.RestStreamElementType;
 
 @Path("/jobs")
 @Produces(MediaType.APPLICATION_JSON)
@@ -30,14 +34,24 @@ public class JobResource {
     return jobService.listAll().stream().map(ScheduledJobResponse::from).toList();
   }
 
-  /** One job's current state — what a live progress bar polls, rather than the whole list. */
+  /**
+   * Live progress for one job — SSE, not polling. A late subscriber (opened mid-run) gets the last
+   * known event replayed immediately, so the settings UI isn't blind until the next update happens
+   * to fire; see {@link JobProgressBroadcaster}.
+   *
+   * <p>{@code @Blocking}: a {@code Multi}-returning endpoint runs on the I/O thread by default,
+   * including everything ahead of it in the filter chain — {@link
+   * de.oppahansi.kosmos.auth.SessionFilter} does a blocking Hibernate lookup on every request,
+   * which blows up there. This dispatches the whole request to a worker thread instead; the
+   * returned {@code Multi} still streams asynchronously once subscribed.
+   */
   @GET
-  @Path("/{name}")
-  public Response get(@PathParam("name") String name) {
-    return jobService
-        .findByName(name)
-        .map(job -> Response.ok(ScheduledJobResponse.from(job)).build())
-        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  @Path("/{name}/progress")
+  @Produces(MediaType.SERVER_SENT_EVENTS)
+  @RestStreamElementType(MediaType.APPLICATION_JSON)
+  @Blocking
+  public Multi<JobProgressEvent> progress(@PathParam("name") String name) {
+    return jobService.streamProgress(name);
   }
 
   /** Most recent runs first — the history a job's expanded row on the settings page reads. */

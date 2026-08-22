@@ -1,5 +1,7 @@
 package de.oppahansi.kosmos.scheduler;
 
+import de.oppahansi.kosmos.scheduler.dto.JobProgressEvent;
+import io.smallrye.mutiny.Multi;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
@@ -17,6 +19,7 @@ public class JobService {
 
   @Inject JobScheduler jobScheduler;
   @Inject JobRunner jobRunner;
+  @Inject JobProgressBroadcaster progressBroadcaster;
 
   /** First-seen order, so the settings page's row order doesn't shift on every job run. */
   public List<ScheduledJob> listAll() {
@@ -55,6 +58,11 @@ public class JobService {
    */
   public Optional<JobRun> runNow(String name) {
     return jobScheduler.findByName(name).flatMap(jobRunner::runNow);
+  }
+
+  /** Live progress for one job, as an SSE stream — see {@link JobProgressBroadcaster}. */
+  public Multi<JobProgressEvent> streamProgress(String name) {
+    return progressBroadcaster.subscribe(name);
   }
 
   @Transactional

@@ -1,10 +1,10 @@
 package de.oppahansi.kosmos.scheduler;
 
 import de.oppahansi.kosmos.notifications.NotificationService;
+import de.oppahansi.kosmos.scheduler.dto.JobProgressEvent;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,10 +21,8 @@ import java.util.UUID;
 @ApplicationScoped
 public class JobRunner {
 
-  /** Floor between progress writes, so a tight per-item loop doesn't hammer the DB. */
-  private static final Duration PROGRESS_WRITE_INTERVAL = Duration.ofMillis(250);
-
   @Inject NotificationService notificationService;
+  @Inject JobProgressBroadcaster progressBroadcaster;
 
   /** Runs {@code handler} if it's due and not already running — a no-op otherwise. */
   public void runIfDue(JobHandler handler) {
@@ -46,11 +44,21 @@ public class JobRunner {
     }
 
     UUID jobId = job.id;
+    String jobName = handler.jobName();
+    // Fires even for handlers that never report granular progress — this is what lets a subscriber
+    // learn "it's running" the instant it's claimed, not only once/if the first progress event
+    // does.
+    progressBroadcaster.publish(jobName, JobProgressEvent.started());
+
     Instant startedAt = Instant.now();
     String status;
     String message;
     try {
-      message = handler.run(throttledReporter(jobId));
+      message =
+          handler.run(
+              (current, total, msg) ->
+                  progressBroadcaster.publish(
+                      jobName, JobProgressEvent.progress(current, total, msg)));
       status = "SUCCESS";
     } catch (RuntimeException e) {
       status = "FAILED";
@@ -63,36 +71,14 @@ public class JobRunner {
         QuarkusTransaction.requiringNew()
             .call(() -> finish(jobId, startedAt, finalStatus, finalMessage));
 
+    progressBroadcaster.publish(jobName, JobProgressEvent.finished(finalStatus, finalMessage));
+
     if ("FAILED".equals(status)) {
       notificationService.notifyAll(
           "Job failed",
           handler.displayName() + " failed" + (message != null ? ": " + message : "."));
     }
     return jobRun;
-  }
-
-  /** Each call is its own committed transaction, throttled so a per-item loop stays cheap. */
-  private ProgressReporter throttledReporter(UUID jobId) {
-    Instant[] lastWrite = {Instant.EPOCH};
-    return (current, total, message) -> {
-      boolean isFinal = total > 0 && current >= total;
-      if (!isFinal
-          && Duration.between(lastWrite[0], Instant.now()).compareTo(PROGRESS_WRITE_INTERVAL) < 0) {
-        return;
-      }
-      lastWrite[0] = Instant.now();
-      QuarkusTransaction.requiringNew()
-          .run(
-              () -> {
-                ScheduledJob job = ScheduledJob.<ScheduledJob>findById(jobId);
-                if (job == null) {
-                  return;
-                }
-                job.progressCurrent = current;
-                job.progressTotal = total;
-                job.progressMessage = message;
-              });
-    };
   }
 
   private ScheduledJob claim(JobHandler handler, boolean force) {
@@ -102,9 +88,6 @@ public class JobRunner {
       return null;
     }
     job.runningSince = Instant.now();
-    job.progressCurrent = null;
-    job.progressTotal = null;
-    job.progressMessage = null;
     return job;
   }
 
@@ -114,9 +97,6 @@ public class JobRunner {
     job.lastRunAt = startedAt;
     job.lastStatus = status;
     job.lastMessage = message;
-    job.progressCurrent = null;
-    job.progressTotal = null;
-    job.progressMessage = null;
 
     JobRun jobRun = new JobRun();
     jobRun.scheduledJob = job;

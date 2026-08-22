@@ -13,10 +13,10 @@ import {
 } from "@phosphor-icons/react";
 import { useState } from "react";
 import { api, ApiError } from "../../api/client";
-import type { JellyfinServer, ScheduledJob } from "../../api/types";
+import type { JellyfinServer, JobProgressEvent } from "../../api/types";
 import { JobProgressBar } from "../../components/JobProgressBar";
 import { useApi } from "../../hooks/useApi";
-import { useJobPoll } from "../../hooks/useJobPoll";
+import { useJobProgress } from "../../hooks/useJobProgress";
 
 export default function JellyfinPage() {
   const { data: servers, error: loadError, setData: setServers, reload } = useApi(
@@ -139,13 +139,14 @@ function LibrarySelectionPanel({
   const { data: libraries, loading, error } = useApi(() => api.listJellyfinLibraries(server.id), [server.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedLibraryIds));
   const [clicking, setClicking] = useState(false);
-  const [liveJob, setLiveJob] = useState<ScheduledJob | null>(null);
+  const [progressEvent, setProgressEvent] = useState<JobProgressEvent | null>(null);
 
   const jobName = `jellyfin-library-sync-${server.id}`;
+  useJobProgress(jobName, setProgressEvent);
   // Ambient truth (another tab, another user, or the schedule could have started this), not just
   // whether this component's own click is still in flight.
-  const running = clicking || liveJob?.running === true;
-  useJobPoll(jobName, true, setLiveJob);
+  const running =
+    clicking || progressEvent?.kind === "started" || progressEvent?.kind === "progress";
 
   // Empty selection means "every library" — same convention the backend uses.
   const allSelected = selected.size === 0;
@@ -178,7 +179,7 @@ function LibrarySelectionPanel({
       );
     } catch (e) {
       // 409 means it was already running by the time the request landed — not a real failure,
-      // and the progress bar (driven by useJobPoll) already reflects it.
+      // and the progress bar (driven by useJobProgress) already reflects it.
       if (!(e instanceof ApiError && e.status === 409)) {
         showToast(e instanceof ApiError ? `Library sync failed: ${e.message}` : "Library sync failed");
       }
@@ -248,7 +249,7 @@ function LibrarySelectionPanel({
         </>
       )}
 
-      {running && <JobProgressBar job={liveJob} />}
+      {running && <JobProgressBar event={progressEvent} />}
     </div>
   );
 }
@@ -265,11 +266,12 @@ function UserSelectionPanel({
   const { data: users, loading, error } = useApi(() => api.listJellyfinUsers(server.id), [server.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedUserIds));
   const [clicking, setClicking] = useState(false);
-  const [liveJob, setLiveJob] = useState<ScheduledJob | null>(null);
+  const [progressEvent, setProgressEvent] = useState<JobProgressEvent | null>(null);
 
   const jobName = `jellyfin-user-import-${server.id}`;
-  const running = clicking || liveJob?.running === true;
-  useJobPoll(jobName, true, setLiveJob);
+  useJobProgress(jobName, setProgressEvent);
+  const running =
+    clicking || progressEvent?.kind === "started" || progressEvent?.kind === "progress";
 
   // Empty selection means "every account" — same convention the backend uses.
   const allSelected = selected.size === 0;
@@ -370,7 +372,7 @@ function UserSelectionPanel({
         </>
       )}
 
-      {running && <JobProgressBar job={liveJob} />}
+      {running && <JobProgressBar event={progressEvent} />}
     </div>
   );
 }

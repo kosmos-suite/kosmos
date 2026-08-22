@@ -438,8 +438,6 @@ export const api = {
 
   listJobs: () => request<ScheduledJob[]>("/jobs"),
 
-  getJob: (name: string) => request<ScheduledJob>(`/jobs/${encodeURIComponent(name)}`),
-
   listJobRuns: (name: string, limit = 20) =>
     request<JobRun[]>(`/jobs/${encodeURIComponent(name)}/runs?limit=${limit}`),
 

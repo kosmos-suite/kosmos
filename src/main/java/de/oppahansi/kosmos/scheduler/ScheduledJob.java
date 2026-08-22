@@ -43,16 +43,6 @@ public class ScheduledJob extends KosmosEntity {
   @Column(name = "created_at", nullable = false)
   public Instant createdAt;
 
-  /** Live progress while running, polled by the settings UI — see {@link ProgressReporter}. */
-  @Column(name = "progress_current")
-  public Integer progressCurrent;
-
-  @Column(name = "progress_total")
-  public Integer progressTotal;
-
-  @Column(name = "progress_message", length = 500)
-  public String progressMessage;
-
   public boolean isDue(Instant now) {
     return enabled
         && runningSince == null

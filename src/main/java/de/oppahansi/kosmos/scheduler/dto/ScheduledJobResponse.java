@@ -13,10 +13,7 @@ public record ScheduledJobResponse(
     boolean running,
     Instant lastRunAt,
     String lastStatus,
-    String lastMessage,
-    Integer progressCurrent,
-    Integer progressTotal,
-    String progressMessage) {
+    String lastMessage) {
 
   public static ScheduledJobResponse from(ScheduledJob job) {
     return new ScheduledJobResponse(
@@ -28,9 +25,6 @@ public record ScheduledJobResponse(
         job.runningSince != null,
         job.lastRunAt,
         job.lastStatus,
-        job.lastMessage,
-        job.progressCurrent,
-        job.progressTotal,
-        job.progressMessage);
+        job.lastMessage);
   }
 }

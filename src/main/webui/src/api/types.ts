@@ -362,9 +362,15 @@ export interface ScheduledJob {
   lastRunAt: string | null;
   lastStatus: string | null;
   lastMessage: string | null;
-  progressCurrent: number | null;
-  progressTotal: number | null;
-  progressMessage: string | null;
+}
+
+/** One SSE frame from GET /jobs/{name}/progress — see useJobProgress. */
+export interface JobProgressEvent {
+  kind: "started" | "progress" | "finished";
+  current: number | null;
+  total: number | null;
+  message: string | null;
+  status: string | null;
 }
 
 export interface JobRun {
