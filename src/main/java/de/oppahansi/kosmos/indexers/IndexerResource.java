@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.indexers;
 
+import de.oppahansi.kosmos.downloads.BlocklistService;
 import de.oppahansi.kosmos.indexers.dto.CreateIndexerRequest;
 import de.oppahansi.kosmos.indexers.dto.ImportFromProwlarrRequest;
 import de.oppahansi.kosmos.indexers.dto.ImportFromProwlarrResult;
@@ -42,6 +43,7 @@ public class IndexerResource {
   @Inject ScoringEngine scoringEngine;
   @Inject QualityProfileService qualityProfileService;
   @Inject QualityDefinitionService qualityDefinitionService;
+  @Inject BlocklistService blocklistService;
 
   @GET
   public List<IndexerResponse> list() {
@@ -87,15 +89,21 @@ public class IndexerResource {
       @PathParam("id") UUID id,
       @QueryParam("q") String query,
       @QueryParam("qualityProfileId") UUID qualityProfileId,
-      @QueryParam("runtimeMinutes") Integer runtimeMinutes) {
+      @QueryParam("runtimeMinutes") Integer runtimeMinutes,
+      @QueryParam("mediaItemId") UUID mediaItemId) {
     return indexerService
         .findById(id)
-        .map(indexer -> searchIndexer(indexer, query, qualityProfileId, runtimeMinutes))
+        .map(
+            indexer -> searchIndexer(indexer, query, qualityProfileId, runtimeMinutes, mediaItemId))
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }
 
   private Response searchIndexer(
-      Indexer indexer, String query, UUID qualityProfileId, Integer runtimeMinutes) {
+      Indexer indexer,
+      String query,
+      UUID qualityProfileId,
+      Integer runtimeMinutes,
+      UUID mediaItemId) {
     QualityProfile profile =
         qualityProfileId == null
             ? null
@@ -113,7 +121,9 @@ public class IndexerResource {
     }
 
     List<ScoredSearchResult> results =
-        rawResults.stream().map(raw -> scoreOne(raw, profile, runtimeMinutes)).toList();
+        rawResults.stream()
+            .map(raw -> scoreOne(raw, profile, runtimeMinutes, mediaItemId))
+            .toList();
     if (profile != null) {
       results =
           results.stream()
@@ -124,15 +134,20 @@ public class IndexerResource {
   }
 
   private ScoredSearchResult scoreOne(
-      TorznabResult raw, QualityProfile profile, Integer runtimeMinutes) {
+      TorznabResult raw, QualityProfile profile, Integer runtimeMinutes, UUID mediaItemId) {
     ParsedRelease parsed = releaseParser.parse(raw.title());
+    String blocklistReason =
+        mediaItemId != null && blocklistService.isBlocked(mediaItemId, raw.downloadUrl())
+            ? "Previously failed for this title"
+            : null;
     if (profile == null) {
-      return ScoredSearchResult.unscored(raw, parsed);
+      return new ScoredSearchResult(raw, parsed, null, null, null, null, null, blocklistReason);
     }
     ScoredRelease scored = scoringEngine.score(parsed, profile);
     String sizeGateReason =
         qualityDefinitionService.checkSizeGate(parsed, raw.sizeBytes(), runtimeMinutes);
-    boolean passesCutoff = scored.passesCutoff() && sizeGateReason == null;
+    boolean passesCutoff =
+        scored.passesCutoff() && sizeGateReason == null && blocklistReason == null;
     return new ScoredSearchResult(
         raw,
         parsed,
@@ -140,6 +155,7 @@ public class IndexerResource {
         scored.cutoffScore(),
         passesCutoff,
         scored.formatBreakdown(),
-        sizeGateReason);
+        sizeGateReason,
+        blocklistReason);
   }
 }

@@ -55,7 +55,10 @@ function toDisplay(result: ScoredSearchResult, indexerName: string): DisplayRele
     title: result.raw.title,
     score,
     cutoffScore: cutoff,
-    rejectionReason: result.sizeGateReason ?? (result.passesCutoff === false ? `Scored ${score} of ${cutoff} needed` : null),
+    rejectionReason:
+      result.blocklistReason ??
+      result.sizeGateReason ??
+      (result.passesCutoff === false ? `Scored ${score} of ${cutoff} needed` : null),
     pills: [result.parsed.resolution, result.parsed.source, result.parsed.videoCodec].filter((v): v is string => !!v),
     indexerName,
     ageLabel: result.raw.publishedAt ? new Date(result.raw.publishedAt).toLocaleDateString() : "—",
@@ -291,8 +294,8 @@ export default function InteractiveSearchPage() {
       const perIndexer = await Promise.all(
         enabledIndexers.map((idx) =>
           (profile
-            ? api.searchIndexerScored(idx.id, searchQuery, profile.id, runtimeMinutes)
-            : api.searchIndexer(idx.id, searchQuery, undefined, runtimeMinutes)
+            ? api.searchIndexerScored(idx.id, searchQuery, profile.id, runtimeMinutes, id)
+            : api.searchIndexer(idx.id, searchQuery, undefined, runtimeMinutes, id)
           ).then((rows) => rows.map((r) => toDisplay(r, idx.name))),
         ),
       );
@@ -303,7 +306,7 @@ export default function InteractiveSearchPage() {
     } finally {
       setSearching(false);
     }
-  }, [searchQuery, runtimeMinutes, enabledIndexers, profile]);
+  }, [searchQuery, runtimeMinutes, enabledIndexers, profile, id]);
 
   useEffect(() => {
     runSearch();

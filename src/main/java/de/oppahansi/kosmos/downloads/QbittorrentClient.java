@@ -12,9 +12,18 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.util.Optional;
+import java.util.Set;
 
 /** Thin client for qBittorrent's Web API (cookie-session auth, form-encoded requests). */
 public class QbittorrentClient implements TorrentClient {
+
+  /**
+   * {@code error}: tracker/tracker-less failure past qBittorrent's own retry budget. {@code
+   * missingFiles}: the download completed but its data is gone from disk. Every other state
+   * (seeding, stalled, checking, queued, paused, ...) is a normal point in an eventually-successful
+   * lifecycle, not a failure.
+   */
+  private static final Set<String> FAILURE_STATES = Set.of("error", "missingFiles");
 
   private final String baseUrl;
   private final HttpClient httpClient = HttpClients.withCookieJar();
@@ -112,12 +121,16 @@ public class QbittorrentClient implements TorrentClient {
       return Optional.empty();
     }
     JsonNode torrent = results.get(0);
+    String rawState = torrent.path("state").asText(null);
+    double progress = torrent.path("progress").asDouble();
+    boolean failed = FAILURE_STATES.contains(rawState);
     return Optional.of(
         new TorrentStatus(
             torrent.path("hash").asText(),
-            torrent.path("state").asText(null),
-            torrent.path("progress").asDouble(),
-            torrent.path("content_path").asText(null)));
+            failed ? DownloadState.FAILED : DownloadState.fromProgress(progress),
+            progress,
+            torrent.path("content_path").asText(null),
+            failed ? "qBittorrent reported state: " + rawState : null));
   }
 
   public void deleteTorrent(String hash, boolean deleteFiles)

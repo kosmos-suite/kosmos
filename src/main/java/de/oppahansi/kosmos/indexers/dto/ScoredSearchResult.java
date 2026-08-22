@@ -16,9 +16,16 @@ public record ScoredSearchResult(
     Boolean passesCutoff,
     List<CustomFormatMatch> formatBreakdown,
     /** Non-null means the hard size gate rejected this release — see QualityDefinitionService. */
-    String sizeGateReason) {
+    String sizeGateReason,
+    /**
+     * Non-null means this exact release already failed for the media item the search was scoped to
+     * (see {@code IndexerResource}'s {@code mediaItemId} query param) — the reason a prior {@code
+     * Blocklist} entry recorded. Still returned, not filtered out, so the UI can show why and still
+     * offer an override-grab, the same as every other rejection reason here.
+     */
+    String blocklistReason) {
 
   public static ScoredSearchResult unscored(TorznabResult raw, ParsedRelease parsed) {
-    return new ScoredSearchResult(raw, parsed, null, null, null, null, null);
+    return new ScoredSearchResult(raw, parsed, null, null, null, null, null, null);
   }
 }

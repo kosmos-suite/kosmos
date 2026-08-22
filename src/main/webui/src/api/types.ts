@@ -23,7 +23,7 @@ export interface Show {
   partiallyAvailable: boolean;
 }
 
-export type EpisodeStatus = "MISSING" | "GRABBED" | "IMPORTED" | "AVAILABLE";
+export type EpisodeStatus = "MISSING" | "GRABBED" | "FAILED" | "IMPORTED" | "AVAILABLE";
 
 export interface Episode {
   id: string;
@@ -258,6 +258,8 @@ export interface ScoredSearchResult {
   passesCutoff: boolean | null;
   formatBreakdown: CustomFormatMatch[] | null;
   sizeGateReason: string | null;
+  /** Non-null means this exact release already failed for the title being searched for. */
+  blocklistReason: string | null;
 }
 
 export interface QualityDefinition {
@@ -309,6 +311,15 @@ export interface Grab {
   downloadClientName: string;
   status: string;
   grabbedAt: string;
+}
+
+export interface BlocklistEntry {
+  id: string;
+  mediaItemId: string;
+  mediaItemTitle: string;
+  titleRaw: string;
+  reason: string;
+  blockedAt: string;
 }
 
 export interface LibraryFile {

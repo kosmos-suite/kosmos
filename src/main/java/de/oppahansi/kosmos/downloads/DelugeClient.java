@@ -92,12 +92,16 @@ public class DelugeClient implements TorrentClient {
     String savePath = result.path("save_path").asText("");
     String name = result.path("name").asText("");
     String contentPath = savePath.isBlank() ? null : savePath + "/" + name;
+    String rawState = result.path("state").asText(null);
+    double progress = result.path("progress").asDouble() / 100.0;
+    boolean failed = "Error".equals(rawState);
     return Optional.of(
         new TorrentStatus(
             hash,
-            result.path("state").asText(null),
-            result.path("progress").asDouble() / 100.0,
-            contentPath));
+            failed ? DownloadState.FAILED : DownloadState.fromProgress(progress),
+            progress,
+            contentPath,
+            failed ? "Deluge reported state: Error" : null));
   }
 
   private JsonNode call(String method, ArrayNode params) throws IOException, InterruptedException {

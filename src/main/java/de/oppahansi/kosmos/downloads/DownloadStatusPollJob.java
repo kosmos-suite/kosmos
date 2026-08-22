@@ -18,11 +18,19 @@ import java.util.UUID;
  * with a known {@code jobId} are pollable (see {@link GrabService} for which grabs get one), and
  * the download client must see the same filesystem paths Kosmos does — same constraint every *arr
  * app has, no path-remapping support yet.
+ *
+ * <p>A download the client itself reports failed (password-protected archive, missing files, a
+ * local filesystem error — see each {@link TorrentClient}'s own {@code getTorrentInfo} for what
+ * counts) is blocklisted for that media item and the Grab marked {@code FAILED} rather than left
+ * {@code GRABBED} forever; the automatic-search jobs treat a media item with no still-active Grab
+ * as eligible again, so this alone is what lets a bad release get retried on the next scheduled
+ * search instead of quietly blocking that title forever.
  */
 @ApplicationScoped
 public class DownloadStatusPollJob implements JobHandler {
 
   @Inject ImportService importService;
+  @Inject BlocklistService blocklistService;
 
   @Override
   public String jobName() {
@@ -76,7 +84,21 @@ public class DownloadStatusPollJob implements JobHandler {
       return;
     }
 
-    if (status.isEmpty() || !status.get().isComplete()) {
+    if (status.isEmpty()) {
+      return;
+    }
+
+    if (status.get().isFailed()) {
+      String reason =
+          status.get().failureReason() != null
+              ? status.get().failureReason()
+              : "Download client reported failure";
+      blocklistService.blockRelease(grab.release, reason);
+      grab.status = "FAILED";
+      return;
+    }
+
+    if (!status.get().isComplete()) {
       return;
     }
 

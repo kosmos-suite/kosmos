@@ -40,6 +40,7 @@ public class AutomaticSearchJob implements JobHandler {
   @Inject ScoringEngine scoringEngine;
   @Inject QualityDefinitionService qualityDefinitionService;
   @Inject GrabService grabService;
+  @Inject BlocklistService blocklistService;
 
   @Override
   public String jobName() {
@@ -78,7 +79,7 @@ public class AutomaticSearchJob implements JobHandler {
   private List<UUID> findEligibleMovieIds() {
     return Movie.<Movie>list("qualityProfile is not null").stream()
         .map(movie -> movie.mediaItemId)
-        .filter(mediaItemId -> Grab.count("release.mediaItem.id = ?1", mediaItemId) == 0)
+        .filter(mediaItemId -> !Grab.hasActiveGrab(mediaItemId))
         .toList();
   }
 
@@ -105,6 +106,9 @@ public class AutomaticSearchJob implements JobHandler {
         continue; // this indexer is unreachable this run; the others still get a chance
       }
       for (TorznabResult raw : results) {
+        if (blocklistService.isBlocked(movieId, raw.downloadUrl())) {
+          continue;
+        }
         ParsedRelease parsed = releaseParser.parse(raw.title());
         ScoredRelease scored = scoringEngine.score(parsed, movie.qualityProfile);
         boolean sizeOk =

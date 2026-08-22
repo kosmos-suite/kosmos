@@ -375,3 +375,18 @@ CREATE TABLE unclassified_show (
     detected_at        TIMESTAMP NOT NULL,
     UNIQUE (jellyfin_server_id, jellyfin_item_id)
 );
+
+-- A release DownloadStatusPollJob (or a user) confirmed failed for a specific media item — kept
+-- per-item, not global, since the same release can be a bad match for one title's search and
+-- irrelevant to every other. AutomaticSearchJob/TvAutomaticSearchJob/AnimeAutomaticSearchJob skip
+-- any candidate whose download_url is already blocklisted for the media item being searched,
+-- rather than re-grabbing the same dead release every run.
+CREATE TABLE blocklist (
+    id             VARCHAR(36) PRIMARY KEY,
+    media_item_id  VARCHAR(36) NOT NULL REFERENCES media_item(id),
+    download_url   VARCHAR(2000) NOT NULL,
+    title_raw      VARCHAR(500) NOT NULL,
+    reason         VARCHAR(500) NOT NULL,
+    blocked_at     TIMESTAMP NOT NULL,
+    UNIQUE (media_item_id, download_url)
+);

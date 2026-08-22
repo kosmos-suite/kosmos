@@ -82,6 +82,14 @@ public class NzbgetClient implements TorrentClient {
         : Optional.empty();
   }
 
+  /**
+   * Same two-place shape as SABnzbd: {@code listgroups} never reports failure (an actively
+   * downloading/post-processing job is always "still working"), only {@code history} does, once
+   * NZBGet has finished and moved the job out of the active queue. History status is a
+   * category/detail pair like {@code SUCCESS/ALL} or {@code FAILURE/PAR} — any {@code FAILURE/*}
+   * prefix is a real, unrecoverable failure; anything else (including {@code WARNING/*}, which
+   * still usually leaves usable files) falls through to the normal completion check below.
+   */
   @Override
   public Optional<TorrentStatus> getTorrentInfo(String id)
       throws IOException, InterruptedException {
@@ -94,7 +102,7 @@ public class NzbgetClient implements TorrentClient {
         double remainingMb = group.path("RemainingSizeMB").asDouble();
         double progress = fileSizeMb > 0 ? (fileSizeMb - remainingMb) / fileSizeMb : 0.0;
         return Optional.of(
-            new TorrentStatus(id, group.path("Status").asText(null), progress, null));
+            new TorrentStatus(id, DownloadState.fromProgress(progress), progress, null, null));
       }
     }
 
@@ -103,10 +111,21 @@ public class NzbgetClient implements TorrentClient {
       if (entry.path("NZBID").asInt() == nzbId) {
         String status = entry.path("Status").asText("");
         boolean success = status.startsWith("SUCCESS");
+        boolean failed = status.startsWith("FAILURE");
         String finalDir = entry.path("FinalDir").asText("");
         String destDir = entry.path("DestDir").asText("");
         String contentPath = success ? (finalDir.isBlank() ? destDir : finalDir) : null;
-        return Optional.of(new TorrentStatus(id, status, success ? 1.0 : 0.0, contentPath));
+        DownloadState state =
+            failed
+                ? DownloadState.FAILED
+                : (success ? DownloadState.COMPLETE : DownloadState.DOWNLOADING);
+        return Optional.of(
+            new TorrentStatus(
+                id,
+                state,
+                success ? 1.0 : 0.0,
+                contentPath,
+                failed ? "NZBGet history status: " + status : null));
       }
     }
 

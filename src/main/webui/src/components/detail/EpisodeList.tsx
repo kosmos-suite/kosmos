@@ -6,12 +6,14 @@ import type { EpisodeStatus } from "../../api/types";
 const STATUS_DOT: Record<EpisodeStatus, string> = {
   MISSING: "dot-bad",
   GRABBED: "dot-warn",
+  FAILED: "dot-bad",
   IMPORTED: "dot-warn",
   AVAILABLE: "dot-good",
 };
 const STATUS_LABEL: Record<EpisodeStatus, string> = {
   MISSING: "Missing",
   GRABBED: "Grabbed",
+  FAILED: "Failed",
   IMPORTED: "Importing",
   AVAILABLE: "Available",
 };

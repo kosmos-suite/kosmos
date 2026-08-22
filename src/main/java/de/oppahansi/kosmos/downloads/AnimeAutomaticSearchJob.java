@@ -44,6 +44,7 @@ public class AnimeAutomaticSearchJob implements JobHandler {
   @Inject ScoringEngine scoringEngine;
   @Inject QualityDefinitionService qualityDefinitionService;
   @Inject GrabService grabService;
+  @Inject BlocklistService blocklistService;
 
   @Override
   public String jobName() {
@@ -74,9 +75,9 @@ public class AnimeAutomaticSearchJob implements JobHandler {
   }
 
   private List<UUID> findEligibleEpisodeIds() {
-    return AnimeEpisode.<AnimeEpisode>list("anime.qualityProfile is not null").stream()
-        .filter(episode -> Grab.count("release.mediaItem.id = ?1", episode.mediaItemId) == 0)
+    return AnimeEpisode.<AnimeEpisode>list("season.anime.qualityProfile is not null").stream()
         .map(episode -> episode.mediaItemId)
+        .filter(mediaItemId -> !Grab.hasActiveGrab(mediaItemId))
         .toList();
   }
 
@@ -108,6 +109,9 @@ public class AnimeAutomaticSearchJob implements JobHandler {
         continue;
       }
       for (TorznabResult raw : results) {
+        if (blocklistService.isBlocked(episodeMediaItemId, raw.downloadUrl())) {
+          continue;
+        }
         ParsedAnimeRelease parsed = animeReleaseParser.parse(raw.title());
         if (!matchesEpisode(parsed, episode)) {
           continue;

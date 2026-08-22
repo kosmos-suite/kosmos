@@ -3,6 +3,7 @@ import type {
   AnimeDetail,
   AnimeEpisodeDetail,
   BecauseYouAddedResult,
+  BlocklistEntry,
   CustomFormat,
   DiscoverItem,
   DownloadClient,
@@ -290,14 +291,26 @@ export const api = {
   testProwlarrConnection: (body: { baseUrl: string; apiKey: string }) =>
     request<TestIndexerResult>("/indexers/test-prowlarr", { method: "POST", body: JSON.stringify(body) }),
 
-  searchIndexer: (indexerId: string, query: string, qualityProfileId?: string, runtimeMinutes?: number | null) =>
+  searchIndexer: (
+    indexerId: string,
+    query: string,
+    qualityProfileId?: string,
+    runtimeMinutes?: number | null,
+    mediaItemId?: string,
+  ) =>
     request<ScoredSearchResult[]>(
-      `/indexers/${indexerId}/search?q=${encodeURIComponent(query)}${qualityProfileId ? `&qualityProfileId=${qualityProfileId}` : ""}${runtimeMinutes ? `&runtimeMinutes=${runtimeMinutes}` : ""}`,
+      `/indexers/${indexerId}/search?q=${encodeURIComponent(query)}${qualityProfileId ? `&qualityProfileId=${qualityProfileId}` : ""}${runtimeMinutes ? `&runtimeMinutes=${runtimeMinutes}` : ""}${mediaItemId ? `&mediaItemId=${mediaItemId}` : ""}`,
     ),
 
-  searchIndexerScored: (indexerId: string, query: string, qualityProfileId: string, runtimeMinutes?: number | null) =>
+  searchIndexerScored: (
+    indexerId: string,
+    query: string,
+    qualityProfileId: string,
+    runtimeMinutes?: number | null,
+    mediaItemId?: string,
+  ) =>
     request<ScoredSearchResult[]>(
-      `/indexers/${indexerId}/search?q=${encodeURIComponent(query)}&qualityProfileId=${qualityProfileId}${runtimeMinutes ? `&runtimeMinutes=${runtimeMinutes}` : ""}`,
+      `/indexers/${indexerId}/search?q=${encodeURIComponent(query)}&qualityProfileId=${qualityProfileId}${runtimeMinutes ? `&runtimeMinutes=${runtimeMinutes}` : ""}${mediaItemId ? `&mediaItemId=${mediaItemId}` : ""}`,
     ),
 
   listQualityProfiles: () => request<QualityProfile[]>("/quality-profiles"),
@@ -393,6 +406,14 @@ export const api = {
     formData.append("downloadClientId", downloadClientId);
     return requestMultipart<Grab>(`/episodes/${episodeId}/grab/file`, formData);
   },
+
+  listGrabs: () => request<Grab[]>("/grabs"),
+
+  markGrabFailed: (grabId: string) => request<Grab>(`/grabs/${grabId}/mark-failed`, { method: "POST" }),
+
+  listBlocklist: () => request<BlocklistEntry[]>("/blocklist"),
+
+  removeBlocklistEntry: (id: string) => request<void>(`/blocklist/${id}`, { method: "DELETE" }),
 
   importPath: (movieId: string, sourcePath: string) =>
     request<LibraryFile>(`/movies/${movieId}/import`, {

@@ -41,6 +41,7 @@ public class TvAutomaticSearchJob implements JobHandler {
   @Inject ScoringEngine scoringEngine;
   @Inject QualityDefinitionService qualityDefinitionService;
   @Inject GrabService grabService;
+  @Inject BlocklistService blocklistService;
 
   @Override
   public String jobName() {
@@ -72,8 +73,8 @@ public class TvAutomaticSearchJob implements JobHandler {
 
   private List<UUID> findEligibleEpisodeIds() {
     return Episode.<Episode>list("season.show.qualityProfile is not null").stream()
-        .filter(episode -> Grab.count("release.mediaItem.id = ?1", episode.mediaItemId) == 0)
         .map(episode -> episode.mediaItemId)
+        .filter(mediaItemId -> !Grab.hasActiveGrab(mediaItemId))
         .toList();
   }
 
@@ -105,6 +106,9 @@ public class TvAutomaticSearchJob implements JobHandler {
         continue;
       }
       for (TorznabResult raw : results) {
+        if (blocklistService.isBlocked(episodeMediaItemId, raw.downloadUrl())) {
+          continue;
+        }
         ParsedRelease parsed = releaseParser.parse(raw.title());
         if (!matchesEpisode(parsed, episode)) {
           continue;

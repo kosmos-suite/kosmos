@@ -25,6 +25,9 @@ import java.util.Optional;
  */
 public class TransmissionClient implements TorrentClient {
 
+  /** {@code TR_STAT_LOCAL_ERROR} — see {@link #getTorrentInfo}'s own doc. */
+  private static final int LOCAL_ERROR = 3;
+
   private final String rpcUrl;
   private final HttpClient httpClient = HttpClients.basic();
   private String authHeader;
@@ -70,7 +73,12 @@ public class TransmissionClient implements TorrentClient {
   /**
    * Transmission has no single "content path" field — {@code downloadDir} + {@code name}
    * reconstructs it the same way its own clients do. {@code percentDone} is already 0.0–1.0, the
-   * same scale {@link TorrentStatus#isComplete()} expects.
+   * same scale {@link TorrentStatus#isComplete()} expects. {@code status} itself (a numeric
+   * lifecycle stage — stopped/checking/downloading/seeding/...) carries no failure signal at all;
+   * that only ever comes through the separate {@code error} field, and only error code {@code 3}
+   * ("local error" — a filesystem/permission problem with the download itself) counts as a real
+   * failure here. Codes {@code 1}/{@code 2} are tracker-level warnings (a dead/slow tracker) that
+   * don't mean the torrent itself is unrecoverable — DHT/peer exchange can still complete it.
    */
   @Override
   public Optional<TorrentStatus> getTorrentInfo(String hash)
@@ -82,7 +90,9 @@ public class TransmissionClient implements TorrentClient {
         .add("status")
         .add("percentDone")
         .add("downloadDir")
-        .add("name");
+        .add("name")
+        .add("error")
+        .add("errorString");
     JsonNode torrents = call("torrent-get", args).path("arguments").path("torrents");
     if (!torrents.isArray() || torrents.isEmpty()) {
       return Optional.empty();
@@ -91,12 +101,15 @@ public class TransmissionClient implements TorrentClient {
     String downloadDir = torrent.path("downloadDir").asText("");
     String name = torrent.path("name").asText("");
     String contentPath = downloadDir.isBlank() ? null : downloadDir + "/" + name;
+    double progress = torrent.path("percentDone").asDouble();
+    boolean failed = torrent.path("error").asInt(0) == LOCAL_ERROR;
     return Optional.of(
         new TorrentStatus(
             torrent.path("hashString").asText(),
-            torrent.path("status").asText(null),
-            torrent.path("percentDone").asDouble(),
-            contentPath));
+            failed ? DownloadState.FAILED : DownloadState.fromProgress(progress),
+            progress,
+            contentPath,
+            failed ? "Transmission local error: " + torrent.path("errorString").asText("") : null));
   }
 
   private JsonNode call(String method, ObjectNode arguments)

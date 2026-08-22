@@ -76,31 +76,40 @@ public class SabnzbdClient implements TorrentClient {
     return firstNzoId(MAPPER.readTree(response.body()));
   }
 
+  /**
+   * SABnzbd never reports failure while a job is still in the active queue — a queue slot's own
+   * {@code status} is always some flavor of "still working" (Downloading/Paused/Queued/...); it
+   * only learns a job failed (bad password, extraction/verification failure) once SABnzbd itself
+   * gives up and moves the job into history with status {@code Failed}, so only the history branch
+   * below can ever report {@link DownloadState#FAILED}.
+   */
   @Override
   public Optional<TorrentStatus> getTorrentInfo(String nzoId)
       throws IOException, InterruptedException {
     JsonNode queueSlots = getJson("mode=queue&output=json").path("queue").path("slots");
     for (JsonNode slot : queueSlots) {
       if (nzoId.equals(slot.path("nzo_id").asText())) {
+        double progress = slot.path("percentage").asDouble() / 100.0;
         return Optional.of(
-            new TorrentStatus(
-                nzoId,
-                slot.path("status").asText(null),
-                slot.path("percentage").asDouble() / 100.0,
-                null));
+            new TorrentStatus(nzoId, DownloadState.fromProgress(progress), progress, null, null));
       }
     }
 
     JsonNode historySlots = getJson("mode=history&output=json").path("history").path("slots");
     for (JsonNode slot : historySlots) {
       if (nzoId.equals(slot.path("nzo_id").asText())) {
-        boolean completed = "Completed".equals(slot.path("status").asText());
+        String status = slot.path("status").asText("");
+        boolean completed = "Completed".equals(status);
+        boolean failed = "Failed".equals(status);
         return Optional.of(
             new TorrentStatus(
                 nzoId,
-                slot.path("status").asText(null),
+                failed
+                    ? DownloadState.FAILED
+                    : (completed ? DownloadState.COMPLETE : DownloadState.DOWNLOADING),
                 completed ? 1.0 : 0.0,
-                completed ? slot.path("storage").asText(null) : null));
+                completed ? slot.path("storage").asText(null) : null,
+                failed ? "SABnzbd history status: Failed" : null));
       }
     }
 

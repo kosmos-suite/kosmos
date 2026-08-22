@@ -4,6 +4,7 @@ import de.oppahansi.kosmos.downloads.dto.GrabRequest;
 import de.oppahansi.kosmos.indexers.Release;
 import de.oppahansi.kosmos.media.MediaItem;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.WebApplicationException;
@@ -17,6 +18,8 @@ import java.util.regex.Pattern;
 
 @ApplicationScoped
 public class GrabService {
+
+  @Inject BlocklistService blocklistService;
 
   // Magnet URIs carry their own info-hash (xt=urn:btih:<hash>) — extracting it up front lets
   // DownloadStatusPollJob correlate this Grab to a real torrent without needing addTorrent's
@@ -98,6 +101,23 @@ public class GrabService {
     grab.persist();
 
     return Optional.of(grab);
+  }
+
+  /**
+   * User-driven equivalent of {@link DownloadStatusPollJob}'s own failure detection — blocklists
+   * the grab's release and marks it {@code FAILED} so it stops being polled and its media item
+   * becomes eligible for automatic re-search again (see {@link Grab#hasActiveGrab}), for a bad
+   * download the client itself never reports as failed (stuck seeding at 0%, wrong content, etc.).
+   */
+  @Transactional
+  public Optional<Grab> markFailed(UUID grabId) {
+    Optional<Grab> grab = Grab.<Grab>findByIdOptional(grabId);
+    grab.ifPresent(
+        g -> {
+          blocklistService.blockRelease(g.release, "Marked failed by user");
+          g.status = "FAILED";
+        });
+    return grab;
   }
 
   private Optional<String> sendFileToClient(
