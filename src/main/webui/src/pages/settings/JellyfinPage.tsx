@@ -16,17 +16,18 @@ import { api, ApiError } from "../../api/client";
 import type { JellyfinServer, ScheduledJob } from "../../api/types";
 import { useApi } from "../../hooks/useApi";
 
-const PROGRESS_POLL_MS = 1000;
+const JOB_POLL_MS = 1000;
 
-/** Polls one job's live state while `active`, for a progress bar — stops as soon as it isn't. */
-function useLiveJobProgress(jobName: string, active: boolean): ScheduledJob | null {
+/**
+ * Polls one job's live state the whole time this panel is mounted (i.e. its server row is
+ * expanded) — not just while a click made here is in flight. A sync/import can be running because
+ * another tab, another user, or the recurring schedule started it; this is what lets the button
+ * and progress bar reflect that ambient truth instead of only this component's own request.
+ */
+function useJobState(jobName: string): ScheduledJob | null {
   const [job, setJob] = useState<ScheduledJob | null>(null);
 
   useEffect(() => {
-    if (!active) {
-      setJob(null);
-      return;
-    }
     let cancelled = false;
     const poll = () => {
       api
@@ -37,12 +38,12 @@ function useLiveJobProgress(jobName: string, active: boolean): ScheduledJob | nu
         .catch(() => undefined);
     };
     poll();
-    const id = window.setInterval(poll, PROGRESS_POLL_MS);
+    const id = window.setInterval(poll, JOB_POLL_MS);
     return () => {
       cancelled = true;
       window.clearInterval(id);
     };
-  }, [jobName, active]);
+  }, [jobName]);
 
   return job;
 }
@@ -193,10 +194,13 @@ function LibrarySelectionPanel({
 }) {
   const { data: libraries, loading, error } = useApi(() => api.listJellyfinLibraries(server.id), [server.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedLibraryIds));
-  const [running, setRunning] = useState(false);
+  const [clicking, setClicking] = useState(false);
 
   const jobName = `jellyfin-library-sync-${server.id}`;
-  const liveJob = useLiveJobProgress(jobName, running);
+  const liveJob = useJobState(jobName);
+  // Ambient truth (another tab, another user, or the schedule could have started this), not just
+  // whether this component's own click is still in flight — see useJobState.
+  const running = clicking || liveJob?.running === true;
 
   // Empty selection means "every library" — same convention the backend uses.
   const allSelected = selected.size === 0;
@@ -218,7 +222,8 @@ function LibrarySelectionPanel({
   }
 
   async function runSync() {
-    setRunning(true);
+    if (running) return; // already running — from this tab, another tab, or the schedule
+    setClicking(true);
     try {
       const run = await api.syncJellyfinLibraries(server.id);
       showToast(
@@ -227,9 +232,13 @@ function LibrarySelectionPanel({
           : (run.message ?? "Library sync complete."),
       );
     } catch (e) {
-      showToast(e instanceof ApiError ? `Library sync failed: ${e.message}` : "Library sync failed");
+      // 409 means it was already running by the time the request landed — not a real failure,
+      // and the progress bar (driven by useJobState) already reflects it.
+      if (!(e instanceof ApiError && e.status === 409)) {
+        showToast(e instanceof ApiError ? `Library sync failed: ${e.message}` : "Library sync failed");
+      }
     } finally {
-      setRunning(false);
+      setClicking(false);
     }
   }
 
@@ -310,10 +319,11 @@ function UserSelectionPanel({
 }) {
   const { data: users, loading, error } = useApi(() => api.listJellyfinUsers(server.id), [server.id]);
   const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedUserIds));
-  const [running, setRunning] = useState(false);
+  const [clicking, setClicking] = useState(false);
 
   const jobName = `jellyfin-user-import-${server.id}`;
-  const liveJob = useLiveJobProgress(jobName, running);
+  const liveJob = useJobState(jobName);
+  const running = clicking || liveJob?.running === true;
 
   // Empty selection means "every account" — same convention the backend uses.
   const allSelected = selected.size === 0;
@@ -335,7 +345,8 @@ function UserSelectionPanel({
   }
 
   async function runImport() {
-    setRunning(true);
+    if (running) return; // already running — from this tab, another tab, or the schedule
+    setClicking(true);
     try {
       const run = await api.syncJellyfinUsers(server.id);
       showToast(
@@ -344,9 +355,11 @@ function UserSelectionPanel({
           : (run.message ?? "User import complete."),
       );
     } catch (e) {
-      showToast(e instanceof ApiError ? `User import failed: ${e.message}` : "User import failed");
+      if (!(e instanceof ApiError && e.status === 409)) {
+        showToast(e instanceof ApiError ? `User import failed: ${e.message}` : "User import failed");
+      }
     } finally {
-      setRunning(false);
+      setClicking(false);
     }
   }
 
