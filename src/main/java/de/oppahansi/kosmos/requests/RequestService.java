@@ -78,14 +78,16 @@ public class RequestService {
   }
 
   /**
-   * The {@link de.oppahansi.kosmos.importlists.ImportListSyncJob} equivalent of {@link #create} —
-   * {@code requestedBy} is left null and {@code sourceListName} set instead (see {@link Request}'s
-   * own doc). Auto-approves immediately when {@code trusted}, reusing {@link #approve} with a null
-   * {@code admin} (that field is nullable exactly for this — a system action has no human decider).
+   * The automated-source equivalent of {@link #create}, used by both {@code ImportListSyncJob} and
+   * {@code MovieCollectionSyncJob} — {@code requestedBy} is left null and {@code sourceListName}
+   * set instead (see {@link Request}'s own doc; {@code sourceLabel} is passed already formatted,
+   * e.g. "List: TMDB Popular" or "Collection: Mission Impossible"). Auto-approves immediately when
+   * {@code trusted}, reusing {@link #approve} with a null {@code admin} (that field is nullable
+   * exactly for this — a system action has no human decider).
    */
   @Transactional
   public Request createFromList(
-      String listName,
+      String sourceLabel,
       boolean trusted,
       String mediaType,
       String externalId,
@@ -97,7 +99,7 @@ public class RequestService {
       String backdropPath,
       UUID qualityProfileId) {
     Request request = new Request();
-    request.sourceListName = listName;
+    request.sourceListName = sourceLabel;
     request.mediaType = mediaType;
     request.externalId = externalId;
     request.pluginSlug = pluginSlug;

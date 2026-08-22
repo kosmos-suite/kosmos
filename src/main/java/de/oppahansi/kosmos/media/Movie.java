@@ -42,12 +42,23 @@ public class Movie extends PanacheEntityBase {
   public String backdropPath;
 
   /**
-   * TMDB's theatrical release date — the single date {@code CalendarService} uses for a movie's
-   * calendar entry. Not the fuller "Minimum Availability" model (separate cinema/physical/digital
-   * dates plus an availability delay) Radarr has; that's its own, larger roadmap item.
+   * TMDB's theatrical release date — the date {@code CalendarService} uses for a movie's calendar
+   * entry, and {@link MinimumAvailability#IN_CINEMAS}'s gate.
    */
   @Column(name = "release_date")
   public LocalDate releaseDate;
+
+  /** TMDB's US digital release date — {@link MinimumAvailability#RELEASED}'s gate. */
+  @Column(name = "digital_release_date")
+  public LocalDate digitalReleaseDate;
+
+  /**
+   * Which milestone {@code AutomaticSearchJob} waits for before searching this movie — see {@link
+   * MinimumAvailability} for the gate logic itself. Defaults to {@code RELEASED}, the safest choice
+   * (avoids grabbing a cam-quality day-one release).
+   */
+  @Column(name = "minimum_availability", nullable = false, length = 20)
+  public String minimumAvailability = MinimumAvailability.RELEASED.name();
 
   /**
    * Null means "not monitored" — {@code AutomaticSearchJob} only ever considers assigned movies.
@@ -55,4 +66,8 @@ public class Movie extends PanacheEntityBase {
   @ManyToOne
   @JoinColumn(name = "quality_profile_id")
   public QualityProfile qualityProfile;
+
+  public MinimumAvailability parsedMinimumAvailability() {
+    return MinimumAvailability.valueOf(minimumAvailability);
+  }
 }

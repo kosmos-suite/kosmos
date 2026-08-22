@@ -5,8 +5,10 @@ import de.oppahansi.kosmos.library.LibraryFile;
 import de.oppahansi.kosmos.library.dto.LibraryFileResponse;
 import de.oppahansi.kosmos.media.dto.CreateMovieRequest;
 import de.oppahansi.kosmos.media.dto.MovieResponse;
+import de.oppahansi.kosmos.media.dto.UpdateMinimumAvailabilityRequest;
 import de.oppahansi.kosmos.media.dto.UpdateMovieQualityProfileRequest;
 import jakarta.inject.Inject;
+import jakarta.ws.rs.BadRequestException;
 import jakarta.ws.rs.Consumes;
 import jakarta.ws.rs.ForbiddenException;
 import jakarta.ws.rs.GET;
@@ -91,6 +93,24 @@ public class MediaResource {
     requireAdmin();
     return movieService
         .updateQualityProfile(id, request.qualityProfileId())
+        .map(movie -> Response.ok(MovieResponse.from(movie)).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
+  @PUT
+  @Path("/{id}/minimum-availability")
+  public Response updateMinimumAvailability(
+      @PathParam("id") UUID id, UpdateMinimumAvailabilityRequest request) {
+    requireAdmin();
+    MinimumAvailability availability;
+    try {
+      availability = MinimumAvailability.valueOf(request.minimumAvailability());
+    } catch (IllegalArgumentException e) {
+      throw new BadRequestException(
+          "Unknown minimum availability: " + request.minimumAvailability());
+    }
+    return movieService
+        .updateMinimumAvailability(id, availability)
         .map(movie -> Response.ok(MovieResponse.from(movie)).build())
         .orElse(Response.status(Response.Status.NOT_FOUND).build());
   }

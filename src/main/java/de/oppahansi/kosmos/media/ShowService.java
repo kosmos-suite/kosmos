@@ -163,7 +163,7 @@ public class ShowService {
             .map(e -> e.withSimilar(similarEnrichmentService.enrich(e.similar(), "tmdb", "show")))
             .orElse(
                 new MediaDetailExtras(
-                    List.of(), List.of(), null, null, null, List.of(), List.of(), null));
+                    List.of(), List.of(), null, null, null, List.of(), List.of(), null, null));
     return Optional.of(
         new MediaPreview(
             externalId,

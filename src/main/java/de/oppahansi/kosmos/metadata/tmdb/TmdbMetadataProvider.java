@@ -6,6 +6,7 @@ import de.oppahansi.kosmos.metadata.MetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchItem;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
+import de.oppahansi.kosmos.metadata.dto.TmdbCollectionResult;
 import io.quarkus.cache.CacheResult;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -36,6 +37,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
   private static final String MOVIE_URL = "https://api.themoviedb.org/3/movie/";
   private static final String TV_URL = "https://api.themoviedb.org/3/tv/";
   private static final String AUTH_URL = "https://api.themoviedb.org/3/authentication";
+  private static final String COLLECTION_URL = "https://api.themoviedb.org/3/collection/";
 
   @ConfigProperty(name = "kosmos.metadata.tmdb.api-key")
   Optional<String> apiKey;
@@ -154,7 +156,13 @@ public class TmdbMetadataProvider implements MetadataProvider {
     try {
       HttpRequest request =
           HttpRequest.newBuilder()
-              .uri(URI.create(MOVIE_URL + tmdbId + "?api_key=" + apiKey.orElseThrow()))
+              .uri(
+                  URI.create(
+                      MOVIE_URL
+                          + tmdbId
+                          + "?api_key="
+                          + apiKey.orElseThrow()
+                          + "&append_to_response=release_dates"))
               .GET()
               .build();
       HttpResponse<String> response =
@@ -163,6 +171,39 @@ public class TmdbMetadataProvider implements MetadataProvider {
         return Optional.empty();
       }
       return Optional.of(objectMapper.readValue(response.body(), TmdbMovieDetails.class));
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
+   * Backs {@code MovieCollectionService} — a collection's full member list, TMDB's own grouping.
+   */
+  @CacheResult(cacheName = "tmdb-collection")
+  public Optional<TmdbCollectionResult> fetchCollection(String collectionId) {
+    if (apiKey.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(URI.create(COLLECTION_URL + collectionId + "?api_key=" + apiKey.orElseThrow()))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        return Optional.empty();
+      }
+      TmdbCollectionResponse raw =
+          objectMapper.readValue(response.body(), TmdbCollectionResponse.class);
+      List<MetadataSearchResult> members =
+          raw.parts() == null
+              ? List.of()
+              : raw.parts().stream().map(TmdbMappers::toSearchResult).toList();
+      return Optional.of(
+          new TmdbCollectionResult(
+              String.valueOf(raw.id()), raw.name(), raw.posterPath(), raw.backdropPath(), members));
     } catch (Exception e) {
       return Optional.empty();
     }
@@ -369,6 +410,14 @@ public class TmdbMetadataProvider implements MetadataProvider {
               "TMDB",
               d.voteAverage() + (d.voteCount() != null ? " · " + d.voteCount() + " votes" : "")));
     }
+    MediaDetailExtras.Collection collection =
+        d.belongsToCollection() != null
+            ? new MediaDetailExtras.Collection(
+                String.valueOf(d.belongsToCollection().id()),
+                d.belongsToCollection().name(),
+                d.belongsToCollection().posterPath(),
+                d.belongsToCollection().backdropPath())
+            : null;
     return new MediaDetailExtras(
         genres,
         facts,
@@ -377,7 +426,8 @@ public class TmdbMetadataProvider implements MetadataProvider {
         certification,
         cast,
         similar,
-        trailerUrl(d.videos()));
+        trailerUrl(d.videos()),
+        collection);
   }
 
   private MediaDetailExtras toTvExtras(TmdbTvDetailFull d) {
@@ -417,7 +467,8 @@ public class TmdbMetadataProvider implements MetadataProvider {
         certification,
         cast,
         similar,
-        trailerUrl(d.videos()));
+        trailerUrl(d.videos()),
+        null);
   }
 
   /**

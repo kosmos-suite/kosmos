@@ -268,7 +268,7 @@ public class AniListMetadataProvider implements MetadataProvider {
 
     return Optional.of(
         new MediaDetailExtras(
-            genres, facts, averageScore, null, null, List.of(), similar, trailerUrl));
+            genres, facts, averageScore, null, null, List.of(), similar, trailerUrl, null));
   }
 
   private MetadataSearchResult toSearchResult(AniListMedia media) {

@@ -18,7 +18,16 @@ record TmdbMovieDetailFull(
     TmdbCredits credits,
     Recommendations recommendations,
     @JsonProperty("release_dates") ReleaseDates releaseDates,
-    TmdbVideos videos) {
+    TmdbVideos videos,
+    @JsonProperty("belongs_to_collection") Collection belongsToCollection) {
+
+  /** Null when the movie isn't part of a TMDB collection. */
+  @JsonIgnoreProperties(ignoreUnknown = true)
+  record Collection(
+      int id,
+      String name,
+      @JsonProperty("poster_path") String posterPath,
+      @JsonProperty("backdrop_path") String backdropPath) {}
 
   @JsonIgnoreProperties(ignoreUnknown = true)
   record Company(String name) {}

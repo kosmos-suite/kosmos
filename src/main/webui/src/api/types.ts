@@ -1,3 +1,5 @@
+export type MinimumAvailability = "ANNOUNCED" | "IN_CINEMAS" | "RELEASED";
+
 export interface Movie {
   id: string;
   title: string;
@@ -8,6 +10,9 @@ export interface Movie {
   backdropPath: string | null;
   addedAt: string;
   qualityProfileId: string | null;
+  releaseDate: string | null;
+  digitalReleaseDate: string | null;
+  minimumAvailability: MinimumAvailability;
 }
 
 export interface Show {
@@ -165,6 +170,13 @@ export interface CastMember {
   profilePath: string | null;
 }
 
+export interface MovieCollectionInfo {
+  externalId: string;
+  name: string;
+  posterPath: string | null;
+  backdropPath: string | null;
+}
+
 export interface MediaDetailExtras {
   genres: string[];
   facts: DetailFact[];
@@ -174,6 +186,38 @@ export interface MediaDetailExtras {
   cast: CastMember[];
   similar: MetadataSearchResult[];
   trailerUrl: string | null;
+  collection: MovieCollectionInfo | null;
+}
+
+export interface MovieCollectionMember {
+  externalId: string;
+  title: string;
+  year: number | null;
+  posterPath: string | null;
+  inLibrary: boolean;
+  mediaItemId: string | null;
+}
+
+export interface MovieCollectionDetail {
+  tmdbCollectionId: string;
+  name: string;
+  posterPath: string | null;
+  backdropPath: string | null;
+  monitored: boolean;
+  movieCollectionId: string | null;
+  members: MovieCollectionMember[];
+}
+
+export interface MovieCollection {
+  id: string;
+  tmdbCollectionId: string;
+  name: string;
+  posterPath: string | null;
+  backdropPath: string | null;
+  monitored: boolean;
+  qualityProfileId: string | null;
+  qualityProfileName: string | null;
+  lastSyncedAt: string | null;
 }
 
 export interface PreviewEpisode {

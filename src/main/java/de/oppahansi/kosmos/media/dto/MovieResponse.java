@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.media.dto;
 
 import de.oppahansi.kosmos.media.Movie;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 
 /** API representation of a {@link Movie}. */
@@ -14,7 +15,10 @@ public record MovieResponse(
     String posterPath,
     String backdropPath,
     Instant addedAt,
-    UUID qualityProfileId) {
+    UUID qualityProfileId,
+    LocalDate releaseDate,
+    LocalDate digitalReleaseDate,
+    String minimumAvailability) {
 
   public static MovieResponse from(Movie movie) {
     return new MovieResponse(
@@ -26,6 +30,9 @@ public record MovieResponse(
         movie.posterPath,
         movie.backdropPath,
         movie.mediaItem.addedAt,
-        movie.qualityProfile == null ? null : movie.qualityProfile.id);
+        movie.qualityProfile == null ? null : movie.qualityProfile.id,
+        movie.releaseDate,
+        movie.digitalReleaseDate,
+        movie.minimumAvailability);
   }
 }

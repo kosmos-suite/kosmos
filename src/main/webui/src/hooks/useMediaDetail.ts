@@ -1,7 +1,7 @@
 import { useParams } from "react-router-dom";
 import { api } from "../api/client";
 import { useApi } from "./useApi";
-import type { Anime, AnimeDetail, MediaDetailExtras, MediaPreview, Movie, Show, ShowDetail } from "../api/types";
+import type { Anime, AnimeDetail, MediaDetailExtras, MediaPreview, MinimumAvailability, Movie, Show, ShowDetail } from "../api/types";
 
 export type MediaKind = "movie" | "show" | "anime";
 
@@ -87,6 +87,12 @@ export function useMediaDetail(kind: MediaKind) {
     reload();
   }
 
+  async function setMinimumAvailability(minimumAvailability: MinimumAvailability) {
+    if (!id || kind !== "movie") return;
+    await api.updateMinimumAvailability(id, minimumAvailability);
+    reload();
+  }
+
   return {
     owned,
     ownedMedia,
@@ -99,5 +105,6 @@ export function useMediaDetail(kind: MediaKind) {
     previewLoading,
     previewError,
     setQualityProfile,
+    setMinimumAvailability,
   };
 }

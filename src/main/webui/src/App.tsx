@@ -4,6 +4,7 @@ import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
 import ActivityPage from "./pages/ActivityPage";
 import CalendarPage from "./pages/CalendarPage";
+import CollectionPage from "./pages/CollectionPage";
 import DiscoverListPage from "./pages/discover/DiscoverListPage";
 import GenreDiscoverPage from "./pages/discover/GenreDiscoverPage";
 import NetworkDiscoverPage from "./pages/discover/NetworkDiscoverPage";
@@ -63,6 +64,7 @@ function App() {
             <Route path="/discover/list/:kind" element={<DiscoverListPage />} />
             <Route path="/library" element={<LibraryPage />} />
             <Route path="/movies/:id" element={<MediaDetailPage kind="movie" />} />
+            <Route path="/collections/:tmdbId" element={<CollectionPage />} />
             <Route path="/movies/tmdb/:externalId" element={<MediaDetailPage kind="movie" />} />
             <Route path="/shows/:id" element={<MediaDetailPage kind="show" />} />
             <Route path="/shows/tmdb/:externalId" element={<MediaDetailPage kind="show" />} />

@@ -85,6 +85,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     previewLoading,
     previewError,
     setQualityProfile,
+    setMinimumAvailability,
   } = useMediaDetail(kind);
   const { admin, stateFor, triggerAdd } = useAddToLibrary();
   const navigate = useNavigate();
@@ -101,6 +102,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
   const voteAverage = extras?.voteAverage ?? preview?.voteAverage ?? null;
   const certification = extras?.certification ?? preview?.certification ?? null;
   const trailerUrl = extras?.trailerUrl ?? preview?.trailerUrl ?? null;
+  const collection = extras?.collection ?? null;
   const director = kind === "movie" ? facts.find((f) => f.k === "Director")?.v : undefined;
 
   const { url: posterSrc, probe: posterProbe } = useArtworkFallback(posterUrl(posterPath, "w500"), ownedMedia?.id, "poster");
@@ -301,6 +303,18 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                     Interactive search
                   </Link>
                   <QualityProfileDropdown profiles={profiles} activeProfile={activeProfile} onSelect={setQualityProfile} />
+                  <div className="seg" title="How soon after announcement automatic search may grab this movie">
+                    {(["ANNOUNCED", "IN_CINEMAS", "RELEASED"] as const).map((option) => (
+                      <button
+                        key={option}
+                        type="button"
+                        className={(ownedMedia as Movie).minimumAvailability === option ? "active" : ""}
+                        onClick={() => setMinimumAvailability(option)}
+                      >
+                        {option === "ANNOUNCED" ? "Announced" : option === "IN_CINEMAS" ? "In Cinemas" : "Released"}
+                      </button>
+                    ))}
+                  </div>
                   <button type="button" className="btn btn-icon" aria-label="More actions">
                     <DotsThree size={17} />
                   </button>
@@ -373,6 +387,14 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                     <span className="v">{f.v}</span>
                   </div>
                 ))}
+                {collection && (
+                  <div className="fact-list-row">
+                    <span className="k">Collection</span>
+                    <span className="v">
+                      <Link to={`/collections/${collection.externalId}`}>{collection.name}</Link>
+                    </span>
+                  </div>
+                )}
               </div>
             </div>
           )}

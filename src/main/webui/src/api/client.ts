@@ -19,6 +19,8 @@ import type {
   ImportCandidate,
   ImportList,
   ImportListExclusion,
+  MovieCollection,
+  MovieCollectionDetail,
   JellyfinLibrary,
   JellyfinServer,
   JellyfinUser,
@@ -31,6 +33,7 @@ import type {
   MediaDetailExtras,
   MediaPreview,
   MediaRequest,
+  MinimumAvailability,
   MetadataSearchResult,
   MetadataStatus,
   NamingSettings,
@@ -114,6 +117,12 @@ export const api = {
     request<Movie>(`/movies/${id}/quality-profile`, {
       method: "PUT",
       body: JSON.stringify({ qualityProfileId }),
+    }),
+
+  updateMinimumAvailability: (id: string, minimumAvailability: MinimumAvailability) =>
+    request<Movie>(`/movies/${id}/minimum-availability`, {
+      method: "PUT",
+      body: JSON.stringify({ minimumAvailability }),
     }),
 
   listMovieLibraryFiles: (id: string) => request<LibraryFile[]>(`/movies/${id}/library-files`),
@@ -414,6 +423,20 @@ export const api = {
 
   excludeFromImportLists: (body: { pluginSlug: string; externalId: string; title: string }) =>
     request<void>("/import-lists/exclusions", { method: "POST", body: JSON.stringify(body) }),
+
+  listMovieCollections: () => request<MovieCollection[]>("/movie-collections"),
+
+  getMovieCollection: (tmdbCollectionId: string) =>
+    request<MovieCollectionDetail>(`/movie-collections/tmdb/${tmdbCollectionId}`),
+
+  monitorMovieCollection: (tmdbCollectionId: string, qualityProfileId: string | null) =>
+    request<MovieCollection>(`/movie-collections/tmdb/${tmdbCollectionId}/monitor`, {
+      method: "POST",
+      body: JSON.stringify({ qualityProfileId }),
+    }),
+
+  unmonitorMovieCollection: (id: string) =>
+    request<void>(`/movie-collections/${id}/monitor`, { method: "DELETE" }),
 
   removeImportListExclusion: (id: string) =>
     request<void>(`/import-lists/exclusions/${id}`, { method: "DELETE" }),

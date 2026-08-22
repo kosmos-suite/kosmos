@@ -4,6 +4,7 @@ import de.oppahansi.kosmos.downloads.dto.GrabRequest;
 import de.oppahansi.kosmos.indexers.Indexer;
 import de.oppahansi.kosmos.indexers.TorznabClient;
 import de.oppahansi.kosmos.indexers.dto.TorznabResult;
+import de.oppahansi.kosmos.media.MinimumAvailability;
 import de.oppahansi.kosmos.media.Movie;
 import de.oppahansi.kosmos.parsing.QualityDefinitionService;
 import de.oppahansi.kosmos.parsing.ReleaseParser;
@@ -16,15 +17,18 @@ import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
 /**
  * The unattended counterpart to interactive search: for every movie with a {@link
- * Movie#qualityProfile} assigned and no {@link Grab} yet, searches every enabled {@link Indexer},
- * scores each result the same way {@code IndexerResource}'s manual search does, and grabs the
- * single highest-scoring release that clears the profile's cutoff — no human review, which is
- * exactly what distinguishes this from interactive search.
+ * Movie#qualityProfile} assigned, no {@link Grab} yet, and clear of its {@link MinimumAvailability}
+ * gate, searches every enabled {@link Indexer}, scores each result the same way {@code
+ * IndexerResource}'s manual search does, and grabs the single highest-scoring release that clears
+ * the profile's cutoff — no human review, which is exactly what distinguishes this from interactive
+ * search. The availability gate only applies here — a human running interactive search already
+ * knows what they're getting.
  *
  * <p>Deliberately simple for a first pass: highest score wins outright (no seeders/size tie-break),
  * and the release goes to the first enabled {@link DownloadClient} — same one-download-client
@@ -77,7 +81,13 @@ public class AutomaticSearchJob implements JobHandler {
   }
 
   private List<UUID> findEligibleMovieIds() {
+    LocalDate today = LocalDate.now();
     return Movie.<Movie>list("qualityProfile is not null").stream()
+        .filter(
+            movie ->
+                movie
+                    .parsedMinimumAvailability()
+                    .isAvailable(movie.releaseDate, movie.digitalReleaseDate, today))
         .map(movie -> movie.mediaItemId)
         .filter(mediaItemId -> !Grab.hasActiveGrab(mediaItemId))
         .toList();

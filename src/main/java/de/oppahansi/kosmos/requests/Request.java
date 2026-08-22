@@ -18,9 +18,11 @@ import java.time.Instant;
  * {@code mediaItemId} is null until approved, at which point it points at the real {@link
  * MediaItem} created (or already existing) for {@code externalId}.
  *
- * <p>{@code requestedBy} is null for a request {@code ImportListSyncJob} filed rather than a user —
- * {@code sourceListName} is set instead, and the Requests queue shows "List: &lt;name&gt;" in place
- * of a requester for these.
+ * <p>{@code requestedBy} is null for a request an automated source filed rather than a user —
+ * {@code ImportListSyncJob} or {@code MovieCollectionSyncJob} — with {@code sourceListName} set
+ * instead to the already-formatted label the Requests queue shows in place of a requester (e.g.
+ * "List: TMDB Popular", "Collection: Mission Impossible"). Despite the field's name, it isn't
+ * list-specific — kept as-is rather than renamed for a column that costs nothing to leave alone.
  */
 @Entity
 @Table(name = "request")

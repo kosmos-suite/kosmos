@@ -131,7 +131,7 @@ public class ImportListService {
 
   private void fileOne(ImportList list, MetadataSearchResult candidate) {
     requestService.createFromList(
-        list.name,
+        "List: " + list.name,
         list.trusted,
         candidate.mediaType(),
         candidate.externalId(),
@@ -149,18 +149,27 @@ public class ImportListService {
   }
 
   private boolean alreadyHandled(String externalId) {
-    if (externalIdLinkService.findLinkedMediaItem(TMDB_PLUGIN_SLUG, externalId).isPresent()) {
+    return isBlocked(TMDB_PLUGIN_SLUG, externalId);
+  }
+
+  /**
+   * Whether a candidate is already accounted for — in the library, already pending/approved as a
+   * {@link Request}, or permanently excluded — and so shouldn't be filed again. Shared with {@code
+   * MovieCollectionService}: "should this candidate get a new Request" is the same question for a
+   * list-sync candidate and a monitored collection's missing member, so it's the same check.
+   */
+  public boolean isBlocked(String pluginSlug, String externalId) {
+    if (externalIdLinkService.findLinkedMediaItem(pluginSlug, externalId).isPresent()) {
       return true;
     }
     if (Request.count(
             "pluginSlug = ?1 and externalId = ?2 and status in ('PENDING', 'APPROVED')",
-            TMDB_PLUGIN_SLUG,
+            pluginSlug,
             externalId)
         > 0) {
       return true;
     }
-    return ImportListExclusion.count(
-            "pluginSlug = ?1 and externalId = ?2", TMDB_PLUGIN_SLUG, externalId)
+    return ImportListExclusion.count("pluginSlug = ?1 and externalId = ?2", pluginSlug, externalId)
         > 0;
   }
 

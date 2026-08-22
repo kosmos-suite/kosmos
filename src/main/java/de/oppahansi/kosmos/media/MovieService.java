@@ -60,6 +60,7 @@ public class MovieService {
                 movie.runtimeMinutes =
                     details.runtime() != null && details.runtime() > 0 ? details.runtime() : null;
                 movie.releaseDate = details.releaseDateAsLocalDate();
+                movie.digitalReleaseDate = details.digitalReleaseDateUs();
               });
     }
 
@@ -78,6 +79,16 @@ public class MovieService {
         .map(
             movie -> {
               movie.qualityProfile = qualityProfileService.resolveOrThrow(qualityProfileId);
+              return movie;
+            });
+  }
+
+  @Transactional
+  public Optional<Movie> updateMinimumAvailability(UUID movieId, MinimumAvailability availability) {
+    return findById(movieId)
+        .map(
+            movie -> {
+              movie.minimumAvailability = availability.name();
               return movie;
             });
   }
@@ -113,7 +124,7 @@ public class MovieService {
             .map(e -> e.withSimilar(similarEnrichmentService.enrich(e.similar(), "tmdb", "movie")))
             .orElse(
                 new MediaDetailExtras(
-                    List.of(), List.of(), null, null, null, List.of(), List.of(), null));
+                    List.of(), List.of(), null, null, null, List.of(), List.of(), null, null));
     return Optional.of(
         new MediaPreview(
             externalId,

@@ -16,12 +16,21 @@ public record MediaDetailExtras(
     String certification,
     List<CastMember> cast,
     List<MetadataSearchItem> similar,
-    String trailerUrl) {
+    String trailerUrl,
+    Collection collection) {
 
   /** Replaces {@code similar} once the caller has cross-referenced it against the library. */
   public MediaDetailExtras withSimilar(List<MetadataSearchItem> enrichedSimilar) {
     return new MediaDetailExtras(
-        genres, facts, voteAverage, voteCount, certification, cast, enrichedSimilar, trailerUrl);
+        genres,
+        facts,
+        voteAverage,
+        voteCount,
+        certification,
+        cast,
+        enrichedSimilar,
+        trailerUrl,
+        collection);
   }
 
   /**
@@ -31,4 +40,8 @@ public record MediaDetailExtras(
   public record Fact(String k, String v) {}
 
   public record CastMember(String name, String role, String profilePath) {}
+
+  /** The TMDB collection a movie belongs to, if any — null for shows/anime. */
+  public record Collection(
+      String externalId, String name, String posterPath, String backdropPath) {}
 }

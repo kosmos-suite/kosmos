@@ -37,9 +37,7 @@ public record RequestResponse(
             && LibraryFile.count("mediaItem.id", request.mediaItem.id) > 0;
     return new RequestResponse(
         request.id,
-        request.sourceListName != null
-            ? "List: " + request.sourceListName
-            : request.requestedBy.displayName,
+        request.sourceListName != null ? request.sourceListName : request.requestedBy.displayName,
         request.requestedBy != null && request.requestedBy.id.equals(currentUserId),
         request.mediaType,
         request.externalId,

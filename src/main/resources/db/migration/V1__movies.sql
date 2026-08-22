@@ -92,14 +92,16 @@ CREATE TABLE library_file_track (
 -- Movie catalog
 
 CREATE TABLE movie (
-    media_item_id     VARCHAR(36) PRIMARY KEY REFERENCES media_item(id),
-    runtime_minutes   INTEGER,
-    overview          VARCHAR(4000),
-    poster_path       VARCHAR(500),
-    backdrop_path     VARCHAR(500),
-    -- TMDB's theatrical release date — see Movie#releaseDate's own comment for why this isn't
-    -- the fuller Minimum Availability model.
-    release_date      DATE
+    media_item_id          VARCHAR(36) PRIMARY KEY REFERENCES media_item(id),
+    runtime_minutes        INTEGER,
+    overview               VARCHAR(4000),
+    poster_path            VARCHAR(500),
+    backdrop_path          VARCHAR(500),
+    -- TMDB's theatrical release date — see MinimumAvailability.
+    release_date           DATE,
+    -- TMDB's US digital release date — see MinimumAvailability.
+    digital_release_date   DATE,
+    minimum_availability   VARCHAR(20) NOT NULL DEFAULT 'RELEASED'
 );
 
 -- Hard reject/allow size gate, applied before custom-format scoring (a release under the floor
@@ -444,4 +446,18 @@ CREATE TABLE import_list_exclusion (
     title          VARCHAR(500) NOT NULL,
     excluded_at    TIMESTAMP NOT NULL,
     UNIQUE (plugin_slug, external_id)
+);
+
+-- A TMDB movie collection someone has monitored (see MovieCollectionService) — only ever persisted
+-- once monitoring starts; browsing an unmonitored collection reads TMDB live.
+CREATE TABLE movie_collection (
+    id                  VARCHAR(36) PRIMARY KEY,
+    tmdb_collection_id  VARCHAR(50) NOT NULL UNIQUE,
+    name                VARCHAR(500) NOT NULL,
+    poster_path         VARCHAR(500),
+    backdrop_path       VARCHAR(500),
+    monitored           BOOLEAN NOT NULL DEFAULT TRUE,
+    quality_profile_id  VARCHAR(36) REFERENCES quality_profile(id),
+    created_at          TIMESTAMP NOT NULL,
+    last_synced_at      TIMESTAMP
 );
