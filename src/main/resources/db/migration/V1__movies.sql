@@ -224,7 +224,10 @@ CREATE TABLE scheduled_job (
     running_since     TIMESTAMP,
     last_run_at       TIMESTAMP,
     last_status       VARCHAR(20),
-    last_message      VARCHAR(1000)
+    last_message      VARCHAR(1000),
+    -- first-seen order, so the jobs settings page has a stable row order — without one to sort
+    -- by, Postgres returns whatever physical order it likes, which can shift on every UPDATE.
+    created_at        TIMESTAMP NOT NULL DEFAULT now()
 );
 
 CREATE TABLE job_run (

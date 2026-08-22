@@ -109,6 +109,7 @@ public class JobRunner {
     job.displayName = handler.displayName();
     job.intervalSeconds = handler.defaultIntervalSeconds();
     job.enabled = true;
+    job.createdAt = Instant.now();
     job.persist();
     return job;
   }

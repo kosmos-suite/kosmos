@@ -39,6 +39,10 @@ public class ScheduledJob extends KosmosEntity {
   @Column(name = "last_message", length = 1000)
   public String lastMessage;
 
+  /** First-seen order — see {@link JobService#listAll()} for why the settings page sorts by it. */
+  @Column(name = "created_at", nullable = false)
+  public Instant createdAt;
+
   public boolean isDue(Instant now) {
     return enabled
         && runningSince == null

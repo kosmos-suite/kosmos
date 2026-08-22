@@ -18,8 +18,9 @@ public class JobService {
   @Inject JobScheduler jobScheduler;
   @Inject JobRunner jobRunner;
 
+  /** First-seen order, so the settings page's row order doesn't shift on every job run. */
   public List<ScheduledJob> listAll() {
-    return ScheduledJob.listAll();
+    return ScheduledJob.list("order by createdAt");
   }
 
   public Optional<ScheduledJob> findByName(String name) {
