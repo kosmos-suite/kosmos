@@ -5,6 +5,7 @@ import type {
   BackupFile,
   BecauseYouAddedResult,
   BlocklistEntry,
+  CalendarEntry,
   CustomFormat,
   DiscoverItem,
   DownloadClient,
@@ -391,6 +392,9 @@ export const api = {
 
   deleteBackup: (filename: string) =>
     request<void>(`/backups/${encodeURIComponent(filename)}`, { method: "DELETE" }),
+
+  calendar: (from: string, to: string, monitoredOnly: boolean) =>
+    request<CalendarEntry[]>(`/calendar?from=${from}&to=${to}&monitoredOnly=${monitoredOnly}`),
 
   grabRelease: (
     movieId: string,

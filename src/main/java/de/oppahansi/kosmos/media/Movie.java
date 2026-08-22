@@ -10,6 +10,7 @@ import jakarta.persistence.ManyToOne;
 import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
+import java.time.LocalDate;
 import java.util.UUID;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -39,6 +40,14 @@ public class Movie extends PanacheEntityBase {
 
   @Column(name = "backdrop_path", length = 500)
   public String backdropPath;
+
+  /**
+   * TMDB's theatrical release date — the single date {@code CalendarService} uses for a movie's
+   * calendar entry. Not the fuller "Minimum Availability" model (separate cinema/physical/digital
+   * dates plus an availability delay) Radarr has; that's its own, larger roadmap item.
+   */
+  @Column(name = "release_date")
+  public LocalDate releaseDate;
 
   /**
    * Null means "not monitored" — {@code AutomaticSearchJob} only ever considers assigned movies.

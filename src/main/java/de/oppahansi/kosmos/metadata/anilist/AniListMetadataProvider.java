@@ -281,7 +281,8 @@ public class AniListMetadataProvider implements MetadataProvider {
         media.bannerImage(),
         null,
         "anime",
-        media.episodes());
+        media.episodes(),
+        null);
   }
 
   private String title(AniListMedia media) {

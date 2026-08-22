@@ -22,7 +22,8 @@ final class TmdbMappers {
         movie.backdropPath(),
         movie.voteAverage(),
         "movie",
-        null);
+        null,
+        movie.releaseDate());
   }
 
   static MetadataSearchResult toSearchResult(TmdbTvShow show) {
@@ -35,6 +36,7 @@ final class TmdbMappers {
         show.backdropPath(),
         null,
         "tv",
+        null,
         null);
   }
 

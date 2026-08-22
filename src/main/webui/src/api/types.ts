@@ -317,6 +317,17 @@ export interface BackupFile {
   createdAt: string;
 }
 
+export interface CalendarEntry {
+  mediaItemId: string;
+  contentType: "movie" | "episode" | "anime_episode";
+  title: string;
+  date: string;
+  monitored: boolean;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  posterPath: string | null;
+}
+
 export interface Grab {
   id: string;
   releaseId: string;

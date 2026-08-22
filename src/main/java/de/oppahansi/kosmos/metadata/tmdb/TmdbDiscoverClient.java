@@ -137,7 +137,8 @@ public class TmdbDiscoverClient {
                   textOrNull(r, "backdrop_path"),
                   r.path("vote_average").isNumber() ? r.path("vote_average").asDouble() : null,
                   "movie",
-                  null));
+                  null,
+                  textOrNull(r, "release_date")));
         } else if ("tv".equals(mediaType)) {
           out.add(
               new MetadataSearchResult(
@@ -149,6 +150,7 @@ public class TmdbDiscoverClient {
                   textOrNull(r, "backdrop_path"),
                   null,
                   "tv",
+                  null,
                   null));
         }
         // "person" results and anything else are skipped — not a title Kosmos can show a card for.

@@ -1125,6 +1125,7 @@ public class JellyfinSyncService {
         movie.posterPath = r.posterPath();
         movie.backdropPath = r.backdropPath();
         movie.overview = r.overview();
+        movie.releaseDate = r.releaseDateAsLocalDate();
         return Optional.of(jellyfinMovie.tmdbId());
       }
     } else {
@@ -1144,6 +1145,7 @@ public class JellyfinSyncService {
     movie.posterPath = r.posterPath();
     movie.backdropPath = r.backdropPath();
     movie.overview = r.overview();
+    movie.releaseDate = r.releaseDateAsLocalDate();
     return Optional.of(r.externalId());
   }
 

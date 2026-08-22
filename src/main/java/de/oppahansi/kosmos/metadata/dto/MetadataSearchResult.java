@@ -1,5 +1,8 @@
 package de.oppahansi.kosmos.metadata.dto;
 
+import java.time.LocalDate;
+import java.time.format.DateTimeParseException;
+
 /**
  * A single search result from a {@link de.oppahansi.kosmos.metadata.MetadataProvider}. {@code
  * mediaType} is "movie" or "tv" — which /movies or /shows endpoint to POST to next. {@code
@@ -9,7 +12,11 @@ package de.oppahansi.kosmos.metadata.dto;
  * {@code DiscoverItem} because {@code DiscoverService} builds trending/popular rows directly from
  * this record. {@code episodeCount} is only ever populated for anime results (AniList's own episode
  * total) — used by the "Needs Review" screen to help tell two same-named titles apart when
- * poster/year alone don't settle it; TMDB movie/tv results leave it null.
+ * poster/year alone don't settle it; TMDB movie/tv results leave it null. {@code releaseDate} is
+ * only ever populated for TMDB movie results (raw {@code YYYY-MM-DD}) — shows/anime have no single
+ * release date the way a movie does; their calendar entries come from per-episode air dates
+ * instead. Lets {@code MovieService}/{@code JellyfinSyncService} persist {@code Movie#releaseDate}
+ * without a second TMDB call, since both already fetch this record.
  */
 public record MetadataSearchResult(
     String externalId,
@@ -20,4 +27,18 @@ public record MetadataSearchResult(
     String backdropPath,
     Double voteAverage,
     String mediaType,
-    Integer episodeCount) {}
+    Integer episodeCount,
+    String releaseDate) {
+
+  /** {@link #releaseDate} parsed, or {@code null} if absent/not a valid ISO date. */
+  public LocalDate releaseDateAsLocalDate() {
+    if (releaseDate == null || releaseDate.isBlank()) {
+      return null;
+    }
+    try {
+      return LocalDate.parse(releaseDate);
+    } catch (DateTimeParseException e) {
+      return null;
+    }
+  }
+}

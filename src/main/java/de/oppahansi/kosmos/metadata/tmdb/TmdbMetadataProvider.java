@@ -147,7 +147,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
    * {@link #search}: this is far more static than search results.
    */
   @CacheResult(cacheName = "tmdb-movie-details")
-  public Optional<Integer> fetchRuntimeMinutes(String tmdbId) {
+  public Optional<TmdbMovieDetails> fetchMovieDetails(String tmdbId) {
     if (apiKey.isEmpty()) {
       return Optional.empty();
     }
@@ -162,8 +162,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
       if (response.statusCode() != 200) {
         return Optional.empty();
       }
-      TmdbMovieDetails details = objectMapper.readValue(response.body(), TmdbMovieDetails.class);
-      return Optional.ofNullable(details.runtime()).filter(r -> r > 0);
+      return Optional.of(objectMapper.readValue(response.body(), TmdbMovieDetails.class));
     } catch (Exception e) {
       return Optional.empty();
     }
@@ -514,7 +513,7 @@ public class TmdbMetadataProvider implements MetadataProvider {
   /**
    * Fetches a show's full season/episode tree at show-creation time: one {@code /tv/{id}} call for
    * the season list, then one {@code /tv/{id}/season/{n}} call per season for its episodes. Unlike
-   * {@link #fetchRuntimeMinutes}, this isn't best-effort — a show with no structure isn't a useful
+   * {@link #fetchMovieDetails}, this isn't best-effort — a show with no structure isn't a useful
    * show to have added, so failures propagate rather than silently creating an empty shell.
    *
    * <p>The per-season/per-details work is delegated to {@link TmdbTvDetailClient}, a separate bean

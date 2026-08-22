@@ -3,6 +3,7 @@ import { Layout } from "./components/layout/Layout";
 import { AuthProvider } from "./auth/AuthContext";
 import { RequireAuth } from "./auth/RequireAuth";
 import ActivityPage from "./pages/ActivityPage";
+import CalendarPage from "./pages/CalendarPage";
 import DiscoverListPage from "./pages/discover/DiscoverListPage";
 import GenreDiscoverPage from "./pages/discover/GenreDiscoverPage";
 import NetworkDiscoverPage from "./pages/discover/NetworkDiscoverPage";
@@ -68,6 +69,7 @@ function App() {
             <Route path="/anime/anilist/:externalId" element={<MediaDetailPage kind="anime" />} />
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
+            <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/import" element={<ManualImportPage />} />
 
             <Route path="/settings" element={<SettingsLayout />}>

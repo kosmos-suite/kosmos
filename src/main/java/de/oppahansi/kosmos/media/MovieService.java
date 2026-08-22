@@ -53,8 +53,14 @@ public class MovieService {
     movie.qualityProfile = qualityProfileService.resolveOrThrow(request.qualityProfileId());
 
     if ("tmdb".equals(request.pluginSlug()) && request.externalId() != null) {
-      movie.runtimeMinutes =
-          tmdbMetadataProvider.fetchRuntimeMinutes(request.externalId()).orElse(null);
+      tmdbMetadataProvider
+          .fetchMovieDetails(request.externalId())
+          .ifPresent(
+              details -> {
+                movie.runtimeMinutes =
+                    details.runtime() != null && details.runtime() > 0 ? details.runtime() : null;
+                movie.releaseDate = details.releaseDateAsLocalDate();
+              });
     }
 
     movie.persist();

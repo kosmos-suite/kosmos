@@ -96,7 +96,10 @@ CREATE TABLE movie (
     runtime_minutes   INTEGER,
     overview          VARCHAR(4000),
     poster_path       VARCHAR(500),
-    backdrop_path     VARCHAR(500)
+    backdrop_path     VARCHAR(500),
+    -- TMDB's theatrical release date — see Movie#releaseDate's own comment for why this isn't
+    -- the fuller Minimum Availability model.
+    release_date      DATE
 );
 
 -- Hard reject/allow size gate, applied before custom-format scoring (a release under the floor

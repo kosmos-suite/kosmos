@@ -5723,3 +5723,56 @@ a:hover {
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
+
+/* ---- calendar ---- */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 12px;
+}
+.calendar-day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 120px;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+}
+.calendar-day.today {
+  border-color: var(--accent);
+}
+.calendar-day-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text-faint);
+}
+.calendar-day-header .calendar-day-number {
+  font-size: 15px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+.calendar-entry {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: var(--bg-elevated-2);
+  font-size: 12px;
+  line-height: 1.35;
+}
+.calendar-entry-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.calendar-entry.unmonitored {
+  opacity: 0.55;
+}
