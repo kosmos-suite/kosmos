@@ -21,24 +21,15 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.time.Instant;
-import java.util.Comparator;
-import java.util.Set;
-import java.util.regex.Pattern;
-import java.util.stream.Stream;
 
 /**
- * Imports a completed download's video file into the library: hardlink first so the source torrent
- * keeps seeding untouched, falling back to copy only when source and target aren't on the same
- * filesystem; write under a temp name and atomically rename into place; reject samples and pick the
- * largest video file when given a whole torrent directory rather than a single file.
+ * Imports one already-known video file (see {@link VideoFileScanner} for how a directory resolves
+ * to one) into the library: hardlink first so the source torrent keeps seeding untouched, falling
+ * back to copy only when source and target aren't on the same filesystem; write under a temp name
+ * and atomically rename into place.
  */
 @ApplicationScoped
 public class ImportService {
-
-  private static final Set<String> VIDEO_EXTENSIONS =
-      Set.of("mp4", "mkv", "avi", "mov", "m4v", "ts", "wmv", "flv", "webm");
-  private static final long SAMPLE_SIZE_THRESHOLD_BYTES = 50L * 1024 * 1024;
-  private static final Pattern SAMPLE_NAME = Pattern.compile("(?i)\\bsample\\b");
 
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ProbeService probeService;
@@ -139,45 +130,7 @@ public class ImportService {
    * non-sample video file if a directory.
    */
   private Path pickVideoFile(Path source) {
-    if (!Files.exists(source)) {
-      throw new BadRequestException("Source path does not exist: " + source);
-    }
-    if (Files.isRegularFile(source)) {
-      if (!isImportableVideo(source)) {
-        throw new BadRequestException("Not an importable video file: " + source);
-      }
-      return source;
-    }
-
-    try (Stream<Path> walk = Files.walk(source)) {
-      return walk.filter(Files::isRegularFile)
-          .filter(this::isImportableVideo)
-          .max(Comparator.comparingLong(this::sizeOrZero))
-          .orElseThrow(
-              () -> new BadRequestException("No importable video file found under: " + source));
-    } catch (IOException e) {
-      throw new BadRequestException("Could not read source path: " + source);
-    }
-  }
-
-  private boolean isImportableVideo(Path path) {
-    String name = path.getFileName().toString();
-    int dot = name.lastIndexOf('.');
-    if (dot < 0 || !VIDEO_EXTENSIONS.contains(name.substring(dot + 1).toLowerCase())) {
-      return false;
-    }
-    if (SAMPLE_NAME.matcher(name).find()) {
-      return false;
-    }
-    return sizeOrZero(path) >= SAMPLE_SIZE_THRESHOLD_BYTES;
-  }
-
-  private long sizeOrZero(Path path) {
-    try {
-      return Files.size(path);
-    } catch (IOException e) {
-      return 0L;
-    }
+    return VideoFileScanner.largest(source);
   }
 
   /**

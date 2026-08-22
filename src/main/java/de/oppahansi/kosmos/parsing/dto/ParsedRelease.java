@@ -9,6 +9,13 @@ public record ParsedRelease(
      * the year.
      */
     String title,
+    /**
+     * Best-effort movie/show name — everything before the first season/episode or year marker,
+     * trimmed of separator punctuation. Falls back to {@code title} itself when no marker was found
+     * to cut at. This is what a title-vs-library-catalog comparison (manual import's auto-match,
+     * most notably) should read, never {@code title} — the raw release title.
+     */
+    String cleanTitle,
     Integer year,
     String resolution,
     String source,

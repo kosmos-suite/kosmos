@@ -12,6 +12,8 @@ import type {
   Grab,
   ImportFromProwlarrResult,
   Indexer,
+  CommitImportResult,
+  ImportCandidate,
   JellyfinLibrary,
   JellyfinServer,
   JellyfinUser,
@@ -432,6 +434,12 @@ export const api = {
       method: "POST",
       body: JSON.stringify({ sourcePath }),
     }),
+
+  scanImportPath: (sourcePath: string) =>
+    request<ImportCandidate[]>("/import/scan", { method: "POST", body: JSON.stringify({ sourcePath }) }),
+
+  commitImport: (items: { sourcePath: string; mediaItemId: string }[]) =>
+    request<CommitImportResult[]>("/import/commit", { method: "POST", body: JSON.stringify({ items }) }),
 
   probeLibraryFile: (id: string) => request<LibraryFile>(`/library-files/${id}/probe`, { method: "POST" }),
 

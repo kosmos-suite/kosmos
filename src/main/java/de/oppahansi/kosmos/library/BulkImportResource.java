@@ -1,0 +1,58 @@
+package de.oppahansi.kosmos.library;
+
+import de.oppahansi.kosmos.library.dto.CommitImportRequest;
+import de.oppahansi.kosmos.library.dto.CommitImportResult;
+import de.oppahansi.kosmos.library.dto.ImportCandidate;
+import de.oppahansi.kosmos.library.dto.ImportScanRequest;
+import de.oppahansi.kosmos.media.MediaItem;
+import jakarta.inject.Inject;
+import jakarta.ws.rs.Consumes;
+import jakarta.ws.rs.POST;
+import jakarta.ws.rs.Path;
+import jakarta.ws.rs.Produces;
+import jakarta.ws.rs.core.MediaType;
+import java.util.List;
+
+/**
+ * The "review everything unmatched" import path — {@link ImportResource}'s single-file,
+ * single-known-movie endpoint stays as the quick-attach path it always was; this is for pointing at
+ * a whole download-client output folder, seeing every file it found with a best-effort match (see
+ * {@link ImportMatchService}), and committing a reviewed/overridden batch in one call.
+ */
+@Path("/import")
+@Produces(MediaType.APPLICATION_JSON)
+@Consumes(MediaType.APPLICATION_JSON)
+public class BulkImportResource {
+
+  @Inject ImportMatchService importMatchService;
+  @Inject ImportService importService;
+
+  @POST
+  @Path("/scan")
+  public List<ImportCandidate> scan(ImportScanRequest request) {
+    return importMatchService.scan(request.sourcePath());
+  }
+
+  /**
+   * Each item imports (and, on failure, fails) independently — {@link ImportService#importPath} is
+   * itself transactional per call, so one bad path in a batch never touches the rest.
+   */
+  @POST
+  @Path("/commit")
+  public List<CommitImportResult> commit(CommitImportRequest request) {
+    return request.items().stream().map(this::commitOne).toList();
+  }
+
+  private CommitImportResult commitOne(CommitImportRequest.Item item) {
+    MediaItem mediaItem = MediaItem.<MediaItem>findByIdOptional(item.mediaItemId()).orElse(null);
+    if (mediaItem == null) {
+      return CommitImportResult.failed(item.sourcePath(), "Unknown media item id");
+    }
+    try {
+      LibraryFile file = importService.importPath(mediaItem, item.sourcePath());
+      return CommitImportResult.ok(item.sourcePath(), file.id);
+    } catch (RuntimeException e) {
+      return CommitImportResult.failed(item.sourcePath(), e.getMessage());
+    }
+  }
+}

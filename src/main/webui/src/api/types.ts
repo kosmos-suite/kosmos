@@ -339,6 +339,26 @@ export interface LibraryFile {
   bitDepth: number | null;
 }
 
+export interface ImportCandidate {
+  sourcePath: string;
+  sizeBytes: number;
+  parsedTitle: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  absoluteEpisodeNumber: number | null;
+  suggestedMediaItemId: string | null;
+  suggestedMediaItemTitle: string | null;
+  suggestedContentType: "movie" | "episode" | "anime_episode" | null;
+  ambiguous: boolean;
+}
+
+export interface CommitImportResult {
+  sourcePath: string;
+  success: boolean;
+  error: string | null;
+  libraryFileId: string | null;
+}
+
 export interface Notifier {
   id: string;
   name: string;

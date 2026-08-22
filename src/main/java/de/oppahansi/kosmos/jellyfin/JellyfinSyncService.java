@@ -20,6 +20,7 @@ import de.oppahansi.kosmos.media.Show;
 import de.oppahansi.kosmos.media.ShowService;
 import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.Plugin;
+import de.oppahansi.kosmos.metadata.TitleMatching;
 import de.oppahansi.kosmos.metadata.anilist.AniListAnimeDetails;
 import de.oppahansi.kosmos.metadata.anilist.AniListMetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
@@ -38,7 +39,6 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -641,8 +641,8 @@ public class JellyfinSyncService {
         details.startYear() == null
             || show.year() == null
             || Math.abs(details.startYear() - show.year()) <= YEAR_TOLERANCE;
-    boolean titleLoose = titlesLikelyMatch(show.name(), details.title());
-    boolean titleExact = titlesExactlyMatch(show.name(), details.title());
+    boolean titleLoose = TitleMatching.looselyMatch(show.name(), details.title());
+    boolean titleExact = TitleMatching.exactlyMatch(show.name(), details.title());
     if (titleLoose && yearOk) {
       return MatchConfidence.CONFIDENT;
     }
@@ -668,37 +668,6 @@ public class JellyfinSyncService {
       return false;
     }
     return Math.abs(normalSeasonEpisodeCount - anilistEpisodeCount) <= 1;
-  }
-
-  /**
-   * Deliberately loose (case/punctuation-insensitive substring containment either direction) rather
-   * than an exact match — anime titling varies a lot between Jellyfin's own display name and
-   * AniList's chosen title (subtitle suffixes, romaji vs English) and this only needs to catch
-   * titles with *no* relationship at all, not penalize minor wording differences. Either title
-   * being empty/unparseable doesn't count as a mismatch on its own — {@link #classifyAnimeMatch}
-   * still has the year signal to fall back on.
-   */
-  private boolean titlesLikelyMatch(String jellyfinName, String anilistTitle) {
-    String a = normalizeTitle(jellyfinName);
-    String b = normalizeTitle(anilistTitle);
-    if (a.isEmpty() || b.isEmpty()) {
-      return true;
-    }
-    return a.contains(b) || b.contains(a);
-  }
-
-  /**
-   * The strict half of the title check — see {@link #classifyAnimeMatch}'s doc for why only this
-   * (not {@link #titlesLikelyMatch}'s loose containment) is trusted to excuse a year mismatch.
-   */
-  private boolean titlesExactlyMatch(String jellyfinName, String anilistTitle) {
-    String a = normalizeTitle(jellyfinName);
-    String b = normalizeTitle(anilistTitle);
-    return !a.isEmpty() && a.equals(b);
-  }
-
-  private String normalizeTitle(String title) {
-    return title == null ? "" : title.toLowerCase(Locale.ROOT).replaceAll("[^a-z0-9]", "");
   }
 
   private boolean alreadySyncedAsShow(String tmdbId, Integer year) {

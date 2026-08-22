@@ -160,6 +160,7 @@ public class AnimeAutomaticSearchJob implements JobHandler {
   private ParsedRelease toScoringShape(ParsedAnimeRelease parsed) {
     return new ParsedRelease(
         parsed.title(),
+        parsed.showTitle(),
         null,
         parsed.resolution(),
         parsed.source(),

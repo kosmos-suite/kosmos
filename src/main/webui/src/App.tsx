@@ -13,6 +13,7 @@ import InteractiveSearchPage from "./pages/InteractiveSearchPage";
 import LibraryPage from "./pages/LibraryPage";
 import LoginPage from "./pages/LoginPage";
 import ManualGrabPage from "./pages/ManualGrabPage";
+import ManualImportPage from "./pages/ManualImportPage";
 import MediaDetailPage from "./pages/MediaDetailPage";
 import RequestsPage from "./pages/RequestsPage";
 import SearchPage from "./pages/SearchPage";
@@ -65,6 +66,7 @@ function App() {
             <Route path="/anime/anilist/:externalId" element={<MediaDetailPage kind="anime" />} />
             <Route path="/requests" element={<RequestsPage />} />
             <Route path="/activity" element={<ActivityPage />} />
+            <Route path="/import" element={<ManualImportPage />} />
 
             <Route path="/settings" element={<SettingsLayout />}>
               <Route path="root-folders" element={<RootFoldersPage />} />

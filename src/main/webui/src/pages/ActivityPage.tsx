@@ -6,12 +6,14 @@ import {
   ClockCounterClockwiseIcon as ClockCounterClockwise,
   DotsThreeIcon as DotsThree,
   EyeIcon as Eye,
+  FolderOpenIcon as FolderOpen,
   MagnifyingGlassIcon as MagnifyingGlass,
   PauseIcon as Pause,
   PlayIcon as Play,
   XIcon as X,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   activeDownloadSources,
   historyFilterKind,
@@ -116,6 +118,10 @@ export default function ActivityPage() {
           </span>
         </div>
         <div style={{ display: "flex", gap: 10 }}>
+          <Link to="/import" className="btn btn-secondary">
+            <FolderOpen size={14} />
+            Manual Import
+          </Link>
           <button type="button" className="btn btn-ghost" onClick={() => setPreviewEmpty((v) => !v)}>
             <Eye size={13} />
             {isEmpty ? "Show active queue" : "Preview empty queue"}

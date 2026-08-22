@@ -59,9 +59,11 @@ public class ReleaseParser {
     boolean proper = PROPER.matcher(normalized).find();
     boolean repack = REPACK.matcher(normalized).find();
     Integer[] seasonEpisode = extractSeasonEpisode(normalized);
+    String cleanTitle = extractCleanTitle(normalized);
 
     return new ParsedRelease(
         rawTitle,
+        cleanTitle,
         year,
         resolution,
         source,
@@ -73,6 +75,24 @@ public class ReleaseParser {
         repack,
         seasonEpisode[0],
         seasonEpisode[1]);
+  }
+
+  /**
+   * Everything before whichever comes first: a season/episode marker, or a year — the two most
+   * reliable "the real title ends here" signals a release title carries. Falls back to the whole
+   * (separator-normalized) input when neither is present, same as a title with no other markers at
+   * all would leave nothing to cut.
+   */
+  private String extractCleanTitle(String normalized) {
+    int cutAt = normalized.length();
+    for (Pattern marker : new Pattern[] {SEASON_EPISODE, SEASON_EPISODE_X, SEASON_PACK, YEAR}) {
+      Matcher matcher = marker.matcher(normalized);
+      if (matcher.find() && matcher.start() < cutAt) {
+        cutAt = matcher.start();
+      }
+    }
+    String cut = normalized.substring(0, cutAt).trim();
+    return cut.isEmpty() ? normalized : cut;
   }
 
   /** [seasonNumber, episodeNumber] — either or both may be null; see the patterns' own comment. */
