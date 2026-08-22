@@ -1,7 +1,11 @@
 package de.oppahansi.kosmos.downloads;
 
 import de.oppahansi.kosmos.indexers.Release;
+import de.oppahansi.kosmos.notifications.NotificationEvent;
+import de.oppahansi.kosmos.notifications.NotificationEventType;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
+import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import java.time.Instant;
 import java.util.List;
@@ -11,9 +15,12 @@ import java.util.UUID;
 @ApplicationScoped
 public class BlocklistService {
 
+  @Inject Event<NotificationEvent> notificationEvent;
+
   /**
    * Idempotent: a release already blocklisted for this media item (the unique constraint this
-   * relies on) just means a second failure signal arrived for the same one — nothing new to record.
+   * relies on) just means a second failure signal arrived for the same one — nothing new to record,
+   * and no repeat notification either.
    */
   @Transactional
   public void blockRelease(Release release, String reason) {
@@ -27,6 +34,11 @@ public class BlocklistService {
     entry.reason = reason;
     entry.blockedAt = Instant.now();
     entry.persist();
+    notificationEvent.fire(
+        new NotificationEvent(
+            NotificationEventType.BLOCKLIST,
+            release.titleRaw,
+            "Blocklisted \"" + release.titleRaw + "\": " + reason));
   }
 
   public boolean isBlocked(UUID mediaItemId, String downloadUrl) {

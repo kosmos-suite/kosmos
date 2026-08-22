@@ -31,6 +31,7 @@ import type {
   NamingSettings,
   TmdbTestResult,
   Movie,
+  NotificationEventType,
   Notifier,
   PluginManifest,
   QualityDefinition,
@@ -445,8 +446,14 @@ export const api = {
 
   listNotifiers: () => request<Notifier[]>("/notifiers"),
 
-  createNotifier: (body: { name: string; type: string; url: string | null; token: string | null; target: string | null }) =>
-    request<Notifier>("/notifiers", { method: "POST", body: JSON.stringify(body) }),
+  createNotifier: (body: {
+    name: string;
+    type: string;
+    url: string | null;
+    token: string | null;
+    target: string | null;
+    enabledEvents: NotificationEventType[];
+  }) => request<Notifier>("/notifiers", { method: "POST", body: JSON.stringify(body) }),
 
   listJellyfinServers: () => request<JellyfinServer[]>("/jellyfin-servers"),
 

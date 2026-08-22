@@ -359,6 +359,8 @@ export interface CommitImportResult {
   libraryFileId: string | null;
 }
 
+export type NotificationEventType = "GRAB" | "IMPORT" | "BLOCKLIST";
+
 export interface Notifier {
   id: string;
   name: string;
@@ -367,6 +369,8 @@ export interface Notifier {
   tokenSet: boolean;
   target: string | null;
   enabled: boolean;
+  /** Empty means every event type. */
+  enabledEvents: NotificationEventType[];
   createdAt: string;
 }
 

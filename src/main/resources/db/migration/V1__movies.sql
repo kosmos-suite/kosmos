@@ -247,6 +247,9 @@ CREATE TABLE notifier (
     token             VARCHAR(500),
     target            VARCHAR(200),
     enabled           BOOLEAN NOT NULL DEFAULT TRUE,
+    -- comma-separated NotificationEventType names this notifier fires for; null/blank means every
+    -- event, so a notifier created before this column existed keeps behaving exactly as before.
+    enabled_events    VARCHAR(200),
     created_at        TIMESTAMP NOT NULL
 );
 

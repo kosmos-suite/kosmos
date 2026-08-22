@@ -10,12 +10,20 @@ import {
 import { useState } from "react";
 import { api } from "../../api/client";
 import { useApi } from "../../hooks/useApi";
+import type { NotificationEventType } from "../../api/types";
 
 const TYPE_ICON: Record<string, JSX.Element> = {
   DISCORD: <DiscordLogo size={16} />,
   TELEGRAM: <TelegramLogo size={16} />,
   WEBHOOK: <WebhooksLogo size={16} />,
 };
+
+const EVENT_LABEL: Record<NotificationEventType, string> = {
+  GRAB: "Grab",
+  IMPORT: "Import",
+  BLOCKLIST: "Blocklist",
+};
+const ALL_EVENTS: NotificationEventType[] = ["GRAB", "IMPORT", "BLOCKLIST"];
 
 export default function NotificationsPage() {
   const { data: notifiers, error: loadError, reload } = useApi(() => api.listNotifiers(), []);
@@ -61,6 +69,12 @@ export default function NotificationsPage() {
                   <span>target: {notifier.target}</span>
                 </>
               )}
+              <span className="text-faint">·</span>
+              <span>
+                {notifier.enabledEvents.length === 0
+                  ? "all events"
+                  : notifier.enabledEvents.map((e) => EVENT_LABEL[e]).join(", ")}
+              </span>
             </div>
           </div>
         </div>
@@ -95,11 +109,21 @@ function AddNotifierModal({ onClose, onCreated }: { onClose: () => void; onCreat
   const [url, setUrl] = useState("");
   const [token, setToken] = useState("");
   const [target, setTarget] = useState("");
+  const [events, setEvents] = useState<Set<NotificationEventType>>(new Set());
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const needsUrl = type === "DISCORD" || type === "WEBHOOK";
   const valid = name.trim().length > 0 && (needsUrl ? url.trim().length > 0 : token.trim().length > 0);
+
+  function toggleEvent(eventType: NotificationEventType) {
+    setEvents((prev) => {
+      const next = new Set(prev);
+      if (next.has(eventType)) next.delete(eventType);
+      else next.add(eventType);
+      return next;
+    });
+  }
 
   async function save() {
     if (!valid || saving) return;
@@ -112,6 +136,7 @@ function AddNotifierModal({ onClose, onCreated }: { onClose: () => void; onCreat
         url: needsUrl ? url : null,
         token: type === "TELEGRAM" ? token : null,
         target: type === "TELEGRAM" ? target : null,
+        enabledEvents: Array.from(events),
       });
       onCreated();
     } catch (e) {
@@ -180,6 +205,21 @@ function AddNotifierModal({ onClose, onCreated }: { onClose: () => void; onCreat
             </div>
           </>
         )}
+
+        <div className="field">
+          <label>Events</label>
+          <p className="text-faint" style={{ fontSize: 11.5, marginBottom: 6 }}>
+            Leave all unchecked for every event.
+          </p>
+          <div style={{ display: "flex", gap: 14 }}>
+            {ALL_EVENTS.map((eventType) => (
+              <label key={eventType} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13 }}>
+                <input type="checkbox" checked={events.has(eventType)} onChange={() => toggleEvent(eventType)} />
+                {EVENT_LABEL[eventType]}
+              </label>
+            ))}
+          </div>
+        </div>
 
         {error && <p className="text-muted">{error}</p>}
 

@@ -9,7 +9,8 @@ import de.oppahansi.kosmos.media.Episode;
 import de.oppahansi.kosmos.media.MediaItem;
 import de.oppahansi.kosmos.metadata.ExternalIdLinkService;
 import de.oppahansi.kosmos.metadata.anidb.AniDbUdpClient;
-import de.oppahansi.kosmos.notifications.MovieImportedEvent;
+import de.oppahansi.kosmos.notifications.NotificationEvent;
+import de.oppahansi.kosmos.notifications.NotificationEventType;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
@@ -35,7 +36,7 @@ public class ImportService {
   @Inject ProbeService probeService;
   @Inject AniDbUdpClient aniDbUdpClient;
   @Inject ExternalIdLinkService externalIdLinkService;
-  @Inject Event<MovieImportedEvent> movieImportedEvent;
+  @Inject Event<NotificationEvent> notificationEvent;
   @Inject NamingSettingsService namingSettingsService;
 
   private final NamingTemplateEngine namingTemplateEngine = new NamingTemplateEngine();
@@ -69,8 +70,33 @@ public class ImportService {
     probeService.tryProbe(file);
     file.persist();
     tryHash(file, target);
-    movieImportedEvent.fire(new MovieImportedEvent(mediaItem.title, mediaItem.year));
+    String title = displayTitleFor(mediaItem);
+    notificationEvent.fire(
+        new NotificationEvent(
+            NotificationEventType.IMPORT,
+            title,
+            title + " has been imported and is ready to watch."));
     return file;
+  }
+
+  /**
+   * {@code mediaItem.title} alone is the episode's own title for an episode/anime episode — not
+   * very identifiable without the show/anime it belongs to, so this prefixes that on for those two
+   * content types. A movie's own title already stands on its own.
+   */
+  private String displayTitleFor(MediaItem mediaItem) {
+    return switch (mediaItem.contentType) {
+      case "episode" ->
+          Episode.<Episode>findByIdOptional(mediaItem.id)
+              .map(e -> e.season.show.mediaItem.title + " - " + mediaItem.title)
+              .orElse(mediaItem.title);
+      case "anime_episode" ->
+          AnimeEpisode.<AnimeEpisode>findByIdOptional(mediaItem.id)
+              .map(e -> e.season.anime.mediaItem.title + " - " + mediaItem.title)
+              .orElse(mediaItem.title);
+      default ->
+          mediaItem.year == null ? mediaItem.title : mediaItem.title + " (" + mediaItem.year + ")";
+    };
   }
 
   /**

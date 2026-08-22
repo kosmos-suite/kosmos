@@ -3,7 +3,10 @@ package de.oppahansi.kosmos.downloads;
 import de.oppahansi.kosmos.downloads.dto.GrabRequest;
 import de.oppahansi.kosmos.indexers.Release;
 import de.oppahansi.kosmos.media.MediaItem;
+import de.oppahansi.kosmos.notifications.NotificationEvent;
+import de.oppahansi.kosmos.notifications.NotificationEventType;
 import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.event.Event;
 import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
@@ -20,6 +23,7 @@ import java.util.regex.Pattern;
 public class GrabService {
 
   @Inject BlocklistService blocklistService;
+  @Inject Event<NotificationEvent> notificationEvent;
 
   // Magnet URIs carry their own info-hash (xt=urn:btih:<hash>) — extracting it up front lets
   // DownloadStatusPollJob correlate this Grab to a real torrent without needing addTorrent's
@@ -67,6 +71,7 @@ public class GrabService {
     grab.grabbedAt = Instant.now();
     grab.persist();
 
+    fireGrabbed(release.titleRaw);
     return Optional.of(grab);
   }
 
@@ -100,6 +105,7 @@ public class GrabService {
     grab.grabbedAt = Instant.now();
     grab.persist();
 
+    fireGrabbed(release.titleRaw);
     return Optional.of(grab);
   }
 
@@ -118,6 +124,12 @@ public class GrabService {
           g.status = "FAILED";
         });
     return grab;
+  }
+
+  private void fireGrabbed(String releaseTitle) {
+    notificationEvent.fire(
+        new NotificationEvent(
+            NotificationEventType.GRAB, releaseTitle, "Grabbed \"" + releaseTitle + "\"."));
   }
 
   private Optional<String> sendFileToClient(

@@ -20,19 +20,30 @@ public class NotificationService {
 
   private final HttpClient httpClient = HttpClient.newHttpClient();
 
-  void onMovieImported(
-      @Observes(during = TransactionPhase.AFTER_SUCCESS) MovieImportedEvent event) {
-    String title = event.year() == null ? event.title() : event.title() + " (" + event.year() + ")";
-    notifyAll("Movie imported", title + " has been imported and is ready to watch.");
+  void onEvent(@Observes(during = TransactionPhase.AFTER_SUCCESS) NotificationEvent event) {
+    for (Notifier notifier : Notifier.<Notifier>list("enabled", true)) {
+      if (notifier.wantsEvent(event.type())) {
+        trySend(notifier, event.title(), event.message());
+      }
+    }
   }
 
+  /**
+   * For an alert with no {@link NotificationEventType} of its own yet (a scheduled job failing,
+   * most notably) — every enabled notifier gets it regardless of its own event-type filter, the
+   * same as every notifier behaved before that filter existed.
+   */
   public void notifyAll(String title, String message) {
     for (Notifier notifier : Notifier.<Notifier>list("enabled", true)) {
-      try {
-        send(notifier, title, message);
-      } catch (Exception e) {
-        // One broken notifier (bad URL, unreachable service) must never affect the others.
-      }
+      trySend(notifier, title, message);
+    }
+  }
+
+  private void trySend(Notifier notifier, String title, String message) {
+    try {
+      send(notifier, title, message);
+    } catch (Exception e) {
+      // One broken notifier (bad URL, unreachable service) must never affect the others.
     }
   }
 

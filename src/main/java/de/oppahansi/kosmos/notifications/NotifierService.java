@@ -35,8 +35,27 @@ public class NotifierService {
     notifier.token = request.token();
     notifier.target = request.target();
     notifier.enabled = true;
+    notifier.enabledEvents = joinValidatedEvents(request.enabledEvents());
     notifier.createdAt = Instant.now();
     notifier.persist();
     return notifier;
+  }
+
+  private String joinValidatedEvents(List<String> requested) {
+    if (requested == null || requested.isEmpty()) {
+      return null;
+    }
+    List<NotificationEventType> types =
+        requested.stream()
+            .map(
+                name -> {
+                  try {
+                    return NotificationEventType.valueOf(name);
+                  } catch (IllegalArgumentException e) {
+                    throw new BadRequestException("Unknown notification event type: " + name);
+                  }
+                })
+            .toList();
+    return Notifier.joinEvents(types);
   }
 }
