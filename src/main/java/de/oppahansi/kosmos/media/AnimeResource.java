@@ -19,6 +19,7 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Path("/anime")
@@ -28,10 +29,17 @@ public class AnimeResource {
 
   @Inject AnimeService animeService;
   @Inject CurrentUser currentUser;
+  @Inject MediaAvailabilityService mediaAvailabilityService;
 
   @GET
   public List<AnimeResponse> list() {
-    return animeService.listAll().stream().map(AnimeResponse::from).toList();
+    List<Anime> anime = animeService.listAll();
+    Set<UUID> partialIds =
+        mediaAvailabilityService.partiallyAvailableAnime(
+            anime.stream().map(a -> a.mediaItemId).toList());
+    return anime.stream()
+        .map(a -> AnimeResponse.from(a, partialIds.contains(a.mediaItemId)))
+        .toList();
   }
 
   @GET
@@ -51,7 +59,7 @@ public class AnimeResource {
     if (!currentUser.isAdmin()) {
       throw new ForbiddenException("Admin only");
     }
-    AnimeResponse response = AnimeResponse.from(animeService.create(request));
+    AnimeResponse response = AnimeResponse.from(animeService.create(request), false);
     return Response.status(Response.Status.CREATED).entity(response).build();
   }
 

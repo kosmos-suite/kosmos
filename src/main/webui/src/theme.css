@@ -182,11 +182,16 @@ a:hover {
   box-shadow: 0 10px 26px rgba(145, 132, 217, 0.36);
 }
 .btn-primary {
-  color: var(--accent);
-  border-color: var(--accent);
+  background: transparent;
+  color: #d2cefd;
+  border-color: rgba(145, 132, 217, 0.55);
 }
 .btn-primary:hover {
   background: rgba(145, 132, 217, 0.12);
+  border-color: var(--accent);
+}
+.btn-primary:active {
+  background: rgba(145, 132, 217, 0.2);
 }
 .btn-secondary {
   border-color: transparent;
@@ -578,18 +583,14 @@ a:hover {
 .media-card-badge {
   position: absolute;
   top: 9px;
-  left: 9px;
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  right: 9px;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
   background: rgba(11, 12, 18, 0.7);
   backdrop-filter: blur(6px);
-  font-size: 9.5px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  color: var(--text);
 }
 .media-card-type-badge {
   position: absolute;
@@ -604,19 +605,6 @@ a:hover {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--text);
-}
-.media-card-status-icon {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 22px;
-  height: 22px;
-  border-radius: 999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(11, 12, 18, 0.7);
-  backdrop-filter: blur(6px);
 }
 .media-card-scrim {
   position: absolute;
@@ -4684,6 +4672,7 @@ a:hover {
   height: 32px;
   padding: 0 10px;
   border-radius: var(--radius-md);
+  position: relative;
   color: var(--text-muted);
   font-size: 12.5px;
   cursor: pointer;
@@ -4691,6 +4680,22 @@ a:hover {
 .sidebar-collection:hover {
   background: rgba(233, 233, 237, 0.06);
   color: var(--text);
+}
+.sidebar-collection.active {
+  color: var(--text);
+  background: rgba(233, 233, 237, 0.06);
+  font-weight: 500;
+}
+.sidebar-collection.active::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 14px;
+  border-radius: 99px;
+  background: var(--accent-gradient);
 }
 .sidebar-collection-dot {
   width: 7px;
@@ -4934,6 +4939,15 @@ a:hover {
   flex: 1;
   min-width: 200px;
   max-width: 320px;
+  background: var(--bg-elevated-2);
+}
+
+.sort-dropdown > .btn-secondary {
+  background: #1a1c27;
+  border-color: rgba(233, 233, 237, 0.08);
+}
+.sort-dropdown > .btn-secondary:hover {
+  border-color: rgba(233, 233, 237, 0.16);
 }
 .library-toolbar-spacer {
   flex: 1;
@@ -5000,35 +5014,7 @@ a:hover {
   color: var(--accent-2);
 }
 
-/* ---- library grid card ring / dashed missing ---- */
-.media-card-ring {
-  position: absolute;
-  top: 9px;
-  right: 9px;
-  width: 30px;
-  height: 30px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-mono);
-  font-size: 8.5px;
-  font-weight: 600;
-  color: var(--text);
-  background: rgba(11, 12, 18, 0.85);
-}
-.media-card-ring::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  padding: 2.5px;
-  background: conic-gradient(var(--status-warn) var(--pct), rgba(233, 233, 237, 0.18) 0);
-  -webkit-mask:
-    linear-gradient(#fff 0 0) content-box,
-    linear-gradient(#fff 0 0);
-  -webkit-mask-composite: xor;
-  mask-composite: exclude;
-}
+/* ---- media card dashed missing state ---- */
 .media-card-art.missing {
   border: 1.5px dashed rgba(224, 104, 95, 0.55);
 }
@@ -5473,4 +5459,267 @@ a:hover {
 .account-menu-role {
   font-size: 11px;
   color: var(--text-disabled);
+}
+
+.review-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.review-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--bg-elevated-2);
+  border: 1px solid var(--border-subtle);
+}
+.review-card-art {
+  flex: none;
+  width: 132px;
+  aspect-ratio: 2 / 3;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  background: var(--bg-elevated);
+}
+.review-card-poster {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.review-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  color: var(--text-disabled);
+}
+.review-card-body {
+  flex: 1;
+  min-width: 0;
+}
+.review-card-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.review-card-title {
+  font-weight: 500;
+  font-size: 14px;
+}
+.review-card-year {
+  font-size: 11.5px;
+  color: var(--text-disabled);
+  font-family: var(--font-mono);
+}
+.review-card-seasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.review-card-season-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  font-size: 11px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+}
+.review-card-season-chip-count {
+  color: var(--text-disabled);
+}
+.review-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: rgba(224, 169, 74, 0.12);
+  color: var(--status-warn-text, #ebc182);
+  font-size: 11px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.review-card-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-warn, #e0a94a);
+  flex: none;
+}
+.review-card-hint {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-muted);
+}
+.review-card-overview {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.review-card-error {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  color: var(--status-bad, #e5484d);
+}
+.review-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+.review-card-search {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-subtle);
+}
+.review-card-search-status {
+  margin: 8px 0 0;
+  font-size: 12px;
+}
+.review-card-results {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 10px;
+  max-height: 260px;
+  overflow-y: auto;
+}
+.review-card-result {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: var(--radius-md);
+}
+.review-card-result:hover {
+  background: var(--bg-elevated);
+}
+.review-card-result-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  color: inherit;
+  font-size: 13px;
+}
+.review-card-result-main:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+.review-card-result-poster {
+  flex: none;
+  width: 28px;
+  height: 42px;
+  border-radius: 4px;
+  object-fit: cover;
+}
+.review-card-result-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.review-card-result-year {
+  font-size: 11.5px;
+  color: var(--text-disabled);
+  font-family: var(--font-mono);
+}
+.review-card-result-episodes {
+  flex: none;
+  font-size: 11px;
+  color: var(--text-disabled);
+  font-family: var(--font-mono);
+}
+.review-card-result-external {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  margin-right: 6px;
+  border-radius: 6px;
+  color: var(--text-disabled);
+  transition:
+    color 140ms,
+    background 140ms;
+}
+.review-card-result-external:hover {
+  color: var(--text);
+  background: rgba(233, 233, 237, 0.08);
+}
+
+.review-tooltip {
+  position: fixed;
+  z-index: 40;
+  width: 360px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px;
+  border-radius: 12px;
+  background: var(--bg-elevated-2);
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow-lg);
+  pointer-events: none;
+}
+.review-tooltip-poster {
+  flex: none;
+  width: 132px;
+  aspect-ratio: 2 / 3;
+  border-radius: 6px;
+  overflow: hidden;
+  object-fit: cover;
+}
+.review-tooltip-body {
+  min-width: 0;
+}
+.review-tooltip-title {
+  font-weight: 500;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.review-tooltip-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 11.5px;
+  color: var(--text-disabled);
+  font-family: var(--font-mono);
+  margin-bottom: 8px;
+}
+.review-tooltip-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--status-warn-text, #ebc182);
+}
+.review-tooltip-overview {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 6;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

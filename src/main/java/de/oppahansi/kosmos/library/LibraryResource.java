@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.library;
 
+import de.oppahansi.kosmos.jellyfin.UnclassifiedShow;
 import de.oppahansi.kosmos.library.dto.CreateLibraryRootFolderRequest;
 import de.oppahansi.kosmos.library.dto.LibraryRootFolderResponse;
 import de.oppahansi.kosmos.library.dto.LibraryStatsResponse;
@@ -31,13 +32,15 @@ public class LibraryResource {
     long movieCount = MediaItem.count("contentType = ?1", "movie");
     long seriesCount = MediaItem.count("contentType = ?1", "show");
     long animeCount = MediaItem.count("contentType = ?1", "anime");
+    long needsReviewCount = UnclassifiedShow.count();
     long usedBytes =
         LibraryFile.getEntityManager()
             .createQuery("select coalesce(sum(f.sizeBytes), 0) from LibraryFile f", Long.class)
             .getSingleResult();
     Long totalBytes =
         rootFolderService.getDefault().map(f -> totalSpaceOrNull(f.path)).orElse(null);
-    return new LibraryStatsResponse(movieCount, seriesCount, animeCount, usedBytes, totalBytes);
+    return new LibraryStatsResponse(
+        movieCount, seriesCount, animeCount, needsReviewCount, usedBytes, totalBytes);
   }
 
   @GET

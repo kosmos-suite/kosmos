@@ -20,6 +20,7 @@ export interface Show {
   status: string | null;
   addedAt: string;
   qualityProfileId: string | null;
+  partiallyAvailable: boolean;
 }
 
 export type EpisodeStatus = "MISSING" | "GRABBED" | "IMPORTED" | "AVAILABLE";
@@ -72,6 +73,7 @@ export interface Anime {
   episodeCountTotal: number | null;
   addedAt: string;
   qualityProfileId: string | null;
+  partiallyAvailable: boolean;
 }
 
 export interface AnimeEpisode {
@@ -136,6 +138,8 @@ export interface MetadataSearchResult {
   backdropPath: string | null;
   voteAverage: number | null;
   mediaType: "movie" | "tv" | "anime";
+  /** Only ever populated for anime results (AniList's own episode total). */
+  episodeCount: number | null;
   inLibrary: boolean;
   partiallyAvailable: boolean;
 }
@@ -393,8 +397,33 @@ export interface LibraryStats {
   movieCount: number;
   seriesCount: number;
   animeCount: number;
+  needsReviewCount: number;
   usedBytes: number;
   totalBytes: number | null;
+}
+
+/** Season 0 is specials, matching Jellyfin/TMDB convention. */
+export interface SeasonEpisodeCount {
+  seasonNumber: number;
+  episodeCount: number;
+}
+
+/**
+ * A Jellyfin "tvshows" item the sync found an anime signal for but couldn't confirm from AniList —
+ * neither a Show nor an Anime row exists for it yet. `anilistId` is Jellyfin's own reported id (if
+ * any) shown only as a hint; it's the same id that failed to resolve.
+ */
+export interface UnclassifiedShow {
+  id: string;
+  name: string;
+  year: number | null;
+  tmdbId: string;
+  anilistId: string | null;
+  posterPath: string | null;
+  overview: string | null;
+  reason: "ANILIST_MATCH_UNCONFIRMED" | "ANILIST_MATCH_AMBIGUOUS";
+  seasons: SeasonEpisodeCount[];
+  detectedAt: string;
 }
 
 export type LibraryContentType = "movie" | "show" | "anime";

@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 @Path("/shows")
@@ -30,10 +31,17 @@ public class ShowResource {
 
   @Inject ShowService showService;
   @Inject CurrentUser currentUser;
+  @Inject MediaAvailabilityService mediaAvailabilityService;
 
   @GET
   public List<ShowResponse> list() {
-    return showService.listAll().stream().map(ShowResponse::from).toList();
+    List<Show> shows = showService.listAll();
+    Set<UUID> partialIds =
+        mediaAvailabilityService.partiallyAvailableShows(
+            shows.stream().map(s -> s.mediaItemId).toList());
+    return shows.stream()
+        .map(s -> ShowResponse.from(s, partialIds.contains(s.mediaItemId)))
+        .toList();
   }
 
   @GET
@@ -53,7 +61,7 @@ public class ShowResource {
     if (!currentUser.isAdmin()) {
       throw new ForbiddenException("Admin only");
     }
-    ShowResponse response = ShowResponse.from(showService.create(request));
+    ShowResponse response = ShowResponse.from(showService.create(request), false);
     return Response.status(Response.Status.CREATED).entity(response).build();
   }
 

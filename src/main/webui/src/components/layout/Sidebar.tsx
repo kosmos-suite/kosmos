@@ -1,6 +1,6 @@
 import { CaretDoubleLeftIcon as CaretDoubleLeft, CaretDoubleRightIcon as CaretDoubleRight } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { Link, NavLink, useLocation } from "react-router-dom";
 import { api } from "../../api/client";
 import { useAuth } from "../../auth/AuthContext";
 import { useApi } from "../../hooks/useApi";
@@ -15,17 +15,19 @@ const activeJobCount = activeDownloadSources.filter((d) => d.state === "download
  * from going stale for the whole session without needing every write path to announce itself. */
 const LIBRARY_STATS_REFRESH_MS = 30_000;
 
-/** Collections sidebar tints — no smart-collections feature exists yet (see LibraryResource.stats), just these three real content-type counts. */
-const COLLECTION_TINTS: Record<string, string> = {
-  Movies: "#9184D9",
-  Series: "#5AC8DC",
-  Anime: "#7FD6AC",
-};
+/** Collections sidebar — no smart-collections feature exists yet (see LibraryResource.stats), just these real content types, each routing to LibraryPage filtered by `?type=`. */
+const COLLECTIONS: { label: string; type: "movie" | "show" | "anime" | "review"; tint: string }[] = [
+  { label: "Movies", type: "movie", tint: "#9184D9" },
+  { label: "Series", type: "show", tint: "#5AC8DC" },
+  { label: "Anime", type: "anime", tint: "#7FD6AC" },
+  { label: "Needs Review", type: "review", tint: "#E0A75E" },
+];
 
 export function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const location = useLocation();
   const showCollections = location.pathname.startsWith("/library");
+  const activeType = new URLSearchParams(location.search).get("type") ?? "movie";
   const showDiskFree = location.pathname.startsWith("/activity");
   const { user } = useAuth();
   const { data: requests } = useApi(() => api.listRequests(), [user?.id]);
@@ -45,13 +47,12 @@ export function Sidebar() {
     "/activity": String(activeJobCount),
   };
 
-  const collections = stats
-    ? [
-        { label: "Movies", count: stats.movieCount },
-        { label: "Series", count: stats.seriesCount },
-        { label: "Anime", count: stats.animeCount },
-      ]
-    : [];
+  const collectionCounts: Record<"movie" | "show" | "anime" | "review", number> = {
+    movie: stats?.movieCount ?? 0,
+    show: stats?.seriesCount ?? 0,
+    anime: stats?.animeCount ?? 0,
+    review: stats?.needsReviewCount ?? 0,
+  };
   const storageUsedPct =
     stats?.totalBytes && stats.totalBytes > 0 ? Math.round((stats.usedBytes / stats.totalBytes) * 100) : 0;
   const storageUsedLabel = stats
@@ -89,12 +90,16 @@ export function Sidebar() {
       {showCollections && (
         <>
           <div className="sidebar-section-label">Collections</div>
-          {collections.map((c) => (
-            <div key={c.label} className="sidebar-collection">
-              <span className="sidebar-collection-dot" style={{ background: COLLECTION_TINTS[c.label] }} />
+          {COLLECTIONS.filter((c) => c.type !== "review" || collectionCounts.review > 0).map((c) => (
+            <Link
+              key={c.type}
+              to={`/library?type=${c.type}`}
+              className={`sidebar-collection${activeType === c.type ? " active" : ""}`}
+            >
+              <span className="sidebar-collection-dot" style={{ background: c.tint }} />
               <span className="sidebar-collection-label">{c.label}</span>
-              <span className="sidebar-collection-count">{c.count}</span>
-            </div>
+              <span className="sidebar-collection-count">{collectionCounts[c.type]}</span>
+            </Link>
           ))}
         </>
       )}

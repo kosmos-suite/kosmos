@@ -4,35 +4,57 @@ import {
   CheckIcon as Check,
   ClockIcon as Clock,
   DotsThreeIcon as DotsThree,
-  EyeIcon as Eye,
-  EyeSlashIcon as EyeSlash,
-  FilmStripIcon as FilmStrip,
   ListBulletsIcon as ListBullets,
   MagnifyingGlassIcon as MagnifyingGlass,
   MedalIcon as Medal,
   PlanetIcon as Planet,
   SortAscendingIcon as SortAscending,
+  SortDescendingIcon as SortDescending,
   SquaresFourIcon as SquaresFour,
   TextAaIcon as TextAa,
   TrashIcon as Trash,
 } from "@phosphor-icons/react";
-import { useMemo, useState, type CSSProperties } from "react";
-import { Link } from "react-router-dom";
+import { useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { api } from "../api/client";
-import type { Movie } from "../api/types";
+import type { Anime, Movie, Show } from "../api/types";
 import { posterUrl } from "../api/tmdbImage";
+import { MediaCard, STATUS_DOT_CLASS, STATUS_LABEL, type MediaStatus } from "../components/MediaCard";
+import { NeedsReviewPanel } from "../components/NeedsReviewPanel";
 import { useApi } from "../hooks/useApi";
 import { tonalGradient } from "../utils/tonalGradient";
 
 type View = "grid" | "list";
 type SortKey = "added" | "title" | "year" | "quality";
-type LibraryStatus = "in-library" | "downloading" | "missing";
+type LibraryStatus = MediaStatus;
+type LibraryKind = "movie" | "show" | "anime";
+
+/** Fields every library-page source (Movie/Show/Anime) has in common — all {@link toLibraryItem} needs. */
+interface LibrarySourceItem {
+  id: string;
+  title: string;
+  year: number | null;
+  posterPath: string | null;
+  addedAt: string;
+  partiallyAvailable?: boolean;
+}
+
+const KIND_CONFIG: Record<
+  LibraryKind,
+  { title: string; noun: string; basePath: string; fetch: () => Promise<LibrarySourceItem[]> }
+> = {
+  movie: { title: "Movies", noun: "movies", basePath: "/movies", fetch: () => api.listMovies() as Promise<Movie[]> },
+  show: { title: "Series", noun: "series", basePath: "/shows", fetch: () => api.listShows() as Promise<Show[]> },
+  anime: { title: "Anime", noun: "anime", basePath: "/anime", fetch: () => api.listAnime() as Promise<Anime[]> },
+};
 
 /**
- * The real Movie API (api/types.ts) has no file-size or monitoring/download-status fields yet.
- * Every movie that exists in the DB was added via the metadata-search flow, so it's always shown
- * as "in-library"; "downloading"/"missing" stay in the type and the row/card rendering for design
- * fidelity, but no real row can currently produce them.
+ * The real Movie/Show/Anime APIs (api/types.ts) have no file-size or monitoring/download-status
+ * fields yet, and every row that exists in the DB was added via the metadata-search flow — so a
+ * row is either fully on disk or, for shows/anime, missing some episode files
+ * ({@link LibrarySourceItem#partiallyAvailable}, from {@link MediaAvailabilityService}).
+ * "downloading"/"missing" stay in the type and the row/card rendering for design fidelity, but no
+ * real row can currently produce them.
  */
 interface LibraryItem {
   id: string;
@@ -53,18 +75,18 @@ function hashTone(id: string): number {
   return Math.abs(h);
 }
 
-function toLibraryItem(movie: Movie): LibraryItem {
-  const addedMs = Date.now() - new Date(movie.addedAt).getTime();
+function toLibraryItem(item: LibrarySourceItem): LibraryItem {
+  const addedMs = Date.now() - new Date(item.addedAt).getTime();
   return {
-    id: movie.id,
-    title: movie.title,
-    year: movie.year,
-    posterPath: movie.posterPath,
+    id: item.id,
+    title: item.title,
+    year: item.year,
+    posterPath: item.posterPath,
     quality: "—",
     sizeGb: null,
     addedDaysAgo: Math.max(0, Math.floor(addedMs / (1000 * 60 * 60 * 24))),
-    status: "in-library",
-    tone: hashTone(movie.id),
+    status: item.partiallyAvailable ? "partially-available" : "in-library",
+    tone: hashTone(item.id),
   };
 }
 
@@ -75,16 +97,19 @@ const SORTS: { key: SortKey; label: string; icon: typeof Clock }[] = [
   { key: "quality", label: "Quality", icon: Medal },
 ];
 
-const FILTERS: { status: LibraryStatus; label: string; dotClass: string }[] = [
-  { status: "missing", label: "Missing", dotClass: "dot-bad" },
-  { status: "in-library", label: "Downloaded", dotClass: "dot-good" },
-  { status: "downloading", label: "Downloading", dotClass: "dot-warn" },
-];
+/** Order for the filter chips; label/dot color come from MediaCard's shared status maps so this
+ * can't drift out of sync with how the cards themselves render a status. */
+const FILTER_ORDER: LibraryStatus[] = ["missing", "in-library", "partially-available", "downloading"];
+const FILTERS: { status: LibraryStatus; label: string; dotClass: string }[] = FILTER_ORDER.map(
+  (status) => ({ status, label: status === "in-library" ? "Downloaded" : STATUS_LABEL[status], dotClass: STATUS_DOT_CLASS[status] }),
+);
 
-const STATUS_META: Record<LibraryStatus, { label: string; dotClass: string; tagClass: string }> = {
-  "in-library": { label: "In Library", dotClass: "dot-good", tagClass: "lib-good" },
-  downloading: { label: "Downloading", dotClass: "dot-warn", tagClass: "lib-warn" },
-  missing: { label: "Missing", dotClass: "dot-bad", tagClass: "lib-bad" },
+/** List-view status tag color — everything else about a status comes from MediaCard's shared maps. */
+const TAG_CLASS: Record<LibraryStatus, string> = {
+  "in-library": "lib-good",
+  "partially-available": "lib-warn",
+  downloading: "lib-warn",
+  missing: "lib-bad",
 };
 
 function qualityRank(quality: string): number {
@@ -95,74 +120,34 @@ function qualityRank(quality: string): number {
   return 0;
 }
 
-function LibraryGridCard({ item }: { item: LibraryItem }) {
-  const isMissing = item.status === "missing";
-  const isDownloading = item.status === "downloading";
-  const meta = STATUS_META[item.status];
-  const [localFailed, setLocalFailed] = useState(false);
-  const tmdbSrc = posterUrl(item.posterPath);
-  const localSrc = !tmdbSrc && !localFailed ? `/api/media-items/${item.id}/local-poster` : null;
-  const src = tmdbSrc ?? localSrc;
-
+function LibraryGridCard({ item, basePath }: { item: LibraryItem; basePath: string }) {
   return (
-    <Link to={`/movies/${item.id}`} className="media-card">
-      <div className={`media-card-art${isMissing ? " missing" : ""}`}>
-        {src ? (
-          <img
-            className="media-card-poster"
-            src={src}
-            alt=""
-            loading="lazy"
-            onError={localSrc ? () => setLocalFailed(true) : undefined}
-          />
-        ) : (
-          <div className="media-card-placeholder" style={{ background: tonalGradient(item.tone) }}>
-            <FilmStrip size={28} />
-          </div>
-        )}
-
-        {isDownloading ? (
-          <div
-            className="media-card-ring"
-            style={{ "--pct": `${item.progress ?? 0}%` } as CSSProperties}
-          >
-            {item.progress}%
-          </div>
-        ) : (
-          <div className="media-card-badge">
-            <span className={`dot ${meta.dotClass}`} />
-            {meta.label}
-          </div>
-        )}
-
-        <div className="media-card-scrim" />
-        <div className="media-card-meta">
-          <div className="media-card-title">{item.title}</div>
-          {item.year && <div className="media-card-year">{item.year}</div>}
-        </div>
-
-        {isDownloading && (
-          <div className="media-card-progress">
-            <div className="media-card-progress-fill downloading" style={{ width: `${item.progress}%` }} />
-          </div>
-        )}
-      </div>
-    </Link>
+    <MediaCard
+      to={`${basePath}/${item.id}`}
+      title={item.title}
+      year={item.year}
+      posterPath={item.posterPath}
+      mediaItemId={item.id}
+      status={item.status}
+      progress={item.status === "downloading" ? item.progress : undefined}
+      placeholderBackground={tonalGradient(item.tone)}
+    />
   );
 }
 
-function LibraryListRow({ item }: { item: LibraryItem }) {
-  const meta = STATUS_META[item.status];
+function LibraryListRow({ item, basePath }: { item: LibraryItem; basePath: string }) {
   const src = posterUrl(item.posterPath);
   const subLabel =
     item.status === "in-library"
       ? "on disk"
-      : item.status === "downloading"
-        ? `grabbing from indexer · ${item.progress}%`
-        : "monitored · no release found";
+      : item.status === "partially-available"
+        ? "some episodes on disk"
+        : item.status === "downloading"
+          ? `grabbing from indexer · ${item.progress}%`
+          : "monitored · no release found";
 
   return (
-    <Link to={`/movies/${item.id}`} className="library-list-row">
+    <Link to={`${basePath}/${item.id}`} className="library-list-row">
       <div className="library-list-title-cell">
         {src ? (
           <img className="library-list-thumb" src={src} alt="" loading="lazy" />
@@ -177,9 +162,9 @@ function LibraryListRow({ item }: { item: LibraryItem }) {
       <span className="library-list-mono">{item.year ?? "—"}</span>
       <span className={`library-list-mono${item.quality === "—" ? " dim" : ""}`}>{item.quality}</span>
       <span className="library-list-mono">{item.sizeGb != null ? `${item.sizeGb.toFixed(1)} GB` : "—"}</span>
-      <span className={`status-tag ${meta.tagClass}`}>
-        <span className={`dot ${meta.dotClass}`} />
-        {meta.label}
+      <span className={`status-tag ${TAG_CLASS[item.status]}`}>
+        <span className={`dot ${STATUS_DOT_CLASS[item.status]}`} />
+        {STATUS_LABEL[item.status]}
       </span>
       <div className="library-list-actions">
         <button type="button" className="btn btn-icon" onClick={(e) => e.preventDefault()} title="Search">
@@ -196,7 +181,7 @@ function LibraryListRow({ item }: { item: LibraryItem }) {
   );
 }
 
-function EmptyLibrary() {
+function EmptyLibrary({ noun }: { noun: string }) {
   return (
     <div className="empty-state">
       <div className="empty-state-inner">
@@ -253,7 +238,7 @@ function EmptyLibrary() {
         <div className="empty-state-actions">
           <Link to="/" className="btn btn-hero">
             <SquaresFour size={15} />
-            Discover Movies
+            Discover {noun}
           </Link>
           <button type="button" className="btn btn-secondary" disabled title="Coming soon">
             Scan a folder
@@ -268,24 +253,37 @@ function EmptyLibrary() {
 }
 
 export default function LibraryPage() {
-  const { data: movies, loading, error: loadError } = useApi(() => api.listMovies(), []);
+  const [searchParams] = useSearchParams();
+  const typeParam = searchParams.get("type");
+  const isReview = typeParam === "review";
+  const kind: LibraryKind = typeParam === "show" || typeParam === "anime" ? typeParam : "movie";
+  const config = KIND_CONFIG[kind];
+
+  // Every hook below still runs on the Needs Review tab (same mounted component, hook order must
+  // stay constant across a query-param-only navigation) — the fetch itself is just skipped since
+  // NeedsReviewPanel owns its own data.
+  const { data: rawItems, loading, error: loadError } = useApi(
+    () => (isReview ? Promise.resolve([]) : config.fetch()),
+    [kind, isReview],
+  );
   const [view, setView] = useState<View>("grid");
-  const [previewEmpty, setPreviewEmpty] = useState(false);
   const [filterText, setFilterText] = useState("");
   const [statusFilters, setStatusFilters] = useState<Set<LibraryStatus>>(new Set());
-  const [sort, setSort] = useState<SortKey>("added");
+  const [sort, setSort] = useState<SortKey>("title");
   const [sortOpen, setSortOpen] = useState(false);
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
 
-  const libraryMovies = useMemo(() => (movies ?? []).map(toLibraryItem), [movies]);
+  const libraryItems = useMemo(() => (rawItems ?? []).map(toLibraryItem), [rawItems]);
 
   const counts: Record<LibraryStatus, number> = {
-    "in-library": libraryMovies.filter((m) => m.status === "in-library").length,
-    downloading: libraryMovies.filter((m) => m.status === "downloading").length,
-    missing: libraryMovies.filter((m) => m.status === "missing").length,
+    "in-library": libraryItems.filter((m) => m.status === "in-library").length,
+    "partially-available": libraryItems.filter((m) => m.status === "partially-available").length,
+    downloading: libraryItems.filter((m) => m.status === "downloading").length,
+    missing: libraryItems.filter((m) => m.status === "missing").length,
   };
 
   const filtered = useMemo(() => {
-    let rows = libraryMovies;
+    let rows = libraryItems;
     if (filterText.trim()) {
       const q = filterText.trim().toLowerCase();
       rows = rows.filter((m) => m.title.toLowerCase().includes(q));
@@ -307,12 +305,14 @@ export default function LibraryPage() {
       default:
         sorted.sort((a, b) => a.addedDaysAgo - b.addedDaysAgo);
     }
+    if (sortDir === "desc") {
+      sorted.reverse();
+    }
     return sorted;
-  }, [libraryMovies, filterText, statusFilters, sort]);
+  }, [libraryItems, filterText, statusFilters, sort, sortDir]);
 
   const isFiltered = filterText.trim() !== "" || statusFilters.size > 0;
-  const showEmpty =
-    !loading && (previewEmpty || (isFiltered ? filtered.length === 0 : libraryMovies.length === 0));
+  const showEmpty = !loading && (isFiltered ? filtered.length === 0 : libraryItems.length === 0);
 
   function toggleFilter(status: LibraryStatus) {
     setStatusFilters((prev) => {
@@ -323,12 +323,25 @@ export default function LibraryPage() {
     });
   }
 
+  if (isReview) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <h1>Needs Review</h1>
+        </div>
+        <NeedsReviewPanel />
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="page-header">
-        <h1>Movies</h1>
+        <h1>{config.title}</h1>
         <span className="page-count">
-          {isFiltered ? `${filtered.length} of ${libraryMovies.length} movies` : `${libraryMovies.length} movies`}
+          {isFiltered
+            ? `${filtered.length} of ${libraryItems.length} ${config.noun}`
+            : `${libraryItems.length} ${config.noun}`}
         </span>
       </div>
 
@@ -357,17 +370,6 @@ export default function LibraryPage() {
 
         <div className="library-toolbar-spacer" />
 
-        <button
-          type="button"
-          className="btn btn-secondary"
-          style={{ borderStyle: "dashed" }}
-          onClick={() => setPreviewEmpty((v) => !v)}
-          title="Preview empty state"
-        >
-          {previewEmpty ? <EyeSlash size={15} /> : <Eye size={15} />}
-          {previewEmpty ? "Show populated library" : "Preview empty state"}
-        </button>
-
         <div className="sort-dropdown">
           <button type="button" className="btn btn-secondary" onClick={() => setSortOpen((v) => !v)}>
             <SortAscending size={14} />
@@ -395,6 +397,16 @@ export default function LibraryPage() {
           )}
         </div>
 
+        <button
+          type="button"
+          className="btn btn-icon"
+          onClick={() => setSortDir((d) => (d === "asc" ? "desc" : "asc"))}
+          title={sortDir === "asc" ? "Ascending" : "Descending"}
+          aria-label="Toggle sort direction"
+        >
+          {sortDir === "asc" ? <SortAscending size={14} /> : <SortDescending size={14} />}
+        </button>
+
         <div className="seg">
           <button className={view === "grid" ? "active" : ""} onClick={() => setView("grid")} aria-label="Grid view">
             <SquaresFour size={14} />
@@ -408,11 +420,11 @@ export default function LibraryPage() {
       </div>
 
       {showEmpty ? (
-        <EmptyLibrary />
+        <EmptyLibrary noun={config.title} />
       ) : view === "grid" ? (
         <div className="poster-grid">
           {filtered.map((item) => (
-            <LibraryGridCard key={item.id} item={item} />
+            <LibraryGridCard key={item.id} item={item} basePath={config.basePath} />
           ))}
         </div>
       ) : (
@@ -426,7 +438,7 @@ export default function LibraryPage() {
             <span>Actions</span>
           </div>
           {filtered.map((item) => (
-            <LibraryListRow key={item.id} item={item} />
+            <LibraryListRow key={item.id} item={item} basePath={config.basePath} />
           ))}
         </div>
       )}

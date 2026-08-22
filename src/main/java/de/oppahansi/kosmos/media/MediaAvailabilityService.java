@@ -11,10 +11,8 @@ import java.util.UUID;
 
 /**
  * Whether a show/anime that's in the library has every episode's file, or only some — the
- * Jellyseerr/Seerr "Partially Available" distinction, which Kosmos didn't track at all before (a
- * show/anime showed the same in-library check regardless of how much of it was actually
- * downloaded). Movies have no equivalent: they're a single file, so "in library" already means
- * "complete" for them.
+ * Jellyseerr/Seerr "Partially Available" distinction. Movies have no equivalent: they're a single
+ * file, so "in library" already means "complete" for them.
  */
 @ApplicationScoped
 public class MediaAvailabilityService {

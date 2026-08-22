@@ -1,7 +1,6 @@
 import {
   CheckCircleIcon as CheckCircle,
   FilmStripIcon as FilmStrip,
-  MinusCircleIcon as MinusCircle,
   PlusIcon as Plus,
   SpinnerIcon as Spinner,
 } from "@phosphor-icons/react";
@@ -12,14 +11,17 @@ import type { AddState } from "../hooks/useAddToLibrary";
 
 export type MediaStatus = "in-library" | "partially-available" | "downloading" | "missing";
 
-const STATUS_LABEL: Record<MediaStatus, string> = {
+/** Single source of truth for status → label/dot-color — every card and list row across the app
+ * (Discover, Search, Library grid, Library list) should read from these instead of keeping its
+ * own copy, so a status can't silently render correctly in one place and wrong in another. */
+export const STATUS_LABEL: Record<MediaStatus, string> = {
   "in-library": "In Library",
   "partially-available": "Partially Available",
   downloading: "Downloading",
   missing: "Missing",
 };
 
-const STATUS_DOT_CLASS: Record<MediaStatus, string> = {
+export const STATUS_DOT_CLASS: Record<MediaStatus, string> = {
   "in-library": "dot-good",
   "partially-available": "dot-warn",
   downloading: "dot-warn",
@@ -90,7 +92,7 @@ export function MediaCard({
 
   return (
     <Link to={to} className={`media-card${className ? ` ${className}` : ""}`}>
-      <div className="media-card-art">
+      <div className={`media-card-art${status === "missing" ? " missing" : ""}`}>
         {src ? (
           <img
             className="media-card-poster"
@@ -105,48 +107,35 @@ export function MediaCard({
           </div>
         )}
 
-        {mediaType ? (
-          <>
-            <div className="media-card-type-badge">{TYPE_LABEL[mediaType]}</div>
-            {status === "in-library" || status === "partially-available" ? (
-              <div className="media-card-status-icon" title={STATUS_LABEL[status]}>
-                {status === "in-library" ? (
-                  <CheckCircle size={13} weight="fill" style={{ color: "var(--status-good)" }} />
-                ) : (
-                  <MinusCircle size={13} weight="fill" style={{ color: "var(--status-good)" }} />
-                )}
-              </div>
-            ) : (
-              onAdd && (
-                <button
-                  type="button"
-                  className={`media-card-add-icon${addState !== "idle" ? " visible" : ""}`}
-                  disabled={addState !== "idle"}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onAdd();
-                  }}
-                  title={addLabel}
-                  aria-label={addLabel}
-                >
-                  {addState === "adding" ? (
-                    <Spinner size={14} className="spin" />
-                  ) : addState === "added" ? (
-                    <CheckCircle size={14} weight="fill" />
-                  ) : (
-                    <Plus size={14} weight="bold" />
-                  )}
-                </button>
-              )
-            )}
-          </>
+        {mediaType && <div className="media-card-type-badge">{TYPE_LABEL[mediaType]}</div>}
+
+        {status ? (
+          <div className="media-card-badge" title={STATUS_LABEL[status]}>
+            <span className={`dot ${STATUS_DOT_CLASS[status]}`} />
+          </div>
         ) : (
-          status && (
-            <div className="media-card-badge">
-              <span className={`dot ${STATUS_DOT_CLASS[status]}`} />
-              {STATUS_LABEL[status]}
-            </div>
+          mediaType &&
+          onAdd && (
+            <button
+              type="button"
+              className={`media-card-add-icon${addState !== "idle" ? " visible" : ""}`}
+              disabled={addState !== "idle"}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onAdd();
+              }}
+              title={addLabel}
+              aria-label={addLabel}
+            >
+              {addState === "adding" ? (
+                <Spinner size={14} className="spin" />
+              ) : addState === "added" ? (
+                <CheckCircle size={14} weight="fill" />
+              ) : (
+                <Plus size={14} weight="bold" />
+              )}
+            </button>
           )
         )}
 

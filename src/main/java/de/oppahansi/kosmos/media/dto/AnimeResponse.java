@@ -15,9 +15,10 @@ public record AnimeResponse(
     String status,
     Integer episodeCountTotal,
     Instant addedAt,
-    UUID qualityProfileId) {
+    UUID qualityProfileId,
+    boolean partiallyAvailable) {
 
-  public static AnimeResponse from(Anime anime) {
+  public static AnimeResponse from(Anime anime, boolean partiallyAvailable) {
     return new AnimeResponse(
         anime.mediaItemId,
         anime.mediaItem.title,
@@ -28,6 +29,7 @@ public record AnimeResponse(
         anime.status,
         anime.episodeCountTotal,
         anime.mediaItem.addedAt,
-        anime.qualityProfile == null ? null : anime.qualityProfile.id);
+        anime.qualityProfile == null ? null : anime.qualityProfile.id,
+        partiallyAvailable);
   }
 }

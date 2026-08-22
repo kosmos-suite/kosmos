@@ -5,4 +5,9 @@ package de.oppahansi.kosmos.library.dto;
  * when {@code kosmos.library.root-path} isn't configured — there's no disk to report on.
  */
 public record LibraryStatsResponse(
-    long movieCount, long seriesCount, long animeCount, long usedBytes, Long totalBytes) {}
+    long movieCount,
+    long seriesCount,
+    long animeCount,
+    long needsReviewCount,
+    long usedBytes,
+    Long totalBytes) {}

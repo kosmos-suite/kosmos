@@ -14,9 +14,10 @@ public record ShowResponse(
     String backdropPath,
     String status,
     Instant addedAt,
-    UUID qualityProfileId) {
+    UUID qualityProfileId,
+    boolean partiallyAvailable) {
 
-  public static ShowResponse from(Show show) {
+  public static ShowResponse from(Show show, boolean partiallyAvailable) {
     return new ShowResponse(
         show.mediaItemId,
         show.mediaItem.title,
@@ -26,6 +27,7 @@ public record ShowResponse(
         show.backdropPath,
         show.status,
         show.mediaItem.addedAt,
-        show.qualityProfile == null ? null : show.qualityProfile.id);
+        show.qualityProfile == null ? null : show.qualityProfile.id,
+        partiallyAvailable);
   }
 }

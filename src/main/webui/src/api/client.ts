@@ -41,6 +41,7 @@ import type {
   TestDownloadClientResult,
   TestIndexerResult,
   TrashImportResult,
+  UnclassifiedShow,
   User,
 } from "./types";
 
@@ -435,6 +436,19 @@ export const api = {
 
   autoRegisterRootFoldersFromJellyfin: (id: string) =>
     request<{ registered: number; skipped: number }>(`/jellyfin-servers/${id}/root-folders`, { method: "POST" }),
+
+  listUnclassifiedShows: () => request<UnclassifiedShow[]>("/unclassified-shows"),
+
+  resolveUnclassifiedAsShow: (id: string) =>
+    request<void>(`/unclassified-shows/${id}/resolve-as-show`, { method: "POST" }),
+
+  resolveUnclassifiedAsAnime: (id: string, anilistId: string) =>
+    request<void>(`/unclassified-shows/${id}/resolve-as-anime`, {
+      method: "POST",
+      body: JSON.stringify({ anilistId }),
+    }),
+
+  dismissUnclassified: (id: string) => request<void>(`/unclassified-shows/${id}`, { method: "DELETE" }),
 
   listJobs: () => request<ScheduledJob[]>("/jobs"),
 
