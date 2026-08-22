@@ -43,9 +43,9 @@ public class JobRunner {
 
     Instant startedAt = Instant.now();
     String status;
-    String message = null;
+    String message;
     try {
-      handler.run();
+      message = handler.run();
       status = "SUCCESS";
     } catch (RuntimeException e) {
       status = "FAILED";

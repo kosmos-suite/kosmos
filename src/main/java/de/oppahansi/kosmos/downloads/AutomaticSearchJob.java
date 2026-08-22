@@ -61,7 +61,7 @@ public class AutomaticSearchJob implements JobHandler {
    * from being searched in this run.
    */
   @Override
-  public void run() {
+  public String run() {
     List<UUID> eligible = QuarkusTransaction.requiringNew().call(this::findEligibleMovieIds);
     for (UUID movieId : eligible) {
       try {
@@ -71,6 +71,7 @@ public class AutomaticSearchJob implements JobHandler {
         // grab.
       }
     }
+    return null;
   }
 
   private List<UUID> findEligibleMovieIds() {

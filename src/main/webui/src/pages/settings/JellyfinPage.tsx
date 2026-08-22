@@ -8,7 +8,6 @@ import {
 import { useState } from "react";
 import { api, ApiError } from "../../api/client";
 import { useApi } from "../../hooks/useApi";
-import type { JellyfinSyncResult } from "../../api/types";
 
 export default function JellyfinPage() {
   const { data: servers, error: loadError, reload } = useApi(() => api.listJellyfinServers(), []);
@@ -24,12 +23,12 @@ export default function JellyfinPage() {
   async function runSync(serverId: string) {
     setSyncingId(serverId);
     try {
-      const result: JellyfinSyncResult = await api.syncJellyfinServer(serverId);
-      showToast(
-        `Synced: ${result.created} movies added, ${result.linked} already-owned linked, ` +
-          `${result.showsCreated} series added, ${result.episodeFilesLinked} episode files linked, ` +
-          `${result.usersCreated} users added, ${result.usersUpdated} users updated.`,
-      );
+      const run = await api.syncJellyfinServer(serverId);
+      if (run.status === "FAILED") {
+        showToast(run.message ? `Sync failed: ${run.message}` : "Sync failed");
+      } else {
+        showToast(run.message ?? "Sync complete.");
+      }
     } catch (e) {
       showToast(e instanceof ApiError ? `Sync failed: ${e.message}` : "Sync failed");
     } finally {

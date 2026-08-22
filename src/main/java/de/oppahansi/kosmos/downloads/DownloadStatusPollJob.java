@@ -44,7 +44,7 @@ public class DownloadStatusPollJob implements JobHandler {
    * already-successful status update.
    */
   @Override
-  public void run() {
+  public String run() {
     List<Grab> pending =
         QuarkusTransaction.requiringNew()
             .call(() -> Grab.list("status = ?1 and jobId is not null", "GRABBED"));
@@ -58,6 +58,7 @@ public class DownloadStatusPollJob implements JobHandler {
         // Left GRABBED; retried on the next tick.
       }
     }
+    return null;
   }
 
   private void pollOne(UUID grabId) {

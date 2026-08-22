@@ -16,8 +16,9 @@ public interface JobHandler {
   int defaultIntervalSeconds();
 
   /**
-   * Throw to record a failed run — the message reaches {@link ScheduledJob#lastMessage} and the
-   * {@link JobRun}.
+   * Runs the job. The returned value (or {@code null}) becomes {@link ScheduledJob#lastMessage} and
+   * the {@link JobRun#message} of a successful run. Throw to record a failed run instead — the
+   * exception message reaches the same two fields.
    */
-  void run();
+  String run();
 }

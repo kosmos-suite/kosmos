@@ -60,7 +60,7 @@ public class AnimeAutomaticSearchJob implements JobHandler {
   }
 
   @Override
-  public void run() {
+  public String run() {
     List<UUID> eligible = QuarkusTransaction.requiringNew().call(this::findEligibleEpisodeIds);
     for (UUID episodeId : eligible) {
       try {
@@ -69,6 +69,7 @@ public class AnimeAutomaticSearchJob implements JobHandler {
         // Left ungrabbed; retried on the next tick, same as the movie/TV jobs.
       }
     }
+    return null;
   }
 
   private List<UUID> findEligibleEpisodeIds() {

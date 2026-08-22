@@ -13,7 +13,6 @@ import type {
   Indexer,
   JellyfinLibrary,
   JellyfinServer,
-  JellyfinSyncResult,
   JobRun,
   LibraryFile,
   BrowseResult,
@@ -412,7 +411,7 @@ export const api = {
     request<JellyfinServer>("/jellyfin-servers", { method: "POST", body: JSON.stringify(body) }),
 
   syncJellyfinServer: (id: string) =>
-    request<JellyfinSyncResult>(`/jellyfin-servers/${id}/sync`, { method: "POST" }),
+    request<JobRun>(`/jellyfin-servers/${id}/sync`, { method: "POST" }),
 
   listJellyfinLibraries: (id: string) => request<JellyfinLibrary[]>(`/jellyfin-servers/${id}/libraries`),
 
