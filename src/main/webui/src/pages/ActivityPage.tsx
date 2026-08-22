@@ -12,10 +12,6 @@ import {
   XIcon as X,
 } from "@phosphor-icons/react";
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import { api } from "../api/client";
-import { useApi } from "../hooks/useApi";
-import { relativeTime } from "../utils/relativeTime";
 import {
   activeDownloadSources,
   historyFilterKind,
@@ -44,7 +40,6 @@ function fmtGb(gb: number): string {
 }
 
 export default function ActivityPage() {
-  const { data: jobs } = useApi(() => api.listJobs(), []);
   const [tick, setTick] = useState(0);
   const [hovered, setHovered] = useState<number | null>(null);
   const [previewEmpty, setPreviewEmpty] = useState(false);
@@ -143,56 +138,6 @@ export default function ActivityPage() {
           </div>
         ))}
       </div>
-
-      {/* Real — GET /jobs. The queue/history below are still mock: no live per-torrent progress
-          feed or grab-history endpoint exists yet, only this background-task list does. */}
-      {jobs && jobs.length > 0 && (
-        <div style={{ marginTop: 28 }}>
-          <div style={{ display: "flex", alignItems: "baseline", gap: 11, marginBottom: 14 }}>
-            <h2 style={{ margin: 0, fontSize: 17, fontWeight: 500, letterSpacing: "-0.02em" }}>Background jobs</h2>
-            <Link to="/settings/jobs" className="text-faint" style={{ fontSize: 11.5 }}>
-              Manage
-            </Link>
-          </div>
-          <div className="history-table">
-            {jobs.map((job) => (
-              <div className="history-row" key={job.id} style={{ gridTemplateColumns: "auto 1fr auto auto" }}>
-                <span
-                  className="history-row-icon"
-                  style={{
-                    background:
-                      job.running
-                        ? "rgba(224,169,74,.14)"
-                        : job.lastStatus === "FAILED"
-                          ? "rgba(224,104,95,.14)"
-                          : "rgba(79,191,139,.14)",
-                    color:
-                      job.running
-                        ? "var(--status-warn-text)"
-                        : job.lastStatus === "FAILED"
-                          ? "var(--status-bad-text)"
-                          : "var(--status-good-text)",
-                  }}
-                >
-                  <Check size={14} />
-                </span>
-                <div style={{ minWidth: 0 }}>
-                  <div className="history-row-title">{job.displayName}</div>
-                  <div className="history-row-release">
-                    every {job.intervalSeconds}s{job.lastMessage ? ` · ${job.lastMessage}` : ""}
-                  </div>
-                </div>
-                <span className="text-faint" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
-                  {job.running ? "running" : (job.lastStatus ?? "pending")}
-                </span>
-                <span className="text-disabled" style={{ fontFamily: "var(--font-mono)", fontSize: 11.5 }}>
-                  {relativeTime(job.lastRunAt)}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {!isEmpty && (
         <div style={{ marginTop: 28, marginBottom: 8 }}>
