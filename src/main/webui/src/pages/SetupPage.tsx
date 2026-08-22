@@ -1192,7 +1192,7 @@ function JellyfinLibrariesStep({
     } finally {
       // Fire-and-forget: a real library sync can take a while, and there's no reason to block
       // the rest of onboarding on it — it can be re-run from Settings → Jellyfin any time.
-      api.syncJellyfinServer(serverId).catch(() => undefined);
+      api.syncJellyfinLibraries(serverId).catch(() => undefined);
       onDone(note);
     }
   }

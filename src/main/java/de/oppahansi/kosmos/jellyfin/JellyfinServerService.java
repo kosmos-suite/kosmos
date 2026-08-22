@@ -82,6 +82,29 @@ public class JellyfinServerService {
         : Arrays.asList(server.selectedLibraryIds.split(","));
   }
 
+  public List<JellyfinUser> listUsers(UUID id) {
+    JellyfinServer server = requireServer(id);
+    try {
+      return new JellyfinClient(server.baseUrl).listUsers(server.apiKey);
+    } catch (IOException | InterruptedException e) {
+      throw new BadRequestException("Could not reach Jellyfin server: " + e.getMessage());
+    }
+  }
+
+  @Transactional
+  public void updateSelectedUsers(UUID id, List<String> userIds) {
+    JellyfinServer server = requireServer(id);
+    server.selectedUserIds =
+        (userIds == null || userIds.isEmpty()) ? null : String.join(",", userIds);
+  }
+
+  /** Empty list means "every account" — the caller's default when nothing has been selected. */
+  static List<String> selectedUserIds(JellyfinServer server) {
+    return server.selectedUserIds == null || server.selectedUserIds.isBlank()
+        ? List.of()
+        : Arrays.asList(server.selectedUserIds.split(","));
+  }
+
   /**
    * Registers a root folder per selected library's real reported path, tagged with the matching
    * Kosmos content type — movies/tvshows only, since a "boxsets" (collections) library is a

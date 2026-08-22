@@ -331,6 +331,8 @@ export interface JellyfinServer {
   apiKeySet: boolean;
   enabled: boolean;
   createdAt: string;
+  selectedLibraryIds: string[];
+  selectedUserIds: string[];
 }
 
 export interface JellyfinLibrary {
@@ -338,6 +340,12 @@ export interface JellyfinLibrary {
   name: string;
   collectionType: string | null;
   locations: string[];
+}
+
+export interface JellyfinUser {
+  id: string;
+  name: string;
+  isAdmin: boolean;
 }
 
 export interface SetupStatus {
@@ -354,6 +362,9 @@ export interface ScheduledJob {
   lastRunAt: string | null;
   lastStatus: string | null;
   lastMessage: string | null;
+  progressCurrent: number | null;
+  progressTotal: number | null;
+  progressMessage: string | null;
 }
 
 export interface JobRun {

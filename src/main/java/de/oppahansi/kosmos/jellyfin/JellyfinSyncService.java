@@ -1,7 +1,8 @@
 package de.oppahansi.kosmos.jellyfin;
 
 import de.oppahansi.kosmos.auth.User;
-import de.oppahansi.kosmos.jellyfin.dto.JellyfinSyncResult;
+import de.oppahansi.kosmos.jellyfin.dto.JellyfinLibrarySyncResult;
+import de.oppahansi.kosmos.jellyfin.dto.JellyfinUserSyncResult;
 import de.oppahansi.kosmos.library.LibraryFile;
 import de.oppahansi.kosmos.library.LibraryRootFolder;
 import de.oppahansi.kosmos.library.LibraryRootFolderService;
@@ -15,6 +16,7 @@ import de.oppahansi.kosmos.metadata.MediaItemExternalId;
 import de.oppahansi.kosmos.metadata.Plugin;
 import de.oppahansi.kosmos.metadata.dto.MetadataSearchResult;
 import de.oppahansi.kosmos.metadata.tmdb.TmdbMetadataProvider;
+import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -36,12 +38,13 @@ import java.util.stream.Collectors;
  * re-identifying anything from scratch. Movies whose TMDB id already exists in Kosmos get a
  * LibraryFile recorded against the existing MediaItem ("already available"); movies Kosmos has
  * never seen get a new MediaItem/Movie bulk-created. Only covers movies with both a Tmdb provider
- * id and a Path — everything else is skipped rather than guessed at. Also syncs Jellyfin's own user
- * list, mirroring each account's admin flag.
+ * id and a Path — everything else is skipped rather than guessed at. {@link #syncUsers} is a
+ * separate operation — mirroring each Jellyfin account's admin flag into Kosmos — so libraries and
+ * users can be scheduled, selected, and run independently.
  *
- * <p>Every movie and every user gets its own transaction (like {@code DownloadStatusPollJob}): this
- * runs over a potentially large real library, and one bad item (a duplicate path, a colliding
- * username) must never roll back everything else already synced in the same run.
+ * <p>Every movie/show/user gets its own transaction (like {@code DownloadStatusPollJob}): this runs
+ * over a potentially large real library, and one bad item (a duplicate path, a colliding username)
+ * must never roll back everything else already synced in the same run.
  */
 @ApplicationScoped
 public class JellyfinSyncService {
@@ -54,24 +57,23 @@ public class JellyfinSyncService {
   @Inject LibraryRootFolderService rootFolderService;
   @Inject ShowService showService;
 
-  public JellyfinSyncResult sync(UUID serverId) {
-    JellyfinServer server =
-        QuarkusTransaction.requiringNew()
-            .call(
-                () ->
-                    JellyfinServer.<JellyfinServer>findByIdOptional(serverId)
-                        .orElseThrow(
-                            () ->
-                                new BadRequestException(
-                                    "Unknown Jellyfin server id: " + serverId)));
-
+  public JellyfinLibrarySyncResult syncLibraries(UUID serverId, ProgressReporter progress) {
+    JellyfinServer server = requireServer(serverId);
     JellyfinClient client = new JellyfinClient(server.baseUrl);
     List<JellyfinMovie> movies;
+    List<JellyfinShow> shows;
+    List<JellyfinEpisode> episodes;
     try {
       movies = client.listMovies(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
+      shows = client.listShows(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
+      episodes =
+          client.listEpisodes(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
     } catch (IOException | InterruptedException e) {
       throw new BadRequestException("Could not reach Jellyfin server: " + e.getMessage());
     }
+
+    int total = movies.size() + shows.size();
+    int processed = 0;
 
     int linked = 0;
     int created = 0;
@@ -79,6 +81,8 @@ public class JellyfinSyncService {
     int alreadySynced = 0;
 
     for (JellyfinMovie movie : movies) {
+      processed++;
+      progress.update(processed, total, "Movie: " + movie.name());
       if (movie.tmdbId() == null || movie.path() == null) {
         skipped++;
         continue;
@@ -96,15 +100,6 @@ public class JellyfinSyncService {
       }
     }
 
-    List<JellyfinShow> shows;
-    List<JellyfinEpisode> episodes;
-    try {
-      shows = client.listShows(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
-      episodes =
-          client.listEpisodes(server.apiKey, JellyfinServerService.selectedLibraryIds(server));
-    } catch (IOException | InterruptedException e) {
-      throw new BadRequestException("Could not reach Jellyfin server: " + e.getMessage());
-    }
     Map<String, List<JellyfinEpisode>> episodesBySeriesId =
         episodes.stream()
             .filter(e -> e.seriesId() != null)
@@ -117,6 +112,8 @@ public class JellyfinSyncService {
     int episodeFilesLinked = 0;
 
     for (JellyfinShow show : shows) {
+      processed++;
+      progress.update(processed, total, "Show: " + show.name());
       if (show.tmdbId() == null || show.path() == null) {
         showsSkipped++;
         continue;
@@ -136,31 +133,8 @@ public class JellyfinSyncService {
       }
     }
 
-    List<JellyfinUser> jellyfinUsers;
-    try {
-      jellyfinUsers = client.listUsers(server.apiKey);
-    } catch (IOException | InterruptedException e) {
-      jellyfinUsers = List.of();
-    }
-
-    int usersCreated = 0;
-    int usersUpdated = 0;
-    for (JellyfinUser jellyfinUser : jellyfinUsers) {
-      try {
-        String outcome =
-            QuarkusTransaction.requiringNew().call(() -> syncOneUser(serverId, jellyfinUser));
-        switch (outcome) {
-          case "created" -> usersCreated++;
-          case "updated" -> usersUpdated++;
-          default -> {} // "unchanged" — not worth reporting
-        }
-      } catch (RuntimeException e) {
-        // e.g. this account's display name collides with an existing native username —
-        // must never abort syncing the rest of the users or any of the movies above.
-      }
-    }
-
-    return new JellyfinSyncResult(
+    progress.update(total, total, "Done");
+    return new JellyfinLibrarySyncResult(
         movies.size(),
         linked,
         created,
@@ -171,9 +145,59 @@ public class JellyfinSyncService {
         showsCreated,
         showsSkipped,
         showsAlreadySynced,
-        episodeFilesLinked,
-        usersCreated,
-        usersUpdated);
+        episodeFilesLinked);
+  }
+
+  /** Filtered by {@link JellyfinServer#selectedUserIds} — empty/null means every account. */
+  public JellyfinUserSyncResult syncUsers(UUID serverId, ProgressReporter progress) {
+    JellyfinServer server = requireServer(serverId);
+    JellyfinClient client = new JellyfinClient(server.baseUrl);
+    List<JellyfinUser> jellyfinUsers;
+    try {
+      jellyfinUsers = client.listUsers(server.apiKey);
+    } catch (IOException | InterruptedException e) {
+      throw new BadRequestException("Could not reach Jellyfin server: " + e.getMessage());
+    }
+
+    List<String> selected = JellyfinServerService.selectedUserIds(server);
+    int total = jellyfinUsers.size();
+    int processed = 0;
+    int created = 0;
+    int updated = 0;
+    int skippedNotSelected = 0;
+
+    for (JellyfinUser jellyfinUser : jellyfinUsers) {
+      processed++;
+      progress.update(processed, total, jellyfinUser.name());
+      if (!selected.isEmpty() && !selected.contains(jellyfinUser.id())) {
+        skippedNotSelected++;
+        continue;
+      }
+      try {
+        String outcome =
+            QuarkusTransaction.requiringNew().call(() -> syncOneUser(serverId, jellyfinUser));
+        switch (outcome) {
+          case "created" -> created++;
+          case "updated" -> updated++;
+          default -> {} // "unchanged" — not worth reporting
+        }
+      } catch (RuntimeException e) {
+        // e.g. this account's display name collides with an existing native username —
+        // must never abort syncing the rest of the selected accounts.
+      }
+    }
+
+    progress.update(total, total, "Done");
+    return new JellyfinUserSyncResult(jellyfinUsers.size(), created, updated, skippedNotSelected);
+  }
+
+  private JellyfinServer requireServer(UUID serverId) {
+    return QuarkusTransaction.requiringNew()
+        .call(
+            () ->
+                JellyfinServer.<JellyfinServer>findByIdOptional(serverId)
+                    .orElseThrow(
+                        () -> new BadRequestException("Unknown Jellyfin server id: " + serverId)));
   }
 
   /**

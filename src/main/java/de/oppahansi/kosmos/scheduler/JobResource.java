@@ -30,6 +30,16 @@ public class JobResource {
     return jobService.listAll().stream().map(ScheduledJobResponse::from).toList();
   }
 
+  /** One job's current state — what a live progress bar polls, rather than the whole list. */
+  @GET
+  @Path("/{name}")
+  public Response get(@PathParam("name") String name) {
+    return jobService
+        .findByName(name)
+        .map(job -> Response.ok(ScheduledJobResponse.from(job)).build())
+        .orElse(Response.status(Response.Status.NOT_FOUND).build());
+  }
+
   /** Most recent runs first — the history a job's expanded row on the settings page reads. */
   @GET
   @Path("/{name}/runs")

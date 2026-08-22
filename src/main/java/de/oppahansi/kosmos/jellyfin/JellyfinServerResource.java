@@ -3,10 +3,12 @@ package de.oppahansi.kosmos.jellyfin;
 import de.oppahansi.kosmos.jellyfin.dto.CreateJellyfinServerRequest;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinLibraryResponse;
 import de.oppahansi.kosmos.jellyfin.dto.JellyfinServerResponse;
+import de.oppahansi.kosmos.jellyfin.dto.JellyfinUserResponse;
 import de.oppahansi.kosmos.jellyfin.dto.RootFolderAutoRegisterResult;
 import de.oppahansi.kosmos.jellyfin.dto.TestJellyfinConnectionRequest;
 import de.oppahansi.kosmos.jellyfin.dto.TestJellyfinConnectionResult;
 import de.oppahansi.kosmos.jellyfin.dto.UpdateJellyfinLibrariesRequest;
+import de.oppahansi.kosmos.jellyfin.dto.UpdateJellyfinUsersRequest;
 import de.oppahansi.kosmos.scheduler.JobHandler;
 import de.oppahansi.kosmos.scheduler.JobRunner;
 import de.oppahansi.kosmos.scheduler.dto.JobRunResponse;
@@ -65,14 +67,24 @@ public class JellyfinServerResource {
   }
 
   /**
-   * Runs this server's {@link JellyfinSyncJob} immediately, same as {@code POST /jobs/{name}/run} —
-   * routed through {@link JobRunner} rather than {@link JellyfinSyncService} directly so a manual
-   * "Sync now" is recorded in job history exactly like the recurring one.
+   * Runs this server's {@link JellyfinLibrarySyncJob} immediately, same as {@code POST
+   * /jobs/{name}/run} — routed through {@link JobRunner} rather than {@link JellyfinSyncService}
+   * directly so a manual run is recorded in job history exactly like a scheduled one.
    */
   @POST
-  @Path("/{id}/sync")
-  public Response sync(@PathParam("id") UUID id) {
-    Optional<JobHandler> handler = syncJobs.forServer(id);
+  @Path("/{id}/sync-libraries")
+  public Response syncLibraries(@PathParam("id") UUID id) {
+    return runNow(syncJobs.libraryJobForServer(id));
+  }
+
+  /** Same as {@link #syncLibraries}, for this server's {@link JellyfinUserImportJob}. */
+  @POST
+  @Path("/{id}/sync-users")
+  public Response syncUsers(@PathParam("id") UUID id) {
+    return runNow(syncJobs.userJobForServer(id));
+  }
+
+  private Response runNow(Optional<JobHandler> handler) {
     if (handler.isEmpty()) {
       return Response.status(Response.Status.NOT_FOUND).build();
     }
@@ -93,6 +105,19 @@ public class JellyfinServerResource {
   public Response updateLibraries(
       @PathParam("id") UUID id, UpdateJellyfinLibrariesRequest request) {
     serverService.updateSelectedLibraries(id, request.libraryIds());
+    return Response.noContent().build();
+  }
+
+  @GET
+  @Path("/{id}/users")
+  public List<JellyfinUserResponse> listUsers(@PathParam("id") UUID id) {
+    return serverService.listUsers(id).stream().map(JellyfinUserResponse::from).toList();
+  }
+
+  @PUT
+  @Path("/{id}/users")
+  public Response updateUsers(@PathParam("id") UUID id, UpdateJellyfinUsersRequest request) {
+    serverService.updateSelectedUsers(id, request.userIds());
     return Response.noContent().build();
   }
 

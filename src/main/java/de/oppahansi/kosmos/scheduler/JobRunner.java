@@ -4,6 +4,7 @@ import de.oppahansi.kosmos.notifications.NotificationService;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -11,14 +12,17 @@ import java.util.UUID;
 /**
  * Executes a single {@link JobHandler}. Claiming a job ({@link #claim}: checking it's due/not
  * already running, and marking it running) and recording its outcome ({@link #finish}) are each
- * their own committed transaction, with the handler's own {@link JobHandler#run()} in between
- * outside any transaction of this class's own — unlike the previous single-transaction design, this
- * means a concurrent {@link JobScheduler#tick()} sees "already running" the instant a job is
- * claimed, not only after the whole run (which can include the handler's own slow external HTTP
- * calls) finally commits.
+ * their own committed transaction, with the handler's own {@link JobHandler#run} in between outside
+ * any transaction of this class's own — unlike the previous single-transaction design, this means a
+ * concurrent {@link JobScheduler#tick()} sees "already running" the instant a job is claimed, not
+ * only after the whole run (which can include the handler's own slow external HTTP calls) finally
+ * commits.
  */
 @ApplicationScoped
 public class JobRunner {
+
+  /** Floor between progress writes, so a tight per-item loop doesn't hammer the DB. */
+  private static final Duration PROGRESS_WRITE_INTERVAL = Duration.ofMillis(250);
 
   @Inject NotificationService notificationService;
 
@@ -41,18 +45,18 @@ public class JobRunner {
       return null;
     }
 
+    UUID jobId = job.id;
     Instant startedAt = Instant.now();
     String status;
     String message;
     try {
-      message = handler.run();
+      message = handler.run(throttledReporter(jobId));
       status = "SUCCESS";
     } catch (RuntimeException e) {
       status = "FAILED";
       message = e.getMessage();
     }
 
-    UUID jobId = job.id;
     String finalStatus = status;
     String finalMessage = message;
     JobRun jobRun =
@@ -67,6 +71,30 @@ public class JobRunner {
     return jobRun;
   }
 
+  /** Each call is its own committed transaction, throttled so a per-item loop stays cheap. */
+  private ProgressReporter throttledReporter(UUID jobId) {
+    Instant[] lastWrite = {Instant.EPOCH};
+    return (current, total, message) -> {
+      boolean isFinal = total > 0 && current >= total;
+      if (!isFinal
+          && Duration.between(lastWrite[0], Instant.now()).compareTo(PROGRESS_WRITE_INTERVAL) < 0) {
+        return;
+      }
+      lastWrite[0] = Instant.now();
+      QuarkusTransaction.requiringNew()
+          .run(
+              () -> {
+                ScheduledJob job = ScheduledJob.<ScheduledJob>findById(jobId);
+                if (job == null) {
+                  return;
+                }
+                job.progressCurrent = current;
+                job.progressTotal = total;
+                job.progressMessage = message;
+              });
+    };
+  }
+
   private ScheduledJob claim(JobHandler handler, boolean force) {
     ScheduledJob job = findOrSeed(handler);
     boolean runnable = force ? job.runningSince == null : job.isDue(Instant.now());
@@ -74,6 +102,9 @@ public class JobRunner {
       return null;
     }
     job.runningSince = Instant.now();
+    job.progressCurrent = null;
+    job.progressTotal = null;
+    job.progressMessage = null;
     return job;
   }
 
@@ -83,6 +114,9 @@ public class JobRunner {
     job.lastRunAt = startedAt;
     job.lastStatus = status;
     job.lastMessage = message;
+    job.progressCurrent = null;
+    job.progressTotal = null;
+    job.progressMessage = null;
 
     JobRun jobRun = new JobRun();
     jobRun.scheduledJob = job;
@@ -108,7 +142,7 @@ public class JobRunner {
     job.name = handler.jobName();
     job.displayName = handler.displayName();
     job.intervalSeconds = handler.defaultIntervalSeconds();
-    job.enabled = true;
+    job.enabled = handler.autoScheduled();
     job.createdAt = Instant.now();
     job.persist();
     return job;

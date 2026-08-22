@@ -24,6 +24,10 @@ public class JellyfinServer extends KosmosEntity {
   @Column(name = "selected_library_ids", length = 2000)
   public String selectedLibraryIds;
 
+  // Comma-separated Jellyfin user ids; null/blank means "import every account".
+  @Column(name = "selected_user_ids", length = 4000)
+  public String selectedUserIds;
+
   @Column(nullable = false)
   public boolean enabled;
 

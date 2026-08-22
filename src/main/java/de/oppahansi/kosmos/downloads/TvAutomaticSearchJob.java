@@ -12,6 +12,7 @@ import de.oppahansi.kosmos.parsing.ScoringEngine;
 import de.oppahansi.kosmos.parsing.dto.ParsedRelease;
 import de.oppahansi.kosmos.parsing.dto.ScoredRelease;
 import de.oppahansi.kosmos.scheduler.JobHandler;
+import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -57,7 +58,7 @@ public class TvAutomaticSearchJob implements JobHandler {
   }
 
   @Override
-  public String run() {
+  public String run(ProgressReporter progress) {
     List<UUID> eligible = QuarkusTransaction.requiringNew().call(this::findEligibleEpisodeIds);
     for (UUID episodeId : eligible) {
       try {

@@ -1,20 +1,84 @@
 import {
   ArrowsClockwiseIcon as ArrowsClockwise,
+  CaretDownIcon as CaretDown,
+  CheckIcon as Check,
   CheckCircleIcon as CheckCircle,
+  FilmSlateIcon as FilmSlate,
   KeyIcon as Key,
   PlugsIcon as Plugs,
   PlusIcon as Plus,
+  UsersIcon as Users,
   WarningCircleIcon as WarningCircle,
   XIcon as X,
 } from "@phosphor-icons/react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { api, ApiError } from "../../api/client";
+import type { JellyfinServer, ScheduledJob } from "../../api/types";
 import { useApi } from "../../hooks/useApi";
 
+const PROGRESS_POLL_MS = 1000;
+
+/** Polls one job's live state while `active`, for a progress bar — stops as soon as it isn't. */
+function useLiveJobProgress(jobName: string, active: boolean): ScheduledJob | null {
+  const [job, setJob] = useState<ScheduledJob | null>(null);
+
+  useEffect(() => {
+    if (!active) {
+      setJob(null);
+      return;
+    }
+    let cancelled = false;
+    const poll = () => {
+      api
+        .getJob(jobName)
+        .then((j) => {
+          if (!cancelled) setJob(j);
+        })
+        .catch(() => undefined);
+    };
+    poll();
+    const id = window.setInterval(poll, PROGRESS_POLL_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [jobName, active]);
+
+  return job;
+}
+
+function ProgressBar({ job }: { job: ScheduledJob | null }) {
+  if (!job || job.progressTotal === null || job.progressCurrent === null) {
+    return (
+      <p className="text-faint" style={{ fontSize: 12, marginTop: 10 }}>
+        Starting…
+      </p>
+    );
+  }
+  const pct = job.progressTotal > 0 ? (job.progressCurrent / job.progressTotal) * 100 : 0;
+  return (
+    <div style={{ marginTop: 10 }}>
+      <div className="progress-track" style={{ marginBottom: 6 }}>
+        <div className="progress-fill" style={{ width: `${pct}%`, background: "var(--accent-gradient)" }} />
+      </div>
+      <div className="text-faint" style={{ fontSize: 11.5, display: "flex", justifyContent: "space-between" }}>
+        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {job.progressMessage}
+        </span>
+        <span style={{ flex: "none", marginLeft: 10, fontFamily: "var(--font-mono)" }}>
+          {job.progressCurrent}/{job.progressTotal}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export default function JellyfinPage() {
-  const { data: servers, error: loadError, reload } = useApi(() => api.listJellyfinServers(), []);
+  const { data: servers, error: loadError, setData: setServers, reload } = useApi(
+    () => api.listJellyfinServers(),
+    [],
+  );
   const [modalOpen, setModalOpen] = useState(false);
-  const [syncingId, setSyncingId] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   function showToast(message: string) {
@@ -22,20 +86,8 @@ export default function JellyfinPage() {
     window.setTimeout(() => setToast((current) => (current === message ? null : current)), 6000);
   }
 
-  async function runSync(serverId: string) {
-    setSyncingId(serverId);
-    try {
-      const run = await api.syncJellyfinServer(serverId);
-      if (run.status === "FAILED") {
-        showToast(run.message ? `Sync failed: ${run.message}` : "Sync failed");
-      } else {
-        showToast(run.message ?? "Sync complete.");
-      }
-    } catch (e) {
-      showToast(e instanceof ApiError ? `Sync failed: ${e.message}` : "Sync failed");
-    } finally {
-      setSyncingId(null);
-    }
+  function patchServer(id: string, patch: Partial<JellyfinServer>) {
+    setServers((current) => current?.map((s) => (s.id === id ? { ...s, ...patch } : s)) ?? current);
   }
 
   return (
@@ -44,9 +96,9 @@ export default function JellyfinPage() {
         <div style={{ flex: 1, minWidth: 280 }}>
           <h2 style={{ marginBottom: 6 }}>Jellyfin</h2>
           <p className="text-muted" style={{ maxWidth: "60ch" }}>
-            Connect an already-scanned Jellyfin library — sync marks what you already have as
-            available and imports its user accounts (the Jellyfin admin becomes the Kosmos admin
-            automatically).
+            Connect an already-scanned Jellyfin library. Library sync marks what you already have
+            as available; user import brings in accounts to sign into Kosmos with — each runs (and
+            can be scheduled) on its own, over just the libraries or users you pick.
           </p>
         </div>
         <button type="button" className="btn btn-hero" onClick={() => setModalOpen(true)}>
@@ -59,32 +111,12 @@ export default function JellyfinPage() {
       {servers?.length === 0 && <p className="text-muted">No Jellyfin server connected yet.</p>}
 
       {servers?.map((server) => (
-        <div key={server.id} className={`indexer-row${server.enabled ? "" : " disabled"}`}>
-          <span className="icon-tile">
-            <ArrowsClockwise size={16} />
-          </span>
-          <div className="indexer-row-main">
-            <div className="indexer-row-title-line">
-              <span className="indexer-row-name">{server.name}</span>
-            </div>
-            <div className="indexer-row-sub">
-              <span>{server.baseUrl}</span>
-              <span className="text-faint">·</span>
-              <span>{server.apiKeySet ? "API key set" : "no API key"}</span>
-            </div>
-          </div>
-          <div className="indexer-row-actions">
-            <button
-              type="button"
-              className="btn btn-secondary"
-              onClick={() => runSync(server.id)}
-              disabled={syncingId === server.id}
-            >
-              <ArrowsClockwise size={14} className={syncingId === server.id ? "spin" : ""} />
-              {syncingId === server.id ? "Syncing…" : "Sync now"}
-            </button>
-          </div>
-        </div>
+        <JellyfinServerRow
+          key={server.id}
+          server={server}
+          onServerUpdate={(patch) => patchServer(server.id, patch)}
+          showToast={showToast}
+        />
       ))}
 
       {modalOpen && (
@@ -93,7 +125,7 @@ export default function JellyfinPage() {
           onCreated={() => {
             setModalOpen(false);
             reload();
-            showToast("Jellyfin server added — run a sync to pull in its library and users.");
+            showToast("Jellyfin server added — pick its libraries and users below to sync.");
           }}
         />
       )}
@@ -106,6 +138,280 @@ export default function JellyfinPage() {
           {toast}
         </div>
       )}
+    </div>
+  );
+}
+
+function JellyfinServerRow({
+  server,
+  onServerUpdate,
+  showToast,
+}: {
+  server: JellyfinServer;
+  onServerUpdate: (patch: Partial<JellyfinServer>) => void;
+  showToast: (message: string) => void;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={`indexer-row${server.enabled ? "" : " disabled"}`} style={{ flexDirection: "column", alignItems: "stretch" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 14, cursor: "pointer" }} onClick={() => setExpanded((v) => !v)}>
+        <span className="icon-tile">
+          <ArrowsClockwise size={16} />
+        </span>
+        <div className="indexer-row-main">
+          <div className="indexer-row-title-line">
+            <span className="indexer-row-name">{server.name}</span>
+          </div>
+          <div className="indexer-row-sub">
+            <span>{server.baseUrl}</span>
+            <span className="text-faint">·</span>
+            <span>{server.apiKeySet ? "API key set" : "no API key"}</span>
+          </div>
+        </div>
+        <CaretDown size={14} className={`job-row-chevron${expanded ? " open" : ""}`} />
+      </div>
+
+      {expanded && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, marginTop: 16, paddingTop: 16, borderTop: "1px solid var(--border-subtle)" }}>
+          <LibrarySelectionPanel server={server} onServerUpdate={onServerUpdate} showToast={showToast} />
+          <UserSelectionPanel server={server} onServerUpdate={onServerUpdate} showToast={showToast} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LibrarySelectionPanel({
+  server,
+  onServerUpdate,
+  showToast,
+}: {
+  server: JellyfinServer;
+  onServerUpdate: (patch: Partial<JellyfinServer>) => void;
+  showToast: (message: string) => void;
+}) {
+  const { data: libraries, loading, error } = useApi(() => api.listJellyfinLibraries(server.id), [server.id]);
+  const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedLibraryIds));
+  const [running, setRunning] = useState(false);
+
+  const jobName = `jellyfin-library-sync-${server.id}`;
+  const liveJob = useLiveJobProgress(jobName, running);
+
+  // Empty selection means "every library" — same convention the backend uses.
+  const allSelected = selected.size === 0;
+
+  async function toggle(id: string) {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+    const ids = Array.from(next);
+    await api.updateJellyfinLibrarySelection(server.id, ids);
+    onServerUpdate({ selectedLibraryIds: ids });
+  }
+
+  async function selectAll() {
+    setSelected(new Set());
+    await api.updateJellyfinLibrarySelection(server.id, []);
+    onServerUpdate({ selectedLibraryIds: [] });
+  }
+
+  async function runSync() {
+    setRunning(true);
+    try {
+      const run = await api.syncJellyfinLibraries(server.id);
+      showToast(
+        run.status === "FAILED"
+          ? `Library sync failed${run.message ? `: ${run.message}` : ""}`
+          : (run.message ?? "Library sync complete."),
+      );
+    } catch (e) {
+      showToast(e instanceof ApiError ? `Library sync failed: ${e.message}` : "Library sync failed");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <FilmSlate size={15} className="text-faint" />
+          <span className="section-label" style={{ margin: 0 }}>
+            Libraries
+          </span>
+        </div>
+        <button type="button" className="btn btn-secondary" onClick={runSync} disabled={running}>
+          <ArrowsClockwise size={14} className={running ? "spin" : ""} />
+          {running ? "Syncing…" : "Sync Libraries"}
+        </button>
+      </div>
+
+      {loading && <p className="text-faint" style={{ fontSize: 12 }}>Loading libraries…</p>}
+      {error && <p className="text-muted" style={{ fontSize: 12 }}>Could not load libraries: {error}</p>}
+      {libraries?.length === 0 && <p className="text-faint" style={{ fontSize: 12 }}>No libraries found on this server.</p>}
+
+      {libraries && libraries.length > 0 && (
+        <>
+          <div className="setup-test-row" style={{ marginTop: 0, marginBottom: 8 }}>
+            <span className="setup-test-btn" onClick={selectAll}>
+              {allSelected ? "All libraries selected" : "Select all"}
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {libraries.map((library) => {
+              const checked = allSelected || selected.has(library.id);
+              return (
+                <div key={library.id} onClick={() => toggle(library.id)} className="setup-toggle-row" style={{ cursor: "pointer" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: 13 }}>{library.name}</div>
+                    {library.collectionType && (
+                      <div className="text-faint" style={{ fontSize: 11, marginTop: 2 }}>
+                        {library.collectionType}
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      width: 20,
+                      height: 20,
+                      borderRadius: 6,
+                      border: checked ? "none" : "1px solid var(--border)",
+                      background: checked ? "var(--accent-gradient)" : "transparent",
+                      color: "#0b0c12",
+                      flex: "none",
+                    }}
+                  >
+                    {checked && <Check size={13} weight="bold" />}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {running && <ProgressBar job={liveJob} />}
+    </div>
+  );
+}
+
+function UserSelectionPanel({
+  server,
+  onServerUpdate,
+  showToast,
+}: {
+  server: JellyfinServer;
+  onServerUpdate: (patch: Partial<JellyfinServer>) => void;
+  showToast: (message: string) => void;
+}) {
+  const { data: users, loading, error } = useApi(() => api.listJellyfinUsers(server.id), [server.id]);
+  const [selected, setSelected] = useState<Set<string>>(new Set(server.selectedUserIds));
+  const [running, setRunning] = useState(false);
+
+  const jobName = `jellyfin-user-import-${server.id}`;
+  const liveJob = useLiveJobProgress(jobName, running);
+
+  // Empty selection means "every account" — same convention the backend uses.
+  const allSelected = selected.size === 0;
+
+  async function toggle(id: string) {
+    const next = new Set(selected);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelected(next);
+    const ids = Array.from(next);
+    await api.updateJellyfinUserSelection(server.id, ids);
+    onServerUpdate({ selectedUserIds: ids });
+  }
+
+  async function selectAll() {
+    setSelected(new Set());
+    await api.updateJellyfinUserSelection(server.id, []);
+    onServerUpdate({ selectedUserIds: [] });
+  }
+
+  async function runImport() {
+    setRunning(true);
+    try {
+      const run = await api.syncJellyfinUsers(server.id);
+      showToast(
+        run.status === "FAILED"
+          ? `User import failed${run.message ? `: ${run.message}` : ""}`
+          : (run.message ?? "User import complete."),
+      );
+    } catch (e) {
+      showToast(e instanceof ApiError ? `User import failed: ${e.message}` : "User import failed");
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  return (
+    <div>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <Users size={15} className="text-faint" />
+          <span className="section-label" style={{ margin: 0 }}>
+            Users
+          </span>
+        </div>
+        <button type="button" className="btn btn-secondary" onClick={runImport} disabled={running}>
+          <ArrowsClockwise size={14} className={running ? "spin" : ""} />
+          {running ? "Importing…" : "Import Users"}
+        </button>
+      </div>
+
+      {loading && <p className="text-faint" style={{ fontSize: 12 }}>Loading users…</p>}
+      {error && <p className="text-muted" style={{ fontSize: 12 }}>Could not load users: {error}</p>}
+      {users?.length === 0 && <p className="text-faint" style={{ fontSize: 12 }}>No user accounts found on this server.</p>}
+
+      {users && users.length > 0 && (
+        <>
+          <div className="setup-test-row" style={{ marginTop: 0, marginBottom: 8 }}>
+            <span className="setup-test-btn" onClick={selectAll}>
+              {allSelected ? "All users selected" : "Select all"}
+            </span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {users.map((user) => {
+              const checked = allSelected || selected.has(user.id);
+              return (
+                <div key={user.id} onClick={() => toggle(user.id)} className="setup-toggle-row" style={{ cursor: "pointer" }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 500, fontSize: 13 }}>{user.name}</div>
+                    {user.isAdmin && (
+                      <div className="text-faint" style={{ fontSize: 11, marginTop: 2 }}>
+                        Administrator
+                      </div>
+                    )}
+                  </div>
+                  <span
+                    style={{
+                      display: "grid",
+                      placeItems: "center",
+                      width: 20,
+                      height: 20,
+                      borderRadius: 6,
+                      border: checked ? "none" : "1px solid var(--border)",
+                      background: checked ? "var(--accent-gradient)" : "transparent",
+                      color: "#0b0c12",
+                      flex: "none",
+                    }}
+                  >
+                    {checked && <Check size={13} weight="bold" />}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {running && <ProgressBar job={liveJob} />}
     </div>
   );
 }

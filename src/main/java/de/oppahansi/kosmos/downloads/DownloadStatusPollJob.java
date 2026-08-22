@@ -2,6 +2,7 @@ package de.oppahansi.kosmos.downloads;
 
 import de.oppahansi.kosmos.library.ImportService;
 import de.oppahansi.kosmos.scheduler.JobHandler;
+import de.oppahansi.kosmos.scheduler.ProgressReporter;
 import io.quarkus.narayana.jta.QuarkusTransaction;
 import jakarta.enterprise.context.ApplicationScoped;
 import jakarta.inject.Inject;
@@ -44,7 +45,7 @@ public class DownloadStatusPollJob implements JobHandler {
    * already-successful status update.
    */
   @Override
-  public String run() {
+  public String run(ProgressReporter progress) {
     List<Grab> pending =
         QuarkusTransaction.requiringNew()
             .call(() -> Grab.list("status = ?1 and jobId is not null", "GRABBED"));

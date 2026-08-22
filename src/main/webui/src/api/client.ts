@@ -13,6 +13,7 @@ import type {
   Indexer,
   JellyfinLibrary,
   JellyfinServer,
+  JellyfinUser,
   JobRun,
   LibraryFile,
   BrowseResult,
@@ -416,18 +417,28 @@ export const api = {
       body: JSON.stringify(body),
     }),
 
-  syncJellyfinServer: (id: string) =>
-    request<JobRun>(`/jellyfin-servers/${id}/sync`, { method: "POST" }),
+  syncJellyfinLibraries: (id: string) =>
+    request<JobRun>(`/jellyfin-servers/${id}/sync-libraries`, { method: "POST" }),
+
+  syncJellyfinUsers: (id: string) =>
+    request<JobRun>(`/jellyfin-servers/${id}/sync-users`, { method: "POST" }),
 
   listJellyfinLibraries: (id: string) => request<JellyfinLibrary[]>(`/jellyfin-servers/${id}/libraries`),
 
   updateJellyfinLibrarySelection: (id: string, libraryIds: string[]) =>
     request<void>(`/jellyfin-servers/${id}/libraries`, { method: "PUT", body: JSON.stringify({ libraryIds }) }),
 
+  listJellyfinUsers: (id: string) => request<JellyfinUser[]>(`/jellyfin-servers/${id}/users`),
+
+  updateJellyfinUserSelection: (id: string, userIds: string[]) =>
+    request<void>(`/jellyfin-servers/${id}/users`, { method: "PUT", body: JSON.stringify({ userIds }) }),
+
   autoRegisterRootFoldersFromJellyfin: (id: string) =>
     request<{ registered: number; skipped: number }>(`/jellyfin-servers/${id}/root-folders`, { method: "POST" }),
 
   listJobs: () => request<ScheduledJob[]>("/jobs"),
+
+  getJob: (name: string) => request<ScheduledJob>(`/jobs/${encodeURIComponent(name)}`),
 
   listJobRuns: (name: string, limit = 20) =>
     request<JobRun[]>(`/jobs/${encodeURIComponent(name)}/runs?limit=${limit}`),
