@@ -11,6 +11,15 @@ import java.util.regex.Pattern;
 public class ReleaseParser {
 
   private static final Pattern YEAR = Pattern.compile("\\b(19\\d{2}|20\\d{2})\\b");
+  // A year in parens ("Movie (2005)") is the conventional release-year position; preferred over a
+  // bare year-shaped number that's actually part of the title itself (e.g. "Paris 2054").
+  private static final Pattern PARENTHESIZED_YEAR = Pattern.compile("\\((19\\d{2}|20\\d{2})\\)");
+
+  // A single bracketed tag at the very start ("[XCT] Movie...", "[阿维达] Movie...") — an older
+  // P2P/DDL convention distinct from anime's own fansub-bracket grammar (AnimeReleaseParser's own,
+  // more elaborate concern); stripped here only when it's a lone leading group, not anywhere else a
+  // release title happens to use brackets.
+  private static final Pattern LEADING_BRACKET_TAG = Pattern.compile("^\\[[^\\]]{1,30}\\]\\s*");
 
   // Progressive/interlaced values ported from guessit's screen_size property config
   // (guessit-io/guessit, LGPL-3.0).
@@ -42,8 +51,12 @@ public class ReleaseParser {
   // would otherwise also satisfy the season-pack pattern on its "S01" prefix. A release with
   // multiple episodes (S01E05E06) is treated as starting at the first one; Kosmos doesn't model
   // multi-episode releases as a single grab spanning several MediaItems yet.
+  // The optional [\s\-x]? tolerates "S06xE01" and hyphen-joined "S03-E01" forms alongside the
+  // standard adjacent "S01E05" one — still anchored tightly enough by the S…E…digits shape not to
+  // false-positive on ordinary text.
   private static final Pattern SEASON_EPISODE =
-      Pattern.compile("\\bS(\\d{1,2})E(\\d{1,3})(?:E\\d{1,3})*\\b", Pattern.CASE_INSENSITIVE);
+      Pattern.compile(
+          "\\bS(\\d{1,2})[\\s\\-x]?E(\\d{1,3})(?:E\\d{1,3})*\\b", Pattern.CASE_INSENSITIVE);
   private static final Pattern SEASON_EPISODE_X =
       Pattern.compile("\\b(\\d{1,2})x(\\d{2,3})\\b", Pattern.CASE_INSENSITIVE);
   private static final Pattern SEASON_PACK =
@@ -53,7 +66,7 @@ public class ReleaseParser {
     String releaseGroup = extractReleaseGroup(rawTitle);
     String normalized = rawTitle.replace('.', ' ').replace('_', ' ').trim();
 
-    Integer year = extractGroup(YEAR, normalized).map(Integer::parseInt).orElse(null);
+    Integer year = extractYear(normalized);
     String resolution = extractResolution(normalized);
     String source = ReleaseToken.match(Source.values(), normalized);
     String videoCodec = ReleaseToken.match(VideoCodec.values(), normalized);
@@ -82,22 +95,83 @@ public class ReleaseParser {
         seasonEpisode[1]);
   }
 
+  // Trailing separator punctuation a cut can leave dangling — "Dark City (" once "(1998)" is cut
+  // at its opening paren, "Baraka_Edition_Collector" once "Edition Collector" is cut leaving
+  // "Baraka_", etc. Applied after every cut, not baked into any one marker pattern, since any of
+  // them can leave this behind.
+  private static final Pattern TRAILING_SEPARATORS = Pattern.compile("[\\s\\-(\\[,]+$");
+
   /**
-   * Everything before whichever comes first: a season/episode marker, or a year — the two most
-   * reliable "the real title ends here" signals a release title carries. Falls back to the whole
-   * (separator-normalized) input when neither is present, same as a title with no other markers at
-   * all would leave nothing to cut.
+   * Everything before whichever comes first: a season/episode marker, a year, or a
+   * resolution/source marker — the release title's own technical tags, which bound the real title
+   * even when no year is present. Falls back to the whole (separator-normalized) input when none of
+   * these are present, same as a title with no other markers at all would leave nothing to cut.
    */
   private String extractCleanTitle(String normalized) {
+    normalized = stripLeadingTagIfNotTechnical(normalized);
     int cutAt = normalized.length();
-    for (Pattern marker : new Pattern[] {SEASON_EPISODE, SEASON_EPISODE_X, SEASON_PACK, YEAR}) {
+    for (Pattern marker : new Pattern[] {SEASON_EPISODE, SEASON_EPISODE_X, SEASON_PACK}) {
       Matcher matcher = marker.matcher(normalized);
       if (matcher.find() && matcher.start() < cutAt) {
         cutAt = matcher.start();
       }
     }
-    String cut = normalized.substring(0, cutAt).trim();
+    // Same parenthesized-preferred position #extractYear uses for the value — a title can itself
+    // contain a year-shaped number ("Paris 2054, Renaissance (2005)"), so cutting at the first bare
+    // match would truncate the real title too early.
+    int yearStart = yearCutPosition(normalized);
+    if (yearStart != -1 && yearStart < cutAt) {
+      cutAt = yearStart;
+    }
+    int resolutionStart = matcherStart(RESOLUTION, normalized);
+    if (resolutionStart != -1 && resolutionStart < cutAt) {
+      cutAt = resolutionStart;
+    }
+    int sourceStart = ReleaseToken.earliestMatchStart(Source.values(), normalized);
+    if (sourceStart != -1 && sourceStart < cutAt) {
+      cutAt = sourceStart;
+    }
+    int editionStart = ReleaseToken.earliestMatchStart(Edition.values(), normalized);
+    if (editionStart != -1 && editionStart < cutAt) {
+      cutAt = editionStart;
+    }
+    String cut =
+        TRAILING_SEPARATORS.matcher(normalized.substring(0, cutAt).trim()).replaceAll("").trim();
     return cut.isEmpty() ? normalized : cut;
+  }
+
+  private int yearCutPosition(String normalized) {
+    Matcher parenthesized = PARENTHESIZED_YEAR.matcher(normalized);
+    if (parenthesized.find()) {
+      return parenthesized.start();
+    }
+    return matcherStart(YEAR, normalized);
+  }
+
+  private int matcherStart(Pattern pattern, String input) {
+    Matcher matcher = pattern.matcher(input);
+    return matcher.find() ? matcher.start() : -1;
+  }
+
+  /**
+   * Only for {@link #extractCleanTitle}, never the shared {@code normalized} every other field is
+   * read from — a leading bracket ("[XCT] Movie...") is usually a meaningless site/uploader tag,
+   * but occasionally carries real technical info ("[h265 - hevc] Movie..."), which must stay
+   * visible to resolution/source/codec detection. Stripping it only when it contains none of those
+   * avoids losing that signal while still cleaning up the common case.
+   */
+  private String stripLeadingTagIfNotTechnical(String normalized) {
+    Matcher tag = LEADING_BRACKET_TAG.matcher(normalized);
+    if (!tag.find()) {
+      return normalized;
+    }
+    String bracketContent = normalized.substring(0, tag.end());
+    boolean technical =
+        RESOLUTION.matcher(bracketContent).find()
+            || ReleaseToken.match(Source.values(), bracketContent) != null
+            || ReleaseToken.match(VideoCodec.values(), bracketContent) != null
+            || ReleaseToken.match(AudioCodec.values(), bracketContent) != null;
+    return technical ? normalized : tag.replaceFirst("");
   }
 
   /** [seasonNumber, episodeNumber] — either or both may be null; see the patterns' own comment. */
@@ -119,6 +193,19 @@ public class ReleaseParser {
 
   private String extractReleaseGroup(String rawTitle) {
     return extractGroup(RELEASE_GROUP, rawTitle.trim()).orElse(null);
+  }
+
+  /**
+   * A parenthesized year ("Movie (2005)") wins over a bare year-shaped number even if the bare one
+   * comes first — a title can itself contain a year-like number ("Paris 2054, Renaissance (2005)"),
+   * and the parenthesized form is the conventional release-year position.
+   */
+  private Integer extractYear(String normalized) {
+    Matcher parenthesized = PARENTHESIZED_YEAR.matcher(normalized);
+    if (parenthesized.find()) {
+      return Integer.valueOf(parenthesized.group(1));
+    }
+    return extractGroup(YEAR, normalized).map(Integer::parseInt).orElse(null);
   }
 
   private String extractResolution(String input) {

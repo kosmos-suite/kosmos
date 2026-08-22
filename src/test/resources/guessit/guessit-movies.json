@@ -1,0 +1,1826 @@
+[
+  {
+    "input": "Fear.and.Loathing.in.Las.Vegas.720p.HDDVD.DTS.x264-ESiR",
+    "cleanTitle": "Fear and Loathing in Las Vegas",
+    "resolution": "720p",
+    "source": "HD-DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS",
+    "releaseGroup": "ESiR"
+  },
+  {
+    "input": "El.dia.de.la.bestia.DVDrip.Spanish.DivX.by.Artik[SEDG]",
+    "cleanTitle": "El Dia de la Bestia",
+    "source": "DVD",
+    "videoCodec": "DivX"
+  },
+  {
+    "input": "Dark.City.(1998).DC.BDRip.720p.DTS.X264-CHD",
+    "cleanTitle": "Dark City",
+    "year": 1998,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS",
+    "releaseGroup": "CHD"
+  },
+  {
+    "input": "Sin.City.2005.BDRip.720p.x264.AC3-SEPTiC",
+    "cleanTitle": "Sin City",
+    "year": 2005,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "SEPTiC"
+  },
+  {
+    "input": "Borat.(2006).R5.PROPER.REPACK.DVDRip.XviD-PUKKA",
+    "cleanTitle": "Borat",
+    "year": 2006,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "releaseGroup": "PUKKA",
+    "proper": true
+  },
+  {
+    "input": "Enter.the.Void.2009.2in1.1080p.BluRay.DD5.1.x264-EbP",
+    "cleanTitle": "Enter the Void",
+    "year": 2009,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "EbP"
+  },
+  {
+    "input": "[XCT].Le.Prestige.(The.Prestige).DVDRip.[x264.HP.He-Aac.{Fr-Eng}.St{Fr-Eng}.Chaps]",
+    "cleanTitle": "Le Prestige",
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "AAC"
+  },
+  {
+    "input": "Battle.Royale.(Batoru.Rowaiaru).(2000).(Special.Edition).CD1of2.DVDRiP.XviD-[ZeaL]",
+    "cleanTitle": "Battle Royale",
+    "year": 2000,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "edition": "Special"
+  },
+  {
+    "input": "Brazil_Criterion_Edition_(1985).CD2",
+    "cleanTitle": "Brazil",
+    "year": 1985,
+    "edition": "Criterion"
+  },
+  {
+    "input": "Picnic.at.Hanging.Rock.1975.Criterion.Collection.1080p.BluRay.x264.DTS-WiKi",
+    "cleanTitle": "Picnic at Hanging Rock",
+    "year": 1975,
+    "edition": "Criterion"
+  },
+  {
+    "input": "[XCT] Persepolis [H264+Aac-128(Fr-Eng)+ST(Fr-Eng)+Ind]",
+    "cleanTitle": "Persepolis",
+    "videoCodec": "H.264",
+    "audioCodec": "AAC"
+  },
+  {
+    "input": "Toy Story [HDTV 720p English-Spanish]",
+    "cleanTitle": "Toy Story",
+    "resolution": "720p",
+    "source": "HDTV"
+  },
+  {
+    "input": "Office.Space.[Dual-DVDRip].[Spanish-English].[XviD-AC3-AC3].[by.Oswald]",
+    "cleanTitle": "Office Space",
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Wild.Zero.DVDivX-EPiC",
+    "cleanTitle": "Wild Zero",
+    "videoCodec": "DivX",
+    "releaseGroup": "EPiC"
+  },
+  {
+    "input": "Baraka_Edition_Collector",
+    "cleanTitle": "Baraka",
+    "edition": "Collector"
+  },
+  {
+    "input": "Blade.Runner.(1982).(Director's.Cut).CD1.DVDRip.XviD.AC3-WAF",
+    "cleanTitle": "Blade Runner",
+    "year": 1982,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "WAF"
+  },
+  {
+    "input": "UsaBit.com_esd-americanbh",
+    "cleanTitle": "American The Bill Hicks Story",
+    "source": "DVD",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "wthd-cab",
+    "cleanTitle": "Charlie And Boots",
+    "source": "DVD",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "(1)The Girl With The Dragon Tattoo (2009) BRrip 720 AAC x264",
+    "cleanTitle": "The Girl With The Dragon Tattoo",
+    "year": 2009,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "AAC"
+  },
+  {
+    "input": "arw-repack-greenberg.dvdrip.xvid",
+    "cleanTitle": "Greenberg",
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "proper": true
+  },
+  {
+    "input": "Fr - Paris 2054, Renaissance (2005) - De Christian Volckman - (Film Divx Science Fiction Fantastique Thriller Policier N&B)",
+    "cleanTitle": "Paris 2054, Renaissance",
+    "year": 2005,
+    "videoCodec": "DivX"
+  },
+  {
+    "input": "[阿维达].Avida.2006.FRENCH.DVDRiP.XViD-PROD",
+    "cleanTitle": "Avida",
+    "year": 2006,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "releaseGroup": "PROD"
+  },
+  {
+    "input": "dmd-aw",
+    "cleanTitle": "Alice in Wonderland",
+    "source": "DVD",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "personnea_mp",
+    "cleanTitle": "Ne Le Dis A Personne"
+  },
+  {
+    "input": "Enki Bilal - Bunker Palace Hotel (Fr Vhs Rip)",
+    "cleanTitle": "Bunker Palace Hôtel",
+    "source": "VHS"
+  },
+  {
+    "input": "21.(2008).DVDRip.x264.AC3-FtS.[sharethefiles.com]",
+    "cleanTitle": "21",
+    "year": 2008,
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "9.2009.Blu-ray.DTS.720p.x264.HDBRiSe.[sharethefiles.com]",
+    "cleanTitle": "9",
+    "year": 2009,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "Mamma.Mia.2008.DVDRip.AC3.XviD-CrazyTeam",
+    "cleanTitle": "Mamma Mia",
+    "year": 2008,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "CrazyTeam"
+  },
+  {
+    "input": "MASH.(1970).[Divx.5.02][Dual-Subtitulos][DVDRip]",
+    "cleanTitle": "MASH",
+    "year": 1970,
+    "source": "DVD",
+    "videoCodec": "DivX"
+  },
+  {
+    "input": "09.03.08.The.Doors.(1991).BDRip.720p.AC3.X264-HiS@SiLUHD-English.[sharethefiles.com]",
+    "cleanTitle": "The Doors",
+    "year": 1991,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "08.03.09.The.Doors.(1991).BDRip.720p.AC3.X264-HiS@SiLUHD-English.[sharethefiles.com]",
+    "cleanTitle": "The Doors",
+    "year": 1991,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "video_ts-ratatouille",
+    "cleanTitle": "Ratatouille",
+    "source": "DVD"
+  },
+  {
+    "input": "Comme.Une.Image.FRENCH.DVDRiP.XViD-NTK.par-www.divx-overnet.com",
+    "cleanTitle": "Comme une Image",
+    "source": "DVD",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "Fantastic.Mr.Fox.2009.DVDRip.{x264+LC-AAC.5.1}{Fr-Eng}{Sub.Fr-Eng}-™.[sharethefiles.com]",
+    "cleanTitle": "Fantastic Mr Fox",
+    "year": 2009,
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "AAC"
+  },
+  {
+    "input": "i-smwhr",
+    "cleanTitle": "Somewhere",
+    "source": "DVD",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "Moon_(2009)",
+    "cleanTitle": "Moon",
+    "year": 2009
+  },
+  {
+    "input": "Moon_(2009)-x02-Making_Of",
+    "cleanTitle": "Moon",
+    "year": 2009
+  },
+  {
+    "input": "James_Bond-f17-Goldeneye",
+    "cleanTitle": "Goldeneye"
+  },
+  {
+    "input": "F1.The.Movie.2025.1080p.AMZN.WEB-DL.DDP5.1.Atmos.H.264-BYNDR",
+    "cleanTitle": "F1 The Movie",
+    "year": 2025
+  },
+  {
+    "input": "F1.2024.1080p",
+    "cleanTitle": "F1"
+  },
+  {
+    "input": "Fast and Furious F9 2021 BluRay 1080p.H264 Ita Eng AC3 5.1 Sub Ita Eng",
+    "year": 2021,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "James_Bond-f21-Casino_Royale",
+    "cleanTitle": "Casino Royale"
+  },
+  {
+    "input": "James_Bond-f21-Casino_Royale-x01-Becoming_Bond",
+    "cleanTitle": "Casino Royale"
+  },
+  {
+    "input": "James_Bond-f21-Casino_Royale-x02-Stunts",
+    "cleanTitle": "Casino Royale"
+  },
+  {
+    "input": "OSS_117--Cairo,_Nest_of_Spies",
+    "cleanTitle": "OSS 117"
+  },
+  {
+    "input": "The Godfather Part III",
+    "cleanTitle": "The Godfather"
+  },
+  {
+    "input": "Foobar Part VI",
+    "cleanTitle": "Foobar"
+  },
+  {
+    "input": "The_Insider-(1999)-x02-60_Minutes_Interview-1996",
+    "cleanTitle": "The Insider",
+    "year": 1999
+  },
+  {
+    "input": "Rush.._Beyond_The_Lighted_Stage-x09-Between_Sun_and_Moon-2002_Hartford",
+    "cleanTitle": "Rush Beyond The Lighted Stage",
+    "year": 2002
+  },
+  {
+    "input": "Indiana.Jones.and.the.Temple.of.Doom.1984.HDTV.720p.x264.AC3.5.1-REDµX",
+    "cleanTitle": "Indiana Jones and the Temple of Doom",
+    "year": 1984,
+    "resolution": "720p",
+    "source": "HDTV",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "REDµX"
+  },
+  {
+    "input": "The.Director’s.Notebook.2006.Blu-Ray.x264.DXVA.720p.AC3-de[42]",
+    "cleanTitle": "The Director’s Notebook",
+    "year": 2006,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "de[42]"
+  },
+  {
+    "input": "ano-cosmo.720p",
+    "cleanTitle": "Cosmopolis",
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "La.Science.Des.Reves.FRENCH.DVDRip.XviD-MP-AceBot",
+    "cleanTitle": "La Science des Rêves",
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "releaseGroup": "AceBot"
+  },
+  {
+    "input": "The_Italian_Job",
+    "cleanTitle": "The Italian Job"
+  },
+  {
+    "input": "The.Rum.Diary.2011.1080p.BluRay.DTS.x264.D-Z0N3",
+    "cleanTitle": "The Rum Diary",
+    "year": 2011,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "Life.Of.Pi.2012.1080p.BluRay.DTS.x264.D-Z0N3",
+    "cleanTitle": "Life Of Pi",
+    "year": 2012,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "The.Kings.Speech.2010.1080p.BluRay.DTS.x264.D Z0N3",
+    "cleanTitle": "The Kings Speech",
+    "year": 2010,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "Street.Kings.2008.BluRay.1080p.DTS.x264.dxva EuReKA",
+    "cleanTitle": "Street Kings",
+    "year": 2008,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "2001.A.Space.Odyssey.1968.HDDVD.1080p.DTS.x264.dxva EuReKA",
+    "cleanTitle": "2001 A Space Odyssey",
+    "year": 1968,
+    "resolution": "1080p",
+    "source": "HD-DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "2012.2009.720p.BluRay.x264.DTS WiKi",
+    "cleanTitle": "2012",
+    "year": 2009,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "XD607ebb-BRc59935-5155473f-1c5f49",
+    "cleanTitle": "Dead Man Down",
+    "source": "Blu-ray",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Pacific.Rim.3D.2013.COMPLETE.BLURAY-PCH",
+    "cleanTitle": "Pacific Rim",
+    "year": 2013,
+    "source": "Blu-ray",
+    "releaseGroup": "PCH"
+  },
+  {
+    "input": "Immersion.French.2011.STV.READNFO.QC.FRENCH.ENGLISH.NTSC.DVDR",
+    "cleanTitle": "Immersion French",
+    "year": 2011,
+    "source": "DVD"
+  },
+  {
+    "input": "Immersion.French.2011.STV.READNFO.QC.FRENCH.NTSC.DVDR",
+    "cleanTitle": "Immersion French",
+    "year": 2011,
+    "source": "DVD"
+  },
+  {
+    "input": "Immersion.French.2011.STV.READNFO.QC.NTSC.DVDR",
+    "cleanTitle": "Immersion",
+    "year": 2011,
+    "source": "DVD"
+  },
+  {
+    "input": "French.Immersion.2011.STV.READNFO.QC.ENGLISH.NTSC.DVDR",
+    "cleanTitle": "French Immersion",
+    "year": 2011,
+    "source": "DVD"
+  },
+  {
+    "input": "Howl's_Moving_Castle_(2004)_[720p,HDTV,x264,DTS]-FlexGet",
+    "cleanTitle": "Howl's Moving Castle",
+    "year": 2004,
+    "resolution": "720p",
+    "source": "HDTV",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS",
+    "releaseGroup": "FlexGet"
+  },
+  {
+    "input": "Pirates de langkasuka.2008.FRENCH.1920X1080.h264.AVC.AsiaRa",
+    "cleanTitle": "Pirates de langkasuka",
+    "year": 2008,
+    "resolution": "1080p",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "Masala (2013) Telugu Movie HD DVDScr XviD - Exclusive",
+    "cleanTitle": "Masala",
+    "year": 2013,
+    "source": "HD-DVD",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "Django Unchained 2012 DVDSCR X264 AAC-P2P",
+    "cleanTitle": "Django Unchained",
+    "year": 2012,
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "AAC",
+    "releaseGroup": "P2P"
+  },
+  {
+    "input": "Ejecutiva.En.Apuros(2009).BLURAY.SCR.Xvid.Spanish.LanzamientosD",
+    "cleanTitle": "Ejecutiva En Apuros",
+    "year": 2009,
+    "source": "Blu-ray",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "Die.Schluempfe.2.German.DL.1080p.BluRay.x264-EXQUiSiTE",
+    "cleanTitle": "Die Schluempfe 2",
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "EXQUiSiTE"
+  },
+  {
+    "input": "Rocky 1976 French SubForced BRRip x264 AC3-FUNKY",
+    "cleanTitle": "Rocky",
+    "year": 1976,
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "FUNKY"
+  },
+  {
+    "input": "REDLINE (BD 1080p H264 10bit FLAC) [3xR]",
+    "cleanTitle": "REDLINE",
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "FLAC"
+  },
+  {
+    "input": "The.Lizzie.McGuire.Movie.(2003).HR.DVDRiP",
+    "cleanTitle": "The Lizzie McGuire Movie",
+    "year": 2003,
+    "source": "DVD"
+  },
+  {
+    "input": "Hua.Mulan.BRRIP.MP4.x264.720p-HR",
+    "cleanTitle": "Hua Mulan",
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "HR"
+  },
+  {
+    "input": "Dr.Seuss.The.Lorax.2012.DVDRip.LiNE.XviD.AC3.HQ.Hive-CM8",
+    "cleanTitle": "Dr Seuss The Lorax",
+    "year": 2012,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Star Wars: Episode IV - A New Hope (2004) Special Edition",
+    "cleanTitle": "Star Wars: Episode IV",
+    "year": 2004,
+    "edition": "Special"
+  },
+  {
+    "input": "Dr.LiNE.The.Lorax.2012.DVDRip.LiNE.XviD.AC3.HQ.Hive-CM8",
+    "cleanTitle": "Dr LiNE The Lorax",
+    "year": 2012,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Dr.LiNE.The.Lorax.2012.DVDRip.XviD.AC3.HQ.Hive-CM8",
+    "cleanTitle": "Dr LiNE The Lorax",
+    "year": 2012,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Perfect Child-2007-TRUEFRENCH-TVRip.Xvid-h@mster",
+    "cleanTitle": "Perfect Child",
+    "year": 2007,
+    "source": "TV",
+    "videoCodec": "Xvid",
+    "releaseGroup": "h@mster"
+  },
+  {
+    "input": "entre.ciel.et.terre.(1994).dvdrip.h264.aac-psypeon",
+    "cleanTitle": "entre ciel et terre",
+    "year": 1994,
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "AAC",
+    "releaseGroup": "psypeon"
+  },
+  {
+    "input": "Yves.Saint.Laurent.2013.FRENCH.DVDSCR.MD.XviD-ViVARiUM",
+    "cleanTitle": "Yves Saint Laurent",
+    "year": 2013,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "releaseGroup": "ViVARiUM"
+  },
+  {
+    "input": "Echec et Mort - Hard to Kill - Steven Seagal Multi 1080p BluRay x264 CCATS",
+    "cleanTitle": "Echec et Mort",
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "Lindon (MKV 1080p tvripHD)",
+    "cleanTitle": "Paparazzi",
+    "resolution": "1080p",
+    "source": "HDTV"
+  },
+  {
+    "input": "some.movie.720p.bluray.x264-mind",
+    "cleanTitle": "some movie",
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "mind"
+  },
+  {
+    "input": "Dr LiNE The Lorax 720p h264 BluRay",
+    "cleanTitle": "Dr LiNE The Lorax",
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "Elle.s.en.va.720p",
+    "cleanTitle": "Elle s en va",
+    "resolution": "720p"
+  },
+  {
+    "input": "FooBar.7.PDTV-FlexGet",
+    "cleanTitle": "FooBar 7",
+    "source": "Digital TV",
+    "releaseGroup": "FlexGet"
+  },
+  {
+    "input": "h265 - HEVC Riddick Unrated Director Cut French 1080p DTS",
+    "cleanTitle": "Riddick",
+    "resolution": "1080p",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS",
+    "edition": "Unrated"
+  },
+  {
+    "input": "[h265 - HEVC] Riddick Unrated Director Cut French [1080p DTS]",
+    "cleanTitle": "Riddick",
+    "resolution": "1080p",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS",
+    "edition": "Unrated"
+  },
+  {
+    "input": "Barbecue-2014-French-mHD-1080p",
+    "cleanTitle": "Barbecue",
+    "year": 2014,
+    "resolution": "1080p"
+  },
+  {
+    "input": "Underworld Quadrilogie VO+VFF+VFQ 1080p HDlight.x264~Tonyk~Monde Infernal",
+    "cleanTitle": "Underworld Quadrilogie",
+    "resolution": "1080p",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "A Bout Portant (The Killers).PAL.Multi.DVD-R-KZ",
+    "cleanTitle": "A Bout Portant",
+    "source": "DVD",
+    "releaseGroup": "KZ"
+  },
+  {
+    "input": "Mise à Sac (Alain Cavalier, 1967) [Vhs.Rip.Vff]",
+    "cleanTitle": "Mise à Sac",
+    "year": 1967,
+    "source": "VHS"
+  },
+  {
+    "input": "A Bout Portant (The Killers).PAL.Multi.DVD-R-KZ",
+    "cleanTitle": "A Bout Portant",
+    "source": "DVD",
+    "releaseGroup": "KZ"
+  },
+  {
+    "input": "Youth.In.Revolt.(Be.Bad).2009.MULTI.1080p.LAME3*92-MEDIOZZ",
+    "cleanTitle": "Youth In Revolt",
+    "year": 2009,
+    "resolution": "1080p",
+    "audioCodec": "MP3",
+    "releaseGroup": "MEDIOZZ"
+  },
+  {
+    "input": "La Defense Lincoln (The Lincoln Lawyer) 2011 [DVDRIP][Vostfr]",
+    "cleanTitle": "La Defense Lincoln",
+    "year": 2011,
+    "source": "DVD"
+  },
+  {
+    "input": "[h265 - HEVC] Fight Club French 1080p DTS.",
+    "cleanTitle": "Fight Club",
+    "resolution": "1080p",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "Love Gourou (Mike Myers) - FR",
+    "cleanTitle": "Love Gourou"
+  },
+  {
+    "input": "[h265 - hevc] transformers 2 1080p french ac3 6ch.",
+    "cleanTitle": "transformers 2",
+    "resolution": "1080p",
+    "videoCodec": "H.265",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "1.Angry.Man.1957",
+    "cleanTitle": "1 Angry Man",
+    "year": 1957
+  },
+  {
+    "input": "12.Angry.Men.1957",
+    "cleanTitle": "12 Angry Men",
+    "year": 1957
+  },
+  {
+    "input": "123.Angry.Men.1957",
+    "cleanTitle": "123 Angry Men",
+    "year": 1957
+  },
+  {
+    "input": "Looney Tunes 1444x866 Porky's Last Stand",
+    "cleanTitle": "Looney Tunes",
+    "resolution": "1444x866"
+  },
+  {
+    "input": "Das.Appartement.German.AC3D.DL.720p.BluRay.x264-TVP",
+    "cleanTitle": "Das Appartement",
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "TVP"
+  },
+  {
+    "input": "Das.Appartement.GERMAN.AC3D.DL.720p.BluRay.x264-TVP",
+    "cleanTitle": "Das Appartement",
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "TVP"
+  },
+  {
+    "input": "Hyena.Road.2015.German.1080p.DL.DTSHD.Bluray.x264-pmHD",
+    "cleanTitle": "Hyena Road",
+    "year": 2015,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "pmHD"
+  },
+  {
+    "input": "Hyena.Road.2015.German.1080p.DL.DTSHD.Bluray.x264-pmHD",
+    "cleanTitle": "Hyena Road",
+    "year": 2015,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "pmHD"
+  },
+  {
+    "input": "Name.BDMux.720p",
+    "cleanTitle": "Name",
+    "resolution": "720p",
+    "source": "Blu-ray"
+  },
+  {
+    "input": "Name.BRMux.720p",
+    "cleanTitle": "Name",
+    "resolution": "720p",
+    "source": "Blu-ray"
+  },
+  {
+    "input": "Name.BDRipMux.720p",
+    "cleanTitle": "Name",
+    "resolution": "720p",
+    "source": "Blu-ray"
+  },
+  {
+    "input": "Name.BRRipMux.720p",
+    "cleanTitle": "Name",
+    "resolution": "720p",
+    "source": "Blu-ray"
+  },
+  {
+    "input": "Secondary Education (2013)",
+    "cleanTitle": "Secondary Education",
+    "year": 2013
+  },
+  {
+    "input": "Mad Max Beyond Thunderdome ()",
+    "cleanTitle": "Mad Max Beyond Thunderdome"
+  },
+  {
+    "input": "Hacksaw Ridge 2016 Multi 2160p UHD BluRay Hevc10 HDR10 DTSHD & ATMOS 7.1 -DDR",
+    "cleanTitle": "Hacksaw Ridge",
+    "year": 2016,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "releaseGroup": "DDR"
+  },
+  {
+    "input": "Special.Correspondents.2016.iTA.ENG.4K.2160p.NetflixUHD.TeamPremium",
+    "cleanTitle": "Special Correspondents",
+    "year": 2016,
+    "resolution": "2160p"
+  },
+  {
+    "input": "Suicide Squad EXTENDED (2016) 2160p 4K UltraHD Blu-Ray x265 (HEVC 10bit BT709) Dolby Atmos 7.1 -DDR",
+    "cleanTitle": "Suicide Squad",
+    "year": 2016,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "Dolby Atmos",
+    "releaseGroup": "DDR",
+    "edition": "Extended"
+  },
+  {
+    "input": "Queen - A Kind of Magic (Alternative Extended Version) 2CD 2014",
+    "cleanTitle": "Queen",
+    "year": 2014
+  },
+  {
+    "input": "Jour.de.Fete.1949.ALTERNATiVE.CUT.1080p.BluRay.x264-SADPANDA[rarbg]",
+    "cleanTitle": "Jour de Fete",
+    "year": 1949,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "SADPANDA[rarbg]"
+  },
+  {
+    "input": "The.Movie.CONVERT.720p.HDTV.x264-C4TV",
+    "cleanTitle": "The Movie",
+    "resolution": "720p",
+    "source": "HDTV",
+    "videoCodec": "H.264",
+    "releaseGroup": "C4TV"
+  },
+  {
+    "input": "Its.A.Wonderful.Life.1946.Colorized.720p.BRRip.999MB.MkvCage.com",
+    "cleanTitle": "Its A Wonderful Life",
+    "year": 1946,
+    "resolution": "720p",
+    "source": "Blu-ray"
+  },
+  {
+    "input": "Alien DC (1979) [1080p]",
+    "cleanTitle": "Alien",
+    "year": 1979,
+    "resolution": "1080p"
+  },
+  {
+    "input": "Requiem.For.A.Dream.2000.DC.1080p.BluRay.x264.anoXmous",
+    "cleanTitle": "Requiem For A Dream",
+    "year": 2000,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "Before.the.Flood.2016.DOCU.1080p.WEBRip.x264.DD5.1-FGT",
+    "cleanTitle": "Before the Flood",
+    "year": 2016,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "FGT"
+  },
+  {
+    "input": "Zootopia.2016.HDRip.1.46Gb.Dub.MegaPeer",
+    "cleanTitle": "Zootopia",
+    "year": 2016
+  },
+  {
+    "input": "Suntan.2016.FESTiVAL.DVDRip.x264-IcHoR",
+    "cleanTitle": "Suntan",
+    "year": 2016,
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "releaseGroup": "IcHoR",
+    "edition": "Festival"
+  },
+  {
+    "input": "Hardwired.STV.NFOFiX.FRENCH.DVDRiP.XviD-SURViVAL",
+    "cleanTitle": "Hardwired",
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "releaseGroup": "SURViVAL"
+  },
+  {
+    "input": "Maze.Runner.The.Scorch.Trials.OM.2015.WEB-DLRip.by.Seven",
+    "cleanTitle": "Maze Runner The Scorch Trials",
+    "year": 2015,
+    "source": "Web"
+  },
+  {
+    "input": "Maze.Runner.The.Scorch.Trials.OM.2015.WEB-DLRip.by.Seven",
+    "cleanTitle": "Maze Runner The Scorch Trials",
+    "year": 2015,
+    "source": "Web"
+  },
+  {
+    "input": "Foo Bar 2015 Open Matte 1080p WEB-DL DD+5.1 H.264",
+    "cleanTitle": "Foo Bar",
+    "year": 2015,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital Plus"
+  },
+  {
+    "input": "foo.bar.2015.open.matte.1080p.web-dl.dd+5.1.h.264",
+    "cleanTitle": "foo bar",
+    "year": 2015,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital Plus"
+  },
+  {
+    "input": "The.Matrix.1999.COMPLETE.BLURAY-GRP",
+    "cleanTitle": "The Matrix",
+    "year": 1999,
+    "source": "Blu-ray",
+    "releaseGroup": "GRP"
+  },
+  {
+    "input": "Heat.1995.COMPLETE.BLURAY.REMUX-GRP",
+    "cleanTitle": "Heat",
+    "year": 1995,
+    "source": "Blu-ray",
+    "releaseGroup": "GRP"
+  },
+  {
+    "input": "The.Matrix.COMPLETE.BLURAY-GRP",
+    "cleanTitle": "The Matrix",
+    "source": "Blu-ray",
+    "releaseGroup": "GRP"
+  },
+  {
+    "input": "Lord.of.the.Rings.Trilogy.COMPLETE.BLURAY-GRP",
+    "cleanTitle": "Lord of the Rings Trilogy",
+    "source": "Blu-ray",
+    "releaseGroup": "GRP"
+  },
+  {
+    "input": "All.Fall.Down.x264.PROOFFIX-OUTLAWS",
+    "cleanTitle": "All Fall Down",
+    "videoCodec": "H.264",
+    "releaseGroup": "OUTLAWS"
+  },
+  {
+    "input": "The.Last.Survivors.2014.PROOF.SAMPLE.FiX.BDRip.x264-TOPCAT",
+    "cleanTitle": "The Last Survivors",
+    "year": 2014,
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "TOPCAT"
+  },
+  {
+    "input": "Bad Santa 2 2016 THEATRiCAL FRENCH BDRip XviD-EXTREME",
+    "cleanTitle": "Bad Santa 2",
+    "year": 2016,
+    "source": "Blu-ray",
+    "videoCodec": "Xvid",
+    "releaseGroup": "EXTREME",
+    "edition": "Theatrical"
+  },
+  {
+    "input": "The Lord of the Rings The Fellowship of the Ring THEATRICAL EDITION (2001) [1080p]",
+    "cleanTitle": "The Lord of the Rings The Fellowship of the Ring",
+    "year": 2001,
+    "resolution": "1080p",
+    "edition": "Theatrical"
+  },
+  {
+    "input": "World War Z (2013) Theatrical Cut 720p BluRay x264",
+    "cleanTitle": "World War Z",
+    "year": 2013,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "edition": "Theatrical"
+  },
+  {
+    "input": "The Heartbreak Kid (1993) UNCUT 720p WEBRip x264",
+    "cleanTitle": "The Heartbreak Kid",
+    "year": 1993,
+    "resolution": "720p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "edition": "Uncut"
+  },
+  {
+    "input": "Mrs.Doubtfire.1993.720p.OAR.Bluray.DTS.x264-CtrlHD",
+    "cleanTitle": "Mrs Doubtfire",
+    "year": 1993,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS",
+    "releaseGroup": "CtrlHD"
+  },
+  {
+    "input": "Aliens.SE.1986.BDRip.1080p",
+    "cleanTitle": "Aliens",
+    "year": 1986,
+    "resolution": "1080p",
+    "source": "Blu-ray"
+  },
+  {
+    "input": "10 Cloverfield Lane.[Blu-Ray 1080p].[MULTI]",
+    "cleanTitle": "10 Cloverfield Lane",
+    "resolution": "1080p",
+    "source": "Blu-ray"
+  },
+  {
+    "input": "007.Spectre.[HDTC.MD].[TRUEFRENCH]",
+    "cleanTitle": "007 Spectre",
+    "source": "HD Telecine"
+  },
+  {
+    "input": "We.Are.X.2016.LIMITED.BDRip.x264-BiPOLAR",
+    "cleanTitle": "We Are X",
+    "year": 2016,
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "BiPOLAR",
+    "edition": "Limited"
+  },
+  {
+    "input": "The Rack (VHS) [1956] Paul Newman",
+    "cleanTitle": "The Rack",
+    "year": 1956,
+    "source": "VHS"
+  },
+  {
+    "input": "Les.Magiciens.1976.VHSRip.XViD",
+    "cleanTitle": "Les Magiciens",
+    "year": 1976,
+    "source": "VHS",
+    "videoCodec": "Xvid"
+  },
+  {
+    "input": "The Boss Baby 2017 720p CAM x264 AC3 TiTAN",
+    "cleanTitle": "The Boss Baby",
+    "year": 2017,
+    "resolution": "720p",
+    "source": "Camera",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "The.Boss.Baby.2017.HDCAM.XviD-MrGrey",
+    "cleanTitle": "The Boss Baby",
+    "year": 2017,
+    "source": "HD Camera",
+    "videoCodec": "Xvid",
+    "releaseGroup": "MrGrey"
+  },
+  {
+    "input": "The Martian 2015 Multi 2160p 4K UHD Bluray HEVC10 SDR DTSHD 7.1 -Zeus",
+    "cleanTitle": "The Martian",
+    "year": 2015,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "Zeus"
+  },
+  {
+    "input": "Fantastic Beasts and Where to Find Them 2016 Multi 2160p UHD BluRay HEVC HDR Atmos7.1-DDR",
+    "cleanTitle": "Fantastic Beasts and Where to Find Them",
+    "year": 2016,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "Dolby Atmos",
+    "releaseGroup": "DDR"
+  },
+  {
+    "input": "Life of Pi 2012 2160p 4K BluRay HDR10 HEVC BT2020 DTSHD 7.1 subs -DDR",
+    "cleanTitle": "Life of Pi",
+    "year": 2012,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "releaseGroup": "DDR"
+  },
+  {
+    "input": "Captain.America.Civil.War.HDR.1080p.HEVC.10bit.BT.2020.DTS-HD.MA.7.1-VISIONPLUSHDR",
+    "cleanTitle": "Captain America Civil War",
+    "resolution": "1080p",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "VISIONPLUSHDR"
+  },
+  {
+    "input": "Deadpool.2016.4K.2160p.UHD.HQ.8bit.BluRay.8CH.x265.HEVC-MZABI",
+    "cleanTitle": "Deadpool",
+    "year": 2016,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "releaseGroup": "MZABI"
+  },
+  {
+    "input": "Fantastic.Beasts.and.Where.to.Find.Them.2016.2160p.4K.UHD.10bit.HDR.BluRay.7.1.x265.HEVC-MZABI",
+    "cleanTitle": "Fantastic Beasts and Where to Find Them",
+    "year": 2016,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "releaseGroup": "MZABI"
+  },
+  {
+    "input": "The.Arrival.4K.HDR.HEVC.10bit.BT2020.DTS.HD-MA-MadVR.HDR10.Dolby.Vision-VISIONPLUSHDR1000",
+    "cleanTitle": "The Arrival",
+    "resolution": "2160p",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "VISIONPLUSHDR1000"
+  },
+  {
+    "input": "Foo.Bar.2021.DV.2160p.WEB-DL.x265-ASDF",
+    "cleanTitle": "Foo Bar",
+    "resolution": "2160p",
+    "videoCodec": "H.265",
+    "releaseGroup": "ASDF"
+  },
+  {
+    "input": "Some.Movie.2017.2160p.UHD.BluRay.DTS-HD.MA.5.1.DoVi.x265-NoGroup",
+    "cleanTitle": "Some Movie",
+    "year": 2017,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "NoGroup"
+  },
+  {
+    "input": "How To Steal A Dog.2014.BluRay.1080p.12bit.HEVC.OPUS 5.1-Hn1Dr2",
+    "cleanTitle": "How To Steal A Dog",
+    "year": 2014,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "Opus",
+    "releaseGroup": "Hn1Dr2"
+  },
+  {
+    "input": "Interstelar.2014.IMAX.RUS.BDRip.x264.-HELLYWOOD",
+    "cleanTitle": "Interstelar",
+    "year": 2014,
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "HELLYWOOD",
+    "edition": "IMAX"
+  },
+  {
+    "input": "The.Dark.Knight.IMAX.EDITION.HQ.BluRay.1080p.x264.AC3.Hindi.Eng.ETRG",
+    "cleanTitle": "The Dark Knight",
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "edition": "IMAX"
+  },
+  {
+    "input": "The.Martian.2015.4K.UHD.UPSCALED-ETRG",
+    "cleanTitle": "The Martian",
+    "year": 2015,
+    "resolution": "2160p",
+    "releaseGroup": "ETRG"
+  },
+  {
+    "input": "Heathers.1988.1080p.BluRay.ARROW.4K.RESTORED.Plus.Comm.DTS.x264-MaG",
+    "cleanTitle": "Heathers",
+    "year": 1988,
+    "resolution": "1080p",
+    "releaseGroup": "MaG",
+    "edition": "Restored"
+  },
+  {
+    "input": "The.Woman.2011.1080p.BluRay.4K.REMASTERED.Remux.AVC.DTS-HD.MA.5.1-PTP",
+    "cleanTitle": "The Woman",
+    "year": 2011,
+    "resolution": "1080p",
+    "releaseGroup": "PTP",
+    "edition": "Remastered"
+  },
+  {
+    "input": "Delibal 2015 720p Upscale DVDRip x264 DD5.1 AC3",
+    "cleanTitle": "Delibal",
+    "year": 2015,
+    "resolution": "720p",
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Casablanca [Ultimate Collector's Edition].1942.BRRip.XviD-VLiS",
+    "cleanTitle": "Casablanca",
+    "year": 1942,
+    "source": "Blu-ray",
+    "videoCodec": "Xvid",
+    "releaseGroup": "VLiS",
+    "edition": "Ultimate"
+  },
+  {
+    "input": "Batman V Superman Dawn of Justice 2016 Extended Cut Ultimate Edition HDRip x264 AC3-DaDDy",
+    "cleanTitle": "Batman V Superman Dawn of Justice",
+    "year": 2016,
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "DaDDy",
+    "edition": "Extended"
+  },
+  {
+    "input": "Stargate SG1 Ultimate Fan Collection",
+    "cleanTitle": "Stargate SG1",
+    "edition": "Ultimate"
+  },
+  {
+    "input": "The.Jungle.Book.2016.MULTi.1080p.BluRay.x264.DTS-HD.MA.7.1.DTS-HD.HRA.5.1-LeRalou",
+    "cleanTitle": "The Jungle Book",
+    "year": 2016,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "LeRalou"
+  },
+  {
+    "input": "Terminus.2015.BluRay.1080p.x264.DTS-HD.HRA.5.1-LTT",
+    "cleanTitle": "Terminus",
+    "year": 2015,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "LTT"
+  },
+  {
+    "input": "Ghost.in.the.Shell.1995.1080p.Bluray.DTSES.x264-SHiTSoNy",
+    "cleanTitle": "Ghost in the Shell",
+    "year": 1995,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "The.Boss.Baby.2017.BluRay.1080p.DTS-ES.x264-PRoDJi",
+    "cleanTitle": "The Boss Baby",
+    "year": 2017,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS",
+    "releaseGroup": "PRoDJi"
+  },
+  {
+    "input": "Title.2000.720p.BluRay.DDEX.x264-HDClub",
+    "cleanTitle": "Title",
+    "year": 2000,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "HDClub"
+  },
+  {
+    "input": "Jack Reacher Never Go Back 2016 720p Bluray DD-EX x264-BluPanther",
+    "cleanTitle": "Jack Reacher Never Go Back",
+    "year": 2016,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "BluPanther"
+  },
+  {
+    "input": "How To Steal A Dog.2014.BluRay.1080p.12bit.HEVC.OPUS 5.1-Hn1Dr2",
+    "cleanTitle": "How To Steal A Dog",
+    "year": 2014,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "Opus",
+    "releaseGroup": "Hn1Dr2"
+  },
+  {
+    "input": "blow-how.to.be.single.2016.1080p.bluray.x264",
+    "cleanTitle": "How To Be Single",
+    "year": 2016,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "After.the.Storm.2016.720p.YIFY",
+    "cleanTitle": "After the Storm",
+    "year": 2016,
+    "resolution": "720p"
+  },
+  {
+    "input": "Battle Royale 2000 DC (1080p Bluray x265 HEVC 10bit AAC 7.1 Japanese Tigole)",
+    "cleanTitle": "Battle Royale",
+    "year": 2000,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "AAC"
+  },
+  {
+    "input": "Congo.The.Grand.Inga.Project.2013.1080p.BluRay.x264-OBiTS",
+    "cleanTitle": "Congo The Grand Inga Project",
+    "year": 2013,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "OBiTS"
+  },
+  {
+    "input": "Congo.The.Grand.Inga.Project.2013.BRRip.XviD.MP3-RARBG",
+    "cleanTitle": "Congo The Grand Inga Project",
+    "year": 2013,
+    "source": "Blu-ray",
+    "videoCodec": "Xvid",
+    "audioCodec": "MP3",
+    "releaseGroup": "RARBG"
+  },
+  {
+    "input": "Congo.The.Grand.Inga.Project.2013.720p.BluRay.H264.AAC-RARBG",
+    "cleanTitle": "Congo The Grand Inga Project",
+    "year": 2013,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "AAC",
+    "releaseGroup": "RARBG"
+  },
+  {
+    "input": "Mit.dem.Bauch.durch.die.Wand.SWiSSGERMAN.DOKU.DVDRiP.x264-DEFLOW",
+    "cleanTitle": "Mit dem Bauch durch die Wand",
+    "source": "DVD",
+    "videoCodec": "H.264",
+    "releaseGroup": "DEFLOW"
+  },
+  {
+    "input": "InDefinitely.Maybe.2008.1080p.EUR.BluRay.VC-1.DTS-HD.MA.5.1-FGT",
+    "cleanTitle": "InDefinitely Maybe",
+    "year": 2008,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "VC-1",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "FGT"
+  },
+  {
+    "input": "Bjyukujyo Kyoushi Kan XXX 720P WEBRIP MP4-GUSH",
+    "cleanTitle": "Bjyukujyo Kyoushi Kan",
+    "resolution": "720p",
+    "source": "Web",
+    "releaseGroup": "GUSH"
+  },
+  {
+    "input": "The.Man.With.The.Golden.Arm.1955.1080p.BluRay.x264.DTS-FGT",
+    "cleanTitle": "The Man With The Golden Arm",
+    "year": 1955,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS",
+    "releaseGroup": "FGT"
+  },
+  {
+    "input": "blow-how.to.be.single.2016.1080p.bluray.x264",
+    "cleanTitle": "how to be single",
+    "year": 2016,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "ulshd-the.right.stuff.1983.multi.1080p.bluray.x264",
+    "cleanTitle": "the right stuff",
+    "year": 1983,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "FROZEN [2010] LiMiTED DVDRip H262 AAC[ ENG SUBS]-MANTESH",
+    "cleanTitle": "FROZEN",
+    "year": 2010,
+    "source": "DVD",
+    "videoCodec": "MPEG-2",
+    "audioCodec": "AAC",
+    "releaseGroup": "MANTESH",
+    "edition": "Limited"
+  },
+  {
+    "input": "Family.Katta.2016.1080p.WEB-DL.H263.DD5.1.ESub-DDR",
+    "cleanTitle": "Family Katta",
+    "year": 2016,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.263",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "DDR"
+  },
+  {
+    "input": "Bad Boys 2 1080i.mpg2.rus.eng",
+    "cleanTitle": "Bad Boys 2",
+    "resolution": "1080i",
+    "videoCodec": "MPEG-2"
+  },
+  {
+    "input": "Alien.Director.Cut.Ita.Eng.VP9.Opus.AlphaBot",
+    "cleanTitle": "Alien",
+    "videoCodec": "VP9",
+    "audioCodec": "Opus"
+  },
+  {
+    "input": "The.Stranger.1946.US.(Kino.Classics).Bluray.1080p.LPCM.DD-2.0.x264-Grym@BTNET",
+    "cleanTitle": "The Stranger",
+    "year": 1946,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "Grym@BTNET"
+  },
+  {
+    "input": "X-Men.Apocalypse.2016.complete.hdts.pcm.TrueFrench-Scarface45",
+    "cleanTitle": "X-Men Apocalypse",
+    "year": 2016,
+    "source": "HD Telesync",
+    "audioCodec": "PCM",
+    "releaseGroup": "Scarface45"
+  },
+  {
+    "input": "Tears.of.Steel.2012.2160p.DMRip.Eng.HDCLUB",
+    "cleanTitle": "Tears of Steel",
+    "year": 2012,
+    "resolution": "2160p",
+    "source": "Digital Master"
+  },
+  {
+    "input": "Open Season 2 (2008) - Bluray-1080p.x264.DTS",
+    "cleanTitle": "Open Season 2",
+    "year": 2008,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS"
+  },
+  {
+    "input": "Re-Animator.1985.INTEGRAL VERSION LIMITED EDITION.1080p.BluRay.REMUX.AVC.DTS-HD MA 5.1-LAZY",
+    "cleanTitle": "Re-Animator",
+    "year": 1985,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "DTS-HD",
+    "releaseGroup": "LAZY",
+    "edition": "Limited"
+  },
+  {
+    "input": "The.Movie.2016.2160p.UHD.BluRay.REMUX.HDR.HEVC.DTS-X-NOGROUP",
+    "cleanTitle": "The Movie",
+    "year": 2016,
+    "resolution": "2160p",
+    "source": "Ultra HD Blu-ray",
+    "videoCodec": "H.265",
+    "audioCodec": "DTS:X",
+    "releaseGroup": "NOGROUP"
+  },
+  {
+    "input": "Test (2013) [WEBDL-1080p] [x264 AC3] [ENG+RU+PT] [NTb]",
+    "cleanTitle": "Test",
+    "year": 2013,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "[nextorrent.org] Bienvenue.Au.Gondwana.2016.FRENCH.DVDRiP.XViD-AViTECH",
+    "cleanTitle": "Bienvenue Au Gondwana",
+    "year": 2016,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "releaseGroup": "AViTECH"
+  },
+  {
+    "input": "Star Trek First Contact (1996) Blu-Ray 1080p24 H.264 TrueHD 5.1 CtrlHD",
+    "cleanTitle": "Star Trek First Contact",
+    "year": 1996,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby TrueHD"
+  },
+  {
+    "input": "The.Hobbit.The.Desolation.of.Smaug.Extended.HFR.48fps.ITA.ENG.AC3.BDRip.1080p.x264_ZMachine",
+    "cleanTitle": "The Hobbit The Desolation of Smaug",
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "edition": "Extended"
+  },
+  {
+    "input": "Test (2013) [WEBDL-1080p] [x264 AC3] [ENG+PT+DE] [STANDARD]",
+    "cleanTitle": "Test",
+    "year": 2013,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Test (2013) [WEBDL-1080p] [x264 AC3] [ENG+DE+IT] [STANDARD]",
+    "cleanTitle": "Test",
+    "year": 2013,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "Ant-Man.and.the.Wasp.2018.Digital.Extras.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTG",
+    "cleanTitle": "Ant-Man and the Wasp",
+    "year": 2018,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital Plus",
+    "releaseGroup": "NTG"
+  },
+  {
+    "input": "Ant-Man.and.the.Wasp.2018.1080p.AMZN.WEB-DL.DDP5.1.H.264-NTG",
+    "cleanTitle": "Ant-Man and the Wasp",
+    "year": 2018,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital Plus",
+    "releaseGroup": "NTG"
+  },
+  {
+    "input": "Avengers.Infinity.War.2018.3D.Hybrid.REPACK.1080p.BluRay.REMUX.AVC.Atmos-EPSiLON",
+    "cleanTitle": "Avengers Infinity War",
+    "year": 2018,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Atmos",
+    "releaseGroup": "EPSiLON",
+    "proper": true
+  },
+  {
+    "input": "Ouija.Seance.The.Final.Game.2018.1080p.WEB-DL.DD5.1.H264-CMRG",
+    "cleanTitle": "Ouija Seance The Final Game",
+    "year": 2018,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "CMRG"
+  },
+  {
+    "input": "The.Girl.in.the.Spiders.Web.2019.1080p.WEB-DL.x264.AC3-EVO",
+    "cleanTitle": "The Girl in the Spiders Web",
+    "year": 2019,
+    "resolution": "1080p",
+    "source": "Web",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "EVO"
+  },
+  {
+    "input": "Kes.1969.1080p.BluRay.FLAC1.0.x264-DON",
+    "cleanTitle": "Kes",
+    "year": 1969,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "audioCodec": "FLAC",
+    "releaseGroup": "DON"
+  },
+  {
+    "input": "Some.Movie.2019.Micro-HD.1080p.x264-GRP",
+    "cleanTitle": "Some Movie",
+    "year": 2019,
+    "resolution": "1080p",
+    "videoCodec": "H.264",
+    "releaseGroup": "GRP"
+  },
+  {
+    "input": "Barbecue-2014-French-mHD-1080p",
+    "cleanTitle": "Barbecue",
+    "year": 2014,
+    "resolution": "1080p"
+  },
+  {
+    "input": "The.Immigrant.1917.1080p.BluRay.x264-GRP",
+    "cleanTitle": "The Immigrant",
+    "year": 1917,
+    "resolution": "1080p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264",
+    "releaseGroup": "GRP"
+  },
+  {
+    "input": "Us.2019",
+    "cleanTitle": "Us",
+    "year": 2019
+  },
+  {
+    "input": "The.Collector.2009.1080p",
+    "cleanTitle": "The Collector",
+    "year": 2009
+  },
+  {
+    "input": "The.Convert.2024.1080p",
+    "cleanTitle": "The Convert",
+    "year": 2024
+  },
+  {
+    "input": "xXx.2002.1080p",
+    "cleanTitle": "xXx",
+    "year": 2002
+  },
+  {
+    "input": "It.Ends.With.Us.2024.1080p",
+    "cleanTitle": "It Ends With Us",
+    "year": 2024
+  },
+  {
+    "input": "Extended.2019.1080p",
+    "year": 2019,
+    "edition": "Extended"
+  },
+  {
+    "input": "Proper.2020.720p",
+    "year": 2020,
+    "proper": true
+  },
+  {
+    "input": "US.2019.1080p",
+    "year": 2019
+  },
+  {
+    "input": "It.Ends.With.[Us].2019.1080p",
+    "cleanTitle": "It Ends With",
+    "year": 2019
+  },
+  {
+    "input": "[YTS.MX] Movie Name (2019) 1080p BluRay (YIFY)",
+    "cleanTitle": "Movie Name",
+    "year": 2019
+  },
+  {
+    "input": "Cinema.Paradiso.La.Extended.1988.1080p.BluRay.x264-GRP",
+    "year": 1988,
+    "edition": "Extended"
+  },
+  {
+    "input": "The.Last.of.Us.2023.1080p.BluRay.x264-GROUP",
+    "cleanTitle": "The Last of Us",
+    "year": 2023,
+    "releaseGroup": "GROUP"
+  },
+  {
+    "input": "Some.Title.1983.LDRip.x264-GRP",
+    "cleanTitle": "Some Title",
+    "year": 1983,
+    "source": "Laserdisc",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "Some.Title.1983.Laserdisc.x264-GRP",
+    "cleanTitle": "Some Title",
+    "year": 1983,
+    "source": "Laserdisc",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "Dr.Line.Seuss.The.Lorax.2012.DVDRip.LiNE.XviD.AC3.HQ.Hive-CM8",
+    "cleanTitle": "Dr Line Seuss The Lorax",
+    "year": 2012,
+    "source": "DVD",
+    "videoCodec": "Xvid",
+    "audioCodec": "Dolby Digital"
+  },
+  {
+    "input": "www.Tamilblasters.party - The Wheel of Time (2021) 720p x264",
+    "cleanTitle": "The Wheel of Time",
+    "year": 2021,
+    "resolution": "720p",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "www.TamilBlasters.vip - Shang-Chi (2021) 720p BDRip x264",
+    "cleanTitle": "Shang-Chi",
+    "year": 2021,
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "www.5MovieRulz.show - Khel Khel Mein (2024) 1080p x264",
+    "cleanTitle": "Khel Khel Mein",
+    "year": 2024,
+    "resolution": "1080p",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "www.1TamilMV.pics - 777 Charlie (2022) 720p x264",
+    "cleanTitle": "777 Charlie",
+    "year": 2022,
+    "resolution": "720p",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "劇場版 ペンギン・ハイウェイ Penguin Highway The Movie (BD 1280x720 AVC)",
+    "cleanTitle": "Penguin Highway The Movie",
+    "resolution": "720p",
+    "source": "Blu-ray",
+    "videoCodec": "H.264"
+  },
+  {
+    "input": "Opus.2025.Hybrid.2160p.WEB-DL.DV.HDR.DDP5.1.Atmos.H265-AOC",
+    "cleanTitle": "Opus",
+    "year": 2025
+  },
+  {
+    "input": "Something.Opus.2025.1080p.WEB-DL.DDP5.1-AOC",
+    "cleanTitle": "Something Opus",
+    "year": 2025
+  },
+  {
+    "input": "opus.2025.1080p.web-dl.ddp5.1.atmos.h265-aoc",
+    "cleanTitle": "opus",
+    "year": 2025
+  },
+  {
+    "input": "something.opus.2025.1080p.web-dl.ddp5.1-aoc",
+    "cleanTitle": "something opus",
+    "year": 2025
+  },
+  {
+    "input": "foo.opus.bar.2025.1080p.web-dl.ddp5.1-aoc",
+    "cleanTitle": "foo opus bar",
+    "year": 2025
+  },
+  {
+    "input": "How To Steal A Dog.2014.BluRay.1080p.12bit.HEVC.OPUS 5.1-Hn1Dr2",
+    "cleanTitle": "How To Steal A Dog",
+    "year": 2014,
+    "audioCodec": "Opus"
+  },
+  {
+    "input": "Alien.Director.Cut.Ita.Eng.VP9.Opus.AlphaBot",
+    "cleanTitle": "Alien",
+    "audioCodec": "Opus"
+  },
+  {
+    "input": "Les.Profs.2013.FRENCH.AC3.1080.x264-Ox",
+    "cleanTitle": "Les Profs",
+    "year": 2013,
+    "resolution": "1080p",
+    "videoCodec": "H.264",
+    "audioCodec": "Dolby Digital",
+    "releaseGroup": "Ox"
+  },
+  {
+    "input": "Movie.Name.2013.720.x264-Ox",
+    "cleanTitle": "Movie Name",
+    "year": 2013,
+    "resolution": "720p",
+    "videoCodec": "H.264",
+    "releaseGroup": "Ox"
+  },
+  {
+    "input": "Movie.Name.2013.2160.x265-Ox",
+    "cleanTitle": "Movie Name",
+    "year": 2013,
+    "resolution": "2160p",
+    "videoCodec": "H.265",
+    "releaseGroup": "Ox"
+  },
+  {
+    "input": "Movie Name 2013 1080 x265 Ox",
+    "cleanTitle": "Movie Name",
+    "year": 2013,
+    "resolution": "1080p",
+    "videoCodec": "H.265"
+  },
+  {
+    "input": "Movie.Name.2013.1080-x264-Ox",
+    "cleanTitle": "Movie Name",
+    "year": 2013,
+    "resolution": "1080p",
+    "videoCodec": "H.264",
+    "releaseGroup": "Ox"
+  },
+  {
+    "input": "Les.Profs.2013.FRENCH.AC3.1080.x264-Ox",
+    "cleanTitle": "Les Profs",
+    "year": 2013,
+    "resolution": "1080p",
+    "videoCodec": "H.264",
+    "releaseGroup": "Ox"
+  },
+  {
+    "input": "Movie.Name.2013.720.x264-Ox",
+    "cleanTitle": "Movie Name",
+    "year": 2013,
+    "resolution": "720p",
+    "videoCodec": "H.264"
+  }
+]

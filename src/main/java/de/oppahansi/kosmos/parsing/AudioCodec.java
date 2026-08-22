@@ -12,8 +12,13 @@ enum AudioCodec implements ReleaseToken {
   DTS("DTS", "dts"),
   DOLBY_ATMOS("Dolby Atmos", "atmos", "dolby-?atmos"),
   DOLBY_TRUEHD("Dolby TrueHD", "true-?hd"),
-  DOLBY_DIGITAL_PLUS("Dolby Digital Plus", "ddp", "dd\\+", "e-?ac-?3"),
-  DOLBY_DIGITAL("Dolby Digital", "dolby(?:digital)?", "dolby-digital", "dd", "ac-?3d?"),
+  // "ddp\d"/"dd\+\d" (not just bare "ddp"/"dd\+") to also catch a channel count directly attached
+  // with no separator ("DDP5.1", "DD+5.1") — the shared \b...\b wrapping every alias needs a real
+  // word boundary right after whatever matched, which "dd" alone never gets when a digit follows
+  // (digit and letter are both word characters, so there's no boundary between them).
+  DOLBY_DIGITAL_PLUS("Dolby Digital Plus", "ddp", "ddp\\d", "dd\\+", "dd\\+\\d", "e-?ac-?3"),
+  DOLBY_DIGITAL(
+      "Dolby Digital", "dolby(?:digital)?", "dolby-digital", "dd", "dd\\d", "ddex", "ac-?3d?"),
   AAC("AAC", "aac"),
   FLAC("FLAC", "flac"),
   OPUS("Opus", "opus"),
