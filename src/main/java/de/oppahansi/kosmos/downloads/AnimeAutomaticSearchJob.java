@@ -83,11 +83,11 @@ public class AnimeAutomaticSearchJob implements JobHandler {
   private void searchAndGrab(UUID episodeMediaItemId) {
     AnimeEpisode episode = AnimeEpisode.<AnimeEpisode>findById(episodeMediaItemId);
     if (episode == null
-        || episode.anime.qualityProfile == null
+        || episode.season.anime.qualityProfile == null
         || episode.absoluteEpisodeNumber == null) {
       return;
     }
-    Anime anime = episode.anime;
+    Anime anime = episode.season.anime;
     List<Indexer> indexers = Indexer.list("enabled", true);
     if (indexers.isEmpty()) {
       return;

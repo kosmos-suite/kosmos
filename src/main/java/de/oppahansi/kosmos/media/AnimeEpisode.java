@@ -16,15 +16,16 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 /**
- * One episode of an {@link Anime}, sharing its primary key with a {@link MediaItem} — same pattern
- * as {@link Episode}, and for the same reason: {@code Release}/{@code Grab}/{@code LibraryFile}
- * already FK to {@code media_item_id} generically, so this is what makes an anime episode
- * individually gradable/searchable too, with no schema change needed to any of those three tables.
+ * One episode of an {@link AnimeSeason}, sharing its primary key with a {@link MediaItem} — same
+ * pattern as {@link Episode}, and for the same reason: {@code Release}/{@code Grab}/{@code
+ * LibraryFile} already FK to {@code media_item_id} generically, so this is what makes an anime
+ * episode individually gradable/searchable too, with no schema change needed to any of those three
+ * tables.
  *
- * <p>Carries both {@code episodeNumber} (per-type numbering, as AniDB reports it — resets for
- * specials/OVAs) and {@code absoluteEpisodeNumber} (the continuous count fansub releases actually
- * use in filenames, e.g. episode 313 of a long-runner) since fansub-release matching needs the
- * latter but AniDB's own per-episode identity needs the former.
+ * <p>Carries both {@code episodeNumber} (numbering within its season) and {@code
+ * absoluteEpisodeNumber} (continuous across the whole {@link Anime} franchise, the count fansub
+ * releases actually use in filenames — e.g. episode 313 of a long-runner) since fansub-release
+ * matching needs the latter but the season UI needs the former.
  */
 @Entity
 @Table(name = "anime_episode")
@@ -40,8 +41,8 @@ public class AnimeEpisode extends PanacheEntityBase {
   public MediaItem mediaItem;
 
   @ManyToOne(optional = false)
-  @JoinColumn(name = "anime_id")
-  public Anime anime;
+  @JoinColumn(name = "season_id")
+  public AnimeSeason season;
 
   @Column(name = "episode_number")
   public Integer episodeNumber;
@@ -66,6 +67,6 @@ public class AnimeEpisode extends PanacheEntityBase {
 
   /** Convenience accessor — the anime's quality profile governs what to search for this episode. */
   public QualityProfile qualityProfile() {
-    return anime.qualityProfile;
+    return season.anime.qualityProfile;
   }
 }

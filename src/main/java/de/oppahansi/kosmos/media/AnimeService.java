@@ -21,6 +21,7 @@ import jakarta.inject.Inject;
 import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.time.Instant;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -55,22 +56,20 @@ public class AnimeService {
     return Anime.findByIdOptional(id);
   }
 
-  public List<AnimeEpisode> episodesFor(UUID animeId) {
-    return AnimeEpisode.list(
-        "anime.mediaItemId = ?1 order by coalesce(absoluteEpisodeNumber, episodeNumber)", animeId);
+  public List<AnimeSeason> seasonsFor(UUID animeId) {
+    return AnimeSeason.list("anime.mediaItemId = ?1 order by seasonNumber", animeId);
+  }
+
+  public List<AnimeEpisode> episodesFor(UUID seasonId) {
+    return AnimeEpisode.list("season.id = ?1 order by episodeNumber", seasonId);
   }
 
   /**
    * Unlike {@link MovieService#create}, the AniList fetch isn't best-effort — an anime with no
    * episode count isn't a useful entry to have added, so a fetch failure fails the whole creation
    * rather than leaving an empty shell (same reasoning {@link ShowService#create} uses for TMDB).
-   * The episode tree is enriched via Fribb/anime-lists when possible (see {@link #fribbEnrichment})
-   * — real titles/overviews/air dates/stills from TMDB instead of AniList's own too-sparse-to-trust
-   * per-episode data, plus TheXEM-corrected absolute numbering when this anime's own AniDB id has
-   * one — but that enrichment is best-effort throughout: no Fribb mapping, no TMDB cross-reference,
-   * no TheXEM map, or a fetch failure at any step all fall back to the same flat {@code "Episode
-   * N"} / {@code absoluteEpisodeNumber == episodeNumber} shape this always produced, never blocking
-   * anime creation over it.
+   * The season/episode tree comes from {@link #resolveSeasonChain}/{@link #persistSeasons} — see
+   * their own docs.
    */
   @Transactional
   public Anime create(CreateAnimeRequest request) {
@@ -91,16 +90,27 @@ public class AnimeService {
     anime.qualityProfile = qualityProfileService.resolveOrThrow(request.qualityProfileId());
 
     if ("anilist".equals(request.pluginSlug()) && request.externalId() != null) {
-      AniListAnimeDetails details =
-          aniListMetadataProvider
-              .fetchById(request.externalId())
-              .orElseThrow(
-                  () ->
-                      new BadRequestException("AniList entry not found: " + request.externalId()));
-      anime.status = details.status();
-      anime.episodeCountTotal = details.episodeCount();
+      int anilistId;
+      try {
+        anilistId = Integer.parseInt(request.externalId());
+      } catch (NumberFormatException e) {
+        throw new BadRequestException("Invalid AniList id: " + request.externalId());
+      }
+      FribbEntry entry =
+          resolveFribbEntry(request.externalId())
+              .orElse(new FribbEntry(anilistId, null, null, null, null, null, null));
+      List<FribbEntry> seasonChain = resolveSeasonChain(entry);
+      Map<Integer, AniListAnimeDetails> detailsById =
+          withSeasonDetails(seasonChain, aniListMetadataProvider.fetchByIds(List.of(anilistId)));
+      AniListAnimeDetails primaryDetails = detailsById.get(anilistId);
+      if (primaryDetails == null) {
+        throw new BadRequestException("AniList entry not found: " + request.externalId());
+      }
+      anime.status = primaryDetails.status();
       anime.persist();
-      persistEpisodes(anime, details.episodeCount(), fribbEnrichment(mediaItem, request));
+      linkFribbExternalIds(mediaItem, entry);
+      anime.episodeCountTotal = persistSeasons(anime, seasonChain, detailsById);
+      linkTmdbTvId(mediaItem, entry);
     } else {
       anime.persist();
     }
@@ -113,23 +123,33 @@ public class AnimeService {
   }
 
   /**
-   * Used by {@code JellyfinSyncService} — same AniList-driven episode tree as {@link #create}, but
-   * from a server-reported title/year/root-folder and an already-resolved {@link FribbEntry} (found
-   * by reverse Fribb lookup on the Jellyfin item's TMDB id) rather than a user-submitted request,
-   * and with no quality profile assigned — matches Jellyfin-synced movies/shows, which are also
-   * unmonitored until the user assigns one. {@code details} is pre-fetched by the caller via {@code
-   * AniListMetadataProvider#fetchByIds} — a whole sync's AniList lookups are batched up front
-   * rather than one {@link AniListMetadataProvider#fetchById} call per anime, which is what let a
-   * large library outrun AniList's rate limit and silently drop titles.
+   * Used by {@code JellyfinSyncService} — same AniList-driven season/episode tree as {@link
+   * #create}, but from a server-reported title/year/root-folder and an already-resolved {@link
+   * FribbEntry} (found by reverse Fribb lookup on the Jellyfin item's TMDB id) rather than a
+   * user-submitted request, and with no quality profile assigned — matches Jellyfin-synced
+   * movies/shows, which are also unmonitored until the user assigns one. {@code anilistDetailsById}
+   * is pre-fetched by the caller via {@code AniListMetadataProvider#fetchByIds} — a whole sync's
+   * AniList lookups are batched up front rather than one {@link AniListMetadataProvider#fetchById}
+   * call per anime, which is what let a large library outrun AniList's rate limit and silently drop
+   * titles; {@link #withSeasonDetails} only falls back to its own extra fetch for a sibling season
+   * the caller's batch didn't already cover.
    */
   @Transactional
   public Anime createFromJellyfin(
       String title,
       Integer year,
       FribbEntry fribbEntry,
-      AniListAnimeDetails details,
+      Map<Integer, AniListAnimeDetails> anilistDetailsById,
       LibraryRootFolder rootFolder) {
-    String anilistId = String.valueOf(fribbEntry.anilistId());
+    List<FribbEntry> seasonChain = resolveSeasonChain(fribbEntry);
+    Map<Integer, AniListAnimeDetails> detailsById =
+        withSeasonDetails(seasonChain, anilistDetailsById);
+    // The matched entry's own details are guaranteed present — that's what got this show
+    // classified in the first place — so they're the fallback if the canonical (earliest
+    // non-specials) season's own AniList fetch came back empty.
+    AniListAnimeDetails matchedDetails = detailsById.get(fribbEntry.anilistId());
+    AniListAnimeDetails canonicalDetails =
+        canonicalSeasonDetails(seasonChain, detailsById, matchedDetails);
 
     MediaItem mediaItem = new MediaItem();
     mediaItem.contentType = "anime";
@@ -141,31 +161,76 @@ public class AnimeService {
 
     Anime anime = new Anime();
     anime.mediaItem = mediaItem;
-    anime.overview = details.overview();
-    anime.posterPath = details.posterPath();
-    anime.status = details.status();
-    anime.episodeCountTotal = details.episodeCount();
+    anime.overview = canonicalDetails.overview();
+    anime.posterPath = canonicalDetails.posterPath();
+    anime.status = canonicalDetails.status();
     anime.persist();
 
     linkFribbExternalIds(mediaItem, fribbEntry);
-    persistEpisodes(anime, details.episodeCount(), fribbEnrichmentFrom(fribbEntry));
+    anime.episodeCountTotal = persistSeasons(anime, seasonChain, detailsById);
+    linkTmdbTvId(mediaItem, fribbEntry);
 
-    externalIdLinkService.link(mediaItem, "anilist", anilistId);
+    externalIdLinkService.link(mediaItem, "anilist", String.valueOf(fribbEntry.anilistId()));
     return anime;
   }
 
   /**
-   * Resolves this anime's AniList id through Fribb/anime-lists to a TMDB TV id + season number (for
-   * the real episode tree) and an AniDB id (for {@link TheXemMappingProvider}'s absolute- numbering
-   * correction), recording whatever other catalog ids the mapping carries along the way.
-   * Empty/absent fields throughout are all handled by {@link #persistEpisodes}'s own fallbacks.
+   * Every AniList cour in {@code fribbEntry}'s franchise, ordered by TMDB season number — see
+   * {@link AnimeSeason}'s own doc for why Fribb/anime-lists' TMDB cross-reference is the source of
+   * this instead of AniList (which has no season concept) or Jellyfin (whose own season folders
+   * aren't trusted here, per the anime data model's design). Falls back to a single-entry "season 1
+   * only" chain when {@code fribbEntry} has no TMDB TV id to group siblings by.
    */
-  private FribbEnrichment fribbEnrichment(MediaItem mediaItem, CreateAnimeRequest request) {
-    FribbEntry entry = resolveFribbEntry(request.externalId()).orElse(null);
-    if (entry != null) {
-      linkFribbExternalIds(mediaItem, entry);
+  private List<FribbEntry> resolveSeasonChain(FribbEntry fribbEntry) {
+    Integer tmdbTvId = fribbEntry.themoviedbId() != null ? fribbEntry.themoviedbId().tv() : null;
+    if (tmdbTvId == null) {
+      return List.of(fribbEntry);
     }
-    return fribbEnrichmentFrom(entry);
+    List<FribbEntry> chain = fribbMappingProvider.seasonsForTmdbTvId(tmdbTvId);
+    return chain.isEmpty() ? List.of(fribbEntry) : chain;
+  }
+
+  /**
+   * {@code alreadyFetched} plus a single extra batched fetch for whichever season ids it's missing.
+   */
+  private Map<Integer, AniListAnimeDetails> withSeasonDetails(
+      List<FribbEntry> seasonChain, Map<Integer, AniListAnimeDetails> alreadyFetched) {
+    List<Integer> missing =
+        seasonChain.stream()
+            .map(FribbEntry::anilistId)
+            .filter(id -> !alreadyFetched.containsKey(id))
+            .toList();
+    if (missing.isEmpty()) {
+      return alreadyFetched;
+    }
+    Map<Integer, AniListAnimeDetails> merged = new LinkedHashMap<>(alreadyFetched);
+    merged.putAll(aniListMetadataProvider.fetchByIds(missing));
+    return merged;
+  }
+
+  /**
+   * The franchise's own poster/overview/status come from its earliest real (non-specials) season —
+   * {@code fallback} covers the rare case where that particular season's own AniList fetch came
+   * back empty even though the chain includes it.
+   */
+  private AniListAnimeDetails canonicalSeasonDetails(
+      List<FribbEntry> seasonChain,
+      Map<Integer, AniListAnimeDetails> detailsById,
+      AniListAnimeDetails fallback) {
+    FribbEntry canonical =
+        seasonChain.stream()
+            .filter(e -> e.season() != null && e.season().tmdb() != null && e.season().tmdb() >= 1)
+            .findFirst()
+            .orElse(seasonChain.get(0));
+    AniListAnimeDetails details = detailsById.get(canonical.anilistId());
+    return details != null ? details : fallback;
+  }
+
+  private void linkTmdbTvId(MediaItem mediaItem, FribbEntry entry) {
+    Integer tmdbTvId = entry.themoviedbId() != null ? entry.themoviedbId().tv() : null;
+    if (tmdbTvId != null) {
+      externalIdLinkService.link(mediaItem, "tmdb", String.valueOf(tmdbTvId));
+    }
   }
 
   private Optional<FribbEntry> resolveFribbEntry(String anilistExternalId) {
@@ -268,59 +333,192 @@ public class AnimeService {
             extras.certification(),
             extras.cast(),
             extras.similar(),
+            previewSeasons(externalId, b),
             List.of(),
-            previewEpisodes(externalId, b.episodeCount()),
             extras.trailerUrl()));
   }
 
   /**
-   * Same Fribb/TMDB episode enrichment {@link #create} persists, reused read-only for the not-owned
-   * preview screen so it can render the identical Episodes section an owned anime's detail page
-   * does. Best-effort throughout, same as {@link #fribbEnrichmentFrom} — no mapping or a fetch
-   * failure just means the plain {@code "Episode N"} fallback, never a broken preview.
+   * Same season chain and Fribb/TMDB episode enrichment {@link #createFromJellyfin}/{@link #create}
+   * persist, reused read-only for the not-owned preview screen so it can render the identical
+   * Seasons section an owned anime's detail page does. Best-effort throughout: any lookup failure
+   * mid-chain falls back to just {@code base} as a single season, never a broken preview.
    */
-  private List<MediaPreview.PreviewEpisode> previewEpisodes(
-      String anilistExternalId, Integer episodeCount) {
-    if (episodeCount == null || episodeCount <= 0) {
+  private List<MediaPreview.PreviewSeason> previewSeasons(
+      String anilistExternalId, AniListAnimeDetails base) {
+    int anilistId;
+    try {
+      anilistId = Integer.parseInt(anilistExternalId);
+    } catch (NumberFormatException e) {
       return List.of();
     }
-    FribbEnrichment enrichment;
+    List<FribbEntry> seasonChain;
+    Map<Integer, AniListAnimeDetails> detailsById;
     try {
-      enrichment = fribbEnrichmentFrom(resolveFribbEntry(anilistExternalId).orElse(null));
+      FribbEntry entry =
+          resolveFribbEntry(anilistExternalId)
+              .orElse(new FribbEntry(anilistId, null, null, null, null, null, null));
+      seasonChain = resolveSeasonChain(entry);
+      detailsById = withSeasonDetails(seasonChain, Map.of(anilistId, base));
     } catch (Exception e) {
-      enrichment = new FribbEnrichment(List.of(), null);
+      seasonChain = List.of(new FribbEntry(anilistId, null, null, null, null, null, null));
+      detailsById = Map.of(anilistId, base);
     }
-    List<MediaPreview.PreviewEpisode> out = new java.util.ArrayList<>();
-    for (int i = 1; i <= episodeCount; i++) {
-      int episodeNumber = i;
-      TmdbShowStructure.EpisodeData tmdbEpisode =
-          enrichment.episodes().stream()
-              .filter(e -> e.episodeNumber() == episodeNumber)
-              .findFirst()
-              .orElse(null);
-      String title =
-          tmdbEpisode != null && tmdbEpisode.title() != null ? tmdbEpisode.title() : "Episode " + i;
+
+    // Same season-number grouping as persistSeasons — see that method's own doc for why multiple
+    // chain entries can share one TMDB season number (a "Part 1"/"Part 2" split TMDB itself
+    // doesn't distinguish).
+    Map<Integer, List<FribbEntry>> partsBySeasonNumber = new LinkedHashMap<>();
+    for (FribbEntry entry : seasonChain) {
+      AniListAnimeDetails details = detailsById.get(entry.anilistId());
+      if (details == null || details.episodeCount() == null || details.episodeCount() <= 0) {
+        continue;
+      }
+      int seasonNumber =
+          entry.season() != null && entry.season().tmdb() != null ? entry.season().tmdb() : 1;
+      partsBySeasonNumber
+          .computeIfAbsent(seasonNumber, k -> new java.util.ArrayList<>())
+          .add(entry);
+    }
+
+    List<MediaPreview.PreviewSeason> out = new java.util.ArrayList<>();
+    int offset = 0;
+    for (Map.Entry<Integer, List<FribbEntry>> seasonParts : partsBySeasonNumber.entrySet()) {
+      int seasonNumber = seasonParts.getKey();
+      int seasonOffset = seasonNumber == 0 ? 0 : offset;
+
+      List<MediaPreview.PreviewEpisode> episodes = new java.util.ArrayList<>();
+      int withinSeasonOffset = 0;
+      for (FribbEntry part : seasonParts.getValue()) {
+        AniListAnimeDetails details = detailsById.get(part.anilistId());
+        FribbEnrichment enrichment;
+        try {
+          enrichment = fribbEnrichmentFrom(part);
+        } catch (Exception e) {
+          enrichment = new FribbEnrichment(List.of(), null);
+        }
+        for (int i = 1; i <= details.episodeCount(); i++) {
+          int episodeNumber = i;
+          TmdbShowStructure.EpisodeData tmdbEpisode =
+              enrichment.episodes().stream()
+                  .filter(e -> e.episodeNumber() == episodeNumber)
+                  .findFirst()
+                  .orElse(null);
+          String title =
+              tmdbEpisode != null && tmdbEpisode.title() != null
+                  ? tmdbEpisode.title()
+                  : "Episode " + i;
+          int withinCourNumber =
+              enrichment.anidbId() == null
+                  ? i
+                  : theXemMappingProvider
+                      .sceneAbsoluteForAnidbEpisode(enrichment.anidbId(), i)
+                      .orElse(i);
+          episodes.add(
+              new MediaPreview.PreviewEpisode(
+                  withinSeasonOffset + i,
+                  seasonOffset + withinSeasonOffset + withinCourNumber,
+                  title,
+                  tmdbEpisode != null ? tmdbEpisode.airDate() : null));
+        }
+        withinSeasonOffset += details.episodeCount();
+      }
       out.add(
-          new MediaPreview.PreviewEpisode(
-              i, title, tmdbEpisode != null ? tmdbEpisode.airDate() : null));
+          new MediaPreview.PreviewSeason(
+              seasonNumber,
+              seasonNumber == 0 ? "Specials" : "Season " + seasonNumber,
+              withinSeasonOffset,
+              episodes));
+      if (seasonNumber != 0) {
+        offset += withinSeasonOffset;
+      }
     }
     return out;
   }
 
   /**
-   * {@code enrichment.episodes()} is matched in by episode number and is optional per-episode — a
-   * title missing from it (TMDB's season having fewer entries than AniList's count, or no mapping
-   * at all) just falls back to the {@code "Episode N"} placeholder for that one episode, same as
-   * before Fribb enrichment existed. {@code absoluteEpisodeNumber} defaults to the within-cour
-   * episode number {@code i} and is only overridden when {@link TheXemMappingProvider} has a real
-   * scene-numbering entry for {@code (enrichment.anidbId(), i)} — the fansub-visible absolute count
-   * for a long-running show can genuinely differ from a fresh cour's own 1-based count, which is
-   * exactly what {@link AnimeReleaseParser}-driven search/grab matches against.
+   * Creates one {@link AnimeSeason} per distinct TMDB season number in the chain — TMDB (and so
+   * Fribb, which cross-references it) doesn't always split a "Part 1"/"Part 2" cour pair the way
+   * AniList does, so multiple chain entries can legitimately share one season number; those are
+   * merged into a single season whose episodes run Part 1 then Part 2 in chain order, the same
+   * shape a TMDB show's own season would have. Each season is offset by every non-specials season
+   * before it, so {@code absoluteEpisodeNumber} runs continuously across the whole franchise.
+   * Season 0 (specials) is excluded from that running offset and numbers its own episodes from 1,
+   * same as TMDB does for shows. A chain entry the AniList batch has nothing for is silently
+   * skipped, same best-effort spirit as the enrichment below.
+   *
+   * @return the franchise's total real episode count across every persisted season, or {@code null}
+   *     if none had one (mirrors the old flat model's "nothing to persist" case).
    */
-  private void persistEpisodes(Anime anime, Integer episodeCount, FribbEnrichment enrichment) {
-    if (episodeCount == null || episodeCount <= 0) {
-      return;
+  private Integer persistSeasons(
+      Anime anime, List<FribbEntry> seasonChain, Map<Integer, AniListAnimeDetails> detailsById) {
+    Map<Integer, List<FribbEntry>> partsBySeasonNumber = new LinkedHashMap<>();
+    for (FribbEntry entry : seasonChain) {
+      AniListAnimeDetails details = detailsById.get(entry.anilistId());
+      if (details == null || details.episodeCount() == null || details.episodeCount() <= 0) {
+        continue;
+      }
+      int seasonNumber =
+          entry.season() != null && entry.season().tmdb() != null ? entry.season().tmdb() : 1;
+      partsBySeasonNumber
+          .computeIfAbsent(seasonNumber, k -> new java.util.ArrayList<>())
+          .add(entry);
     }
+
+    int offset = 0;
+    int total = 0;
+    boolean anyEpisodes = false;
+    for (Map.Entry<Integer, List<FribbEntry>> seasonParts : partsBySeasonNumber.entrySet()) {
+      int seasonNumber = seasonParts.getKey();
+      List<FribbEntry> parts = seasonParts.getValue();
+      int seasonEpisodeCount =
+          parts.stream().mapToInt(e -> detailsById.get(e.anilistId()).episodeCount()).sum();
+      AniListAnimeDetails firstPartDetails = detailsById.get(parts.get(0).anilistId());
+
+      AnimeSeason season = new AnimeSeason();
+      season.anime = anime;
+      season.seasonNumber = seasonNumber;
+      season.name = seasonNumber == 0 ? "Specials" : "Season " + seasonNumber;
+      season.overview = firstPartDetails.overview();
+      season.episodeCount = seasonEpisodeCount;
+      season.anilistId = String.valueOf(parts.get(0).anilistId());
+      season.absoluteOffset = seasonNumber == 0 ? 0 : offset;
+      season.persist();
+
+      int withinSeasonOffset = 0;
+      for (FribbEntry part : parts) {
+        AniListAnimeDetails partDetails = detailsById.get(part.anilistId());
+        persistEpisodesForSeason(
+            season, withinSeasonOffset, partDetails.episodeCount(), fribbEnrichmentFrom(part));
+        withinSeasonOffset += partDetails.episodeCount();
+      }
+
+      if (seasonNumber != 0) {
+        offset += seasonEpisodeCount;
+      }
+      total += seasonEpisodeCount;
+      anyEpisodes = true;
+    }
+    return anyEpisodes ? total : null;
+  }
+
+  /**
+   * Persists one cour's worth of episodes into {@code season}, numbered {@code withinSeasonOffset +
+   * 1 .. withinSeasonOffset + episodeCount} within it — {@code withinSeasonOffset} is only ever
+   * non-zero for a season's second (or later) part, see {@link #persistSeasons}. {@code
+   * enrichment.episodes()} is matched in by this cour's own 1-based episode number and is optional
+   * per-episode — a title missing from it (TMDB's season having fewer entries than AniList's count,
+   * or no mapping at all) just falls back to the {@code "Episode N"} placeholder for that one
+   * episode, same as before Fribb enrichment existed.
+   *
+   * <p>{@link TheXemMappingProvider} only ever corrects a cour's own within-cour position (it has
+   * no concept of a multi-cour franchise), so its result — or {@code i} itself when there's no
+   * correction — still needs {@code season.absoluteOffset + withinSeasonOffset} added on top to
+   * land in the franchise's continuous count, which is what {@link AnimeReleaseParser}-driven
+   * search/grab actually matches against.
+   */
+  private void persistEpisodesForSeason(
+      AnimeSeason season, int withinSeasonOffset, int episodeCount, FribbEnrichment enrichment) {
     for (int i = 1; i <= episodeCount; i++) {
       int episodeNumber = i;
       TmdbShowStructure.EpisodeData tmdbEpisode =
@@ -333,21 +531,23 @@ public class AnimeService {
       episodeMediaItem.contentType = "anime_episode";
       episodeMediaItem.title =
           tmdbEpisode != null && tmdbEpisode.title() != null ? tmdbEpisode.title() : "Episode " + i;
-      episodeMediaItem.year = anime.mediaItem.year;
+      episodeMediaItem.year = season.anime.mediaItem.year;
       episodeMediaItem.addedAt = Instant.now();
-      episodeMediaItem.rootFolder = anime.mediaItem.rootFolder;
+      episodeMediaItem.rootFolder = season.anime.mediaItem.rootFolder;
       episodeMediaItem.persist();
 
-      AnimeEpisode episode = new AnimeEpisode();
-      episode.mediaItem = episodeMediaItem;
-      episode.anime = anime;
-      episode.episodeNumber = i;
-      episode.absoluteEpisodeNumber =
+      int withinCourNumber =
           enrichment.anidbId() == null
               ? i
               : theXemMappingProvider
                   .sceneAbsoluteForAnidbEpisode(enrichment.anidbId(), i)
                   .orElse(i);
+
+      AnimeEpisode episode = new AnimeEpisode();
+      episode.mediaItem = episodeMediaItem;
+      episode.season = season;
+      episode.episodeNumber = withinSeasonOffset + i;
+      episode.absoluteEpisodeNumber = season.absoluteOffset + withinSeasonOffset + withinCourNumber;
       episode.episodeType = "EPISODE";
       if (tmdbEpisode != null) {
         episode.overview = tmdbEpisode.overview();

@@ -2,8 +2,8 @@ package de.oppahansi.kosmos.media;
 
 import de.oppahansi.kosmos.auth.CurrentUser;
 import de.oppahansi.kosmos.media.dto.AnimeDetailResponse;
-import de.oppahansi.kosmos.media.dto.AnimeEpisodeResponse;
 import de.oppahansi.kosmos.media.dto.AnimeResponse;
+import de.oppahansi.kosmos.media.dto.AnimeSeasonResponse;
 import de.oppahansi.kosmos.media.dto.CreateAnimeRequest;
 import de.oppahansi.kosmos.media.dto.UpdateMovieQualityProfileRequest;
 import jakarta.inject.Inject;
@@ -17,6 +17,8 @@ import jakarta.ws.rs.PathParam;
 import jakarta.ws.rs.Produces;
 import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -100,16 +102,23 @@ public class AnimeResource {
   }
 
   private AnimeDetailResponse toDetail(Anime anime) {
-    List<AnimeEpisode> episodes = animeService.episodesFor(anime.mediaItemId);
-    Map<UUID, String> statusByEpisode =
-        MediaItemStatus.forMediaItems(episodes.stream().map(e -> e.mediaItemId).toList());
-    List<AnimeEpisodeResponse> episodeResponses =
-        episodes.stream()
+    List<AnimeSeason> seasons = animeService.seasonsFor(anime.mediaItemId);
+    Map<UUID, List<AnimeEpisode>> episodesBySeason = new HashMap<>();
+    List<UUID> allEpisodeIds = new ArrayList<>();
+    for (AnimeSeason season : seasons) {
+      List<AnimeEpisode> episodes = animeService.episodesFor(season.id);
+      episodesBySeason.put(season.id, episodes);
+      episodes.forEach(e -> allEpisodeIds.add(e.mediaItemId));
+    }
+    Map<UUID, String> statusByEpisode = MediaItemStatus.forMediaItems(allEpisodeIds);
+
+    List<AnimeSeasonResponse> seasonResponses =
+        seasons.stream()
             .map(
-                e ->
-                    AnimeEpisodeResponse.from(
-                        e, statusByEpisode.getOrDefault(e.mediaItemId, "MISSING")))
+                season ->
+                    AnimeSeasonResponse.from(
+                        season, episodesBySeason.get(season.id), statusByEpisode))
             .toList();
-    return AnimeDetailResponse.from(anime, episodeResponses);
+    return AnimeDetailResponse.from(anime, seasonResponses);
   }
 }

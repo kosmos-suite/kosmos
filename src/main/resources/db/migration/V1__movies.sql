@@ -306,10 +306,9 @@ CREATE TABLE request (
     decided_at            TIMESTAMP
 );
 
--- anime-specific attributes for a MediaItem, sharing its PK like movie/show. Deliberately no
--- season level between anime and episode: AniDB (the identity source for anime, §07 Phase 3)
--- doesn't model seasons either — a new cour of a long-running show is normally a wholly separate
--- AID/anime entry there, not a season of the same one.
+-- anime-specific attributes for a MediaItem, sharing its PK like movie/show. Represents a whole
+-- franchise (every cour a TMDB TV id's own season carries), not a single AniList entry — see
+-- anime_season.
 CREATE TABLE anime (
     media_item_id      VARCHAR(36) PRIMARY KEY REFERENCES media_item(id),
     overview           VARCHAR(4000),
@@ -320,11 +319,29 @@ CREATE TABLE anime (
     quality_profile_id VARCHAR(36) REFERENCES quality_profile(id)
 );
 
+-- One AniList cour of an anime franchise. AniList/AniDB don't model seasons themselves — a new
+-- cour is normally a wholly separate anime entry there — so season_number and the episode
+-- ordering that anchors absolute_episode_number both come from Fribb/anime-lists' TMDB
+-- cross-reference (season.tmdb) instead: every AniList id sharing the franchise's TMDB TV id,
+-- ordered by that TMDB season number.
+CREATE TABLE anime_season (
+    id              VARCHAR(36) PRIMARY KEY,
+    anime_id        VARCHAR(36) NOT NULL REFERENCES anime(media_item_id),
+    season_number   INTEGER NOT NULL,
+    name            VARCHAR(200) NOT NULL,
+    overview        VARCHAR(4000),
+    episode_count   INTEGER,
+    anilist_id      VARCHAR(200),
+    -- how many episodes precede this season in the franchise's continuous absolute numbering;
+    -- season 0 (specials) is excluded from that count and numbers its own episodes from 1.
+    absolute_offset INTEGER NOT NULL DEFAULT 0
+);
+
 -- shares its PK with media_item too, same reasoning as episode: an anime episode needs to be
 -- individually gradable/searchable the same way a TV episode is.
 CREATE TABLE anime_episode (
     media_item_id           VARCHAR(36) PRIMARY KEY REFERENCES media_item(id),
-    anime_id                VARCHAR(36) NOT NULL REFERENCES anime(media_item_id),
+    season_id               VARCHAR(36) NOT NULL REFERENCES anime_season(id),
     episode_number          INTEGER,
     absolute_episode_number INTEGER,
     -- EPISODE / SPECIAL / OP / ED / TRAILER / PARODY / OTHER, per AniDB's own episode-type model

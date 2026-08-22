@@ -27,9 +27,9 @@ public record AnimeEpisodeDetailResponse(
         episode.absoluteEpisodeNumber,
         episode.mediaItem.title,
         episode.runtimeMinutes,
-        episode.anime.mediaItemId,
-        episode.anime.mediaItem.title,
-        episode.anime.qualityProfile == null ? null : episode.anime.qualityProfile.id,
+        episode.season.anime.mediaItemId,
+        episode.season.anime.mediaItem.title,
+        episode.season.anime.qualityProfile == null ? null : episode.season.anime.qualityProfile.id,
         status);
   }
 }

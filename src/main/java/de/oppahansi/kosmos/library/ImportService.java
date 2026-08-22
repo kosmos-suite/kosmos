@@ -231,7 +231,7 @@ public class ImportService {
                 () ->
                     new InternalServerErrorException(
                         "No anime episode row for media item " + mediaItem.id));
-    MediaItem animeMediaItem = animeEpisode.anime.mediaItem;
+    MediaItem animeMediaItem = animeEpisode.season.anime.mediaItem;
     int number =
         animeEpisode.absoluteEpisodeNumber != null
             ? animeEpisode.absoluteEpisodeNumber

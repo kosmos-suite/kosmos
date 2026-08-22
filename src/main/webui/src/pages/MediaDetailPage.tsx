@@ -12,9 +12,9 @@ import {
 } from "@phosphor-icons/react";
 import { Link, useNavigate } from "react-router-dom";
 import { backdropUrl, posterUrl } from "../api/tmdbImage";
-import type { AnimeDetail, AnimeEpisode, EpisodeStatus, Movie, PreviewEpisode, PreviewSeason, Season, ShowDetail } from "../api/types";
+import type { AnimeDetail, AnimeSeason, EpisodeStatus, Movie, PreviewEpisode, PreviewSeason, Season, ShowDetail } from "../api/types";
 import { CastRow, SimilarRow } from "../components/DetailExtrasSections";
-import { type EpisodeRowData, FlatEpisodeList, GroupedEpisodeList, type SeasonRowData } from "../components/detail/EpisodeList";
+import { GroupedEpisodeList, type SeasonRowData } from "../components/detail/EpisodeList";
 import { FileStatusCard } from "../components/detail/FileStatusCard";
 import { QualityProfileDropdown } from "../components/detail/QualityProfileDropdown";
 import { useAddToLibrary } from "../hooks/useAddToLibrary";
@@ -42,18 +42,25 @@ function seasonsFromPreview(seasons: PreviewSeason[]): Season[] {
   }));
 }
 
-function episodesFromPreview(episodes: PreviewEpisode[]): AnimeEpisode[] {
-  return episodes.map((e) => ({
-    id: `preview-episode-${e.episodeNumber}`,
-    episodeNumber: e.episodeNumber,
-    absoluteEpisodeNumber: e.episodeNumber,
-    episodeType: "EPISODE",
-    title: e.title,
+function animeSeasonsFromPreview(seasons: PreviewSeason[]): AnimeSeason[] {
+  return seasons.map((s) => ({
+    id: `preview-season-${s.seasonNumber}`,
+    seasonNumber: s.seasonNumber,
+    name: s.name,
     overview: null,
-    airDate: e.airDate,
-    runtimeMinutes: null,
-    stillPath: null,
-    status: "MISSING" as EpisodeStatus,
+    episodeCount: s.episodeCount,
+    episodes: s.episodes.map((e) => ({
+      id: `preview-episode-${s.seasonNumber}-${e.episodeNumber}`,
+      episodeNumber: e.episodeNumber,
+      absoluteEpisodeNumber: e.absoluteEpisodeNumber,
+      episodeType: "EPISODE",
+      title: e.title,
+      overview: null,
+      airDate: e.airDate,
+      runtimeMinutes: null,
+      stillPath: null,
+      status: "MISSING" as EpisodeStatus,
+    })),
   }));
 }
 
@@ -109,7 +116,6 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
   const file = kind === "movie" ? (libraryFiles[0] ?? null) : null;
 
   let groupedSeasons: SeasonRowData[] | null = null;
-  let flatEpisodes: EpisodeRowData[] | null = null;
   if (kind === "show") {
     const seasons = owned && ownedMedia ? (ownedMedia as ShowDetail).seasons : seasonsFromPreview(preview?.seasons ?? []);
     groupedSeasons = seasons.map((s) => ({
@@ -126,14 +132,20 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
       })),
     }));
   } else if (kind === "anime") {
-    const episodes = owned && ownedMedia ? (ownedMedia as AnimeDetail).episodes : episodesFromPreview(preview?.episodes ?? []);
-    flatEpisodes = episodes.map((e) => ({
-      id: e.id,
-      number: e.absoluteEpisodeNumber ?? e.episodeNumber,
-      title: e.title,
-      airDate: e.airDate,
-      status: e.status,
-      searchHref: owned ? `/anime-episodes/${e.id}/search` : null,
+    const seasons = owned && ownedMedia ? (ownedMedia as AnimeDetail).seasons : animeSeasonsFromPreview(preview?.seasons ?? []);
+    groupedSeasons = seasons.map((s) => ({
+      id: s.id,
+      name: s.name,
+      episodeCount: s.episodeCount,
+      episodes: s.episodes.map((e) => ({
+        id: e.id,
+        number: e.episodeNumber,
+        absoluteNumber: e.absoluteEpisodeNumber,
+        title: e.title,
+        airDate: e.airDate,
+        status: e.status,
+        searchHref: owned ? `/anime-episodes/${e.id}/search` : null,
+      })),
     }));
   }
 
@@ -143,7 +155,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
     availability = file ? "good" : "bad";
     availabilityLabel = file ? "In Library" : "Missing";
   } else {
-    const episodes = kind === "show" ? (groupedSeasons ?? []).flatMap((s) => s.episodes) : (flatEpisodes ?? []);
+    const episodes = (groupedSeasons ?? []).flatMap((s) => s.episodes);
     const availableCount = episodes.filter((e) => e.status === "AVAILABLE").length;
     availability = availableCount === 0 ? "bad" : availableCount === episodes.length ? "good" : "warn";
     availabilityLabel = availability === "good" ? "In Library" : availability === "warn" ? "Partially Available" : "Missing";
@@ -215,7 +227,7 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                 </span>
               </>
             )}
-            {kind === "show" && groupedSeasons && groupedSeasons.length > 0 && (
+            {(kind === "show" || kind === "anime") && groupedSeasons && groupedSeasons.length > 0 && (
               <>
                 <span className="sep" />
                 <span>
@@ -223,15 +235,6 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
                 </span>
                 <span className="sep" />
                 <span>{groupedSeasons.reduce((sum, s) => sum + s.episodes.length, 0)} episodes</span>
-              </>
-            )}
-            {kind === "anime" && flatEpisodes && flatEpisodes.length > 0 && (
-              <>
-                <span className="sep" />
-                <span>
-                  {(owned ? (ownedMedia as AnimeDetail)?.episodeCountTotal : null) ?? flatEpisodes.length} episode
-                  {((owned ? (ownedMedia as AnimeDetail)?.episodeCountTotal : null) ?? flatEpisodes.length) === 1 ? "" : "s"}
-                </span>
               </>
             )}
             {owned && kind === "show" && (ownedMedia as ShowDetail)?.status && (
@@ -375,20 +378,12 @@ export default function MediaDetailPage({ kind }: { kind: MediaKind }) {
           )}
         </div>
 
-        {kind === "show" && groupedSeasons && groupedSeasons.length > 0 && (
+        {(kind === "show" || kind === "anime") && groupedSeasons && groupedSeasons.length > 0 && (
           <div style={{ marginTop: 38 }}>
             <div className="section-label" style={{ marginBottom: 12 }}>
               Seasons
             </div>
             <GroupedEpisodeList seasons={groupedSeasons} />
-          </div>
-        )}
-        {kind === "anime" && flatEpisodes && flatEpisodes.length > 0 && (
-          <div style={{ marginTop: 38 }}>
-            <div className="section-label" style={{ marginBottom: 12 }}>
-              Episodes
-            </div>
-            <FlatEpisodeList episodes={flatEpisodes} />
           </div>
         )}
 

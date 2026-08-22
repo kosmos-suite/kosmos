@@ -9,6 +9,7 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -74,5 +75,30 @@ public class FribbMappingProvider {
       }
     }
     return byTmdbTvId;
+  }
+
+  /**
+   * Every AniList cour sharing {@code tmdbTvId} — {@code media.AnimeService}'s season chain for one
+   * anime franchise, ordered by {@code season.tmdb} (nulls last, since a cour with no reported TMDB
+   * season number can't be placed in the sequence), then by AniList id as a stable tiebreak for
+   * multiple cours sharing one TMDB season (e.g. a "Part 1"/"Part 2" split TMDB itself doesn't
+   * distinguish) — AniList ids are assigned roughly in the order titles were added, which tracks
+   * release order closely enough to place parts correctly without an extra fetch just to sort by.
+   * Unlike {@link #loadMappingByTmdbTvId}, which only keeps the first hit per TMDB id for
+   * classification, this keeps every one.
+   */
+  public List<FribbEntry> seasonsForTmdbTvId(int tmdbTvId) {
+    return loadMapping().values().stream()
+        .filter(
+            e ->
+                e.themoviedbId() != null
+                    && e.themoviedbId().tv() != null
+                    && e.themoviedbId().tv() == tmdbTvId)
+        .sorted(
+            Comparator.<FribbEntry, Integer>comparing(
+                    e -> e.season() != null ? e.season().tmdb() : null,
+                    Comparator.nullsLast(Comparator.naturalOrder()))
+                .thenComparing(FribbEntry::anilistId))
+        .toList();
   }
 }

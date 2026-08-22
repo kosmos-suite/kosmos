@@ -44,11 +44,12 @@ public class MediaAvailabilityService {
     }
     List<Object[]> rows =
         em.createNativeQuery(
-                "select ae.anime_id, count(ae.media_item_id), count(lf.media_item_id) "
-                    + "from anime_episode ae "
+                "select ans.anime_id, count(ae.media_item_id), count(lf.media_item_id) "
+                    + "from anime_season ans "
+                    + "join anime_episode ae on ae.season_id = ans.id "
                     + "left join library_file lf on lf.media_item_id = ae.media_item_id "
-                    + "where ae.anime_id in (:ids) "
-                    + "group by ae.anime_id")
+                    + "where ans.anime_id in (:ids) "
+                    + "group by ans.anime_id")
             .setParameter("ids", toStrings(mediaItemIds))
             .getResultList();
     return partialIdsFrom(rows);

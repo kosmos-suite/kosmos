@@ -16,9 +16,9 @@ public record AnimeDetailResponse(
     Integer episodeCountTotal,
     Instant addedAt,
     UUID qualityProfileId,
-    List<AnimeEpisodeResponse> episodes) {
+    List<AnimeSeasonResponse> seasons) {
 
-  public static AnimeDetailResponse from(Anime anime, List<AnimeEpisodeResponse> episodes) {
+  public static AnimeDetailResponse from(Anime anime, List<AnimeSeasonResponse> seasons) {
     return new AnimeDetailResponse(
         anime.mediaItemId,
         anime.mediaItem.title,
@@ -30,6 +30,6 @@ public record AnimeDetailResponse(
         anime.episodeCountTotal,
         anime.mediaItem.addedAt,
         anime.qualityProfile == null ? null : anime.qualityProfile.id,
-        episodes);
+        seasons);
   }
 }

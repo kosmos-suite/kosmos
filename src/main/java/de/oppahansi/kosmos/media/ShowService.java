@@ -206,7 +206,7 @@ public class ShowService {
                           .map(
                               e ->
                                   new MediaPreview.PreviewEpisode(
-                                      e.episodeNumber(), e.title(), e.airDate()))
+                                      e.episodeNumber(), e.episodeNumber(), e.title(), e.airDate()))
                           .toList()))
           .toList();
     } catch (Exception e) {

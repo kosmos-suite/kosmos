@@ -89,8 +89,18 @@ export interface AnimeEpisode {
   status: EpisodeStatus;
 }
 
-export interface AnimeDetail extends Anime {
+/** One AniList cour of an anime franchise — see the backend's AnimeSeason for how these are found. */
+export interface AnimeSeason {
+  id: string;
+  seasonNumber: number;
+  name: string;
+  overview: string | null;
+  episodeCount: number | null;
   episodes: AnimeEpisode[];
+}
+
+export interface AnimeDetail extends Anime {
+  seasons: AnimeSeason[];
 }
 
 export interface AnimeEpisodeDetail {
@@ -168,6 +178,7 @@ export interface MediaDetailExtras {
 
 export interface PreviewEpisode {
   episodeNumber: number;
+  absoluteEpisodeNumber: number | null;
   title: string;
   airDate: string | null;
 }

@@ -40,5 +40,6 @@ public record MediaPreview(
   public record PreviewSeason(
       int seasonNumber, String name, Integer episodeCount, List<PreviewEpisode> episodes) {}
 
-  public record PreviewEpisode(int episodeNumber, String title, LocalDate airDate) {}
+  public record PreviewEpisode(
+      int episodeNumber, Integer absoluteEpisodeNumber, String title, LocalDate airDate) {}
 }

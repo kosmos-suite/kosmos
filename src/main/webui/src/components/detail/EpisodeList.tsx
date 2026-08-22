@@ -16,14 +16,24 @@ const STATUS_LABEL: Record<EpisodeStatus, string> = {
   AVAILABLE: "Available",
 };
 
-/** One row shared by the grouped (show, inside a season) and flat (anime) episode lists below. */
+/** One row shared by every season's episode list below (shows and anime alike). */
 export interface EpisodeRowData {
   id: string;
   number: number | null;
+  /** Anime's absolute (franchise-continuous) number — shown as "01(26)" when it differs from
+   * {@link number}; omitted or equal for shows, which have no separate absolute numbering. */
+  absoluteNumber?: number | null;
   title: string;
   airDate: string | null;
   status: EpisodeStatus;
   searchHref: string | null;
+}
+
+function episodeNumberLabel(episode: EpisodeRowData): string {
+  if (episode.number == null) return "—";
+  const primary = String(episode.number).padStart(2, "0");
+  if (episode.absoluteNumber == null || episode.absoluteNumber === episode.number) return primary;
+  return `${primary}(${String(episode.absoluteNumber).padStart(2, "0")})`;
 }
 
 function EpisodeRow({ episode, borderBottom }: { episode: EpisodeRowData; borderBottom?: boolean }) {
@@ -31,7 +41,7 @@ function EpisodeRow({ episode, borderBottom }: { episode: EpisodeRowData; border
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "48px 1fr auto 90px 32px",
+        gridTemplateColumns: "64px 1fr auto 90px 32px",
         gap: 14,
         alignItems: "center",
         padding: "8px 4px",
@@ -40,7 +50,7 @@ function EpisodeRow({ episode, borderBottom }: { episode: EpisodeRowData; border
       }}
     >
       <span className="text-faint" style={{ fontFamily: "var(--font-mono)" }}>
-        {episode.number != null ? String(episode.number).padStart(2, "0") : "—"}
+        {episodeNumberLabel(episode)}
       </span>
       <span>{episode.title}</span>
       <span className="status-tag" style={{ fontSize: 10.5 }}>
@@ -58,17 +68,6 @@ function EpisodeRow({ episode, borderBottom }: { episode: EpisodeRowData; border
         <span />
       )}
     </div>
-  );
-}
-
-/** Anime's flat, ungrouped episode list. */
-export function FlatEpisodeList({ episodes }: { episodes: EpisodeRowData[] }) {
-  return (
-    <>
-      {episodes.map((ep) => (
-        <EpisodeRow key={ep.id} episode={ep} borderBottom />
-      ))}
-    </>
   );
 }
 

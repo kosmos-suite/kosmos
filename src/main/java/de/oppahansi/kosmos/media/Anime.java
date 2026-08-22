@@ -16,9 +16,9 @@ import org.hibernate.type.SqlTypes;
 
 /**
  * Anime-specific attributes for a {@link MediaItem}, sharing its primary key — same pattern as
- * {@link Movie}/{@link Show}. No {@code Season} equivalent between this and {@link AnimeEpisode}:
- * unlike TMDB, AniDB doesn't model seasons either — a new cour of a long-running show is normally
- * its own separate anime entry there, not a season of the existing one.
+ * {@link Movie}/{@link Show}. Represents a whole franchise, made up of one or more {@link
+ * AnimeSeason}s (each a separate AniList cour) — see that entity's own doc for how the seasons are
+ * discovered and ordered.
  */
 @Entity
 @Table(name = "anime")

@@ -157,11 +157,14 @@ public class JellyfinSyncService {
         animeCandidatesByShowId.put(show.id(), candidates);
       }
     }
+    // Every sibling season of each candidate's franchise (see AnimeSeason) goes into the same
+    // batch too, so a multi-season anime's own AnimeService#createFromJellyfin call never needs
+    // its own extra AniList fetch for a season this run already had the TMDB TV id for.
     List<Integer> anilistIds =
         animeCandidatesByShowId.values().stream()
             .flatMap(c -> Stream.of(c.primary(), c.fallback()))
             .filter(Objects::nonNull)
-            .map(FribbEntry::anilistId)
+            .flatMap(entry -> seasonChainAnilistIds(entry).stream())
             .distinct()
             .toList();
     Map<Integer, AniListAnimeDetails> anilistDetailsById =
@@ -207,14 +210,7 @@ public class JellyfinSyncService {
       boolean alreadyAnime =
           animeMatch != null
               && QuarkusTransaction.requiringNew()
-                  .call(
-                      () ->
-                          resolveExistingMediaItem(
-                                  "anilist",
-                                  String.valueOf(animeMatch.anilistId()),
-                                  "anime",
-                                  show.year())
-                              .isPresent());
+                  .call(() -> resolveExistingAnime(animeMatch, show.year()).isPresent());
       boolean tryAnime =
           animeMatch != null
               && !alreadyShow
@@ -232,7 +228,7 @@ public class JellyfinSyncService {
         try {
           animeOutcome =
               QuarkusTransaction.requiringNew()
-                  .call(() -> syncOneAnime(show, showEpisodes, animeMatch, animeDetails));
+                  .call(() -> syncOneAnime(show, showEpisodes, animeMatch, anilistDetailsById));
         } catch (RuntimeException e) {
           // Most likely a bad Fribb match hitting an unrelated DB constraint. Falls through to
           // syncing as a regular Show below rather than losing the title from the library entirely
@@ -342,7 +338,7 @@ public class JellyfinSyncService {
                 parsedAnilistId,
                 new FribbEntry(parsedAnilistId, null, null, null, null, null, null));
 
-    syncOneAnime(show, episodes, fribbEntry, details);
+    syncOneAnime(show, episodes, fribbEntry, Map.of(parsedAnilistId, details));
     pending.delete();
   }
 
@@ -818,10 +814,8 @@ public class JellyfinSyncService {
       JellyfinShow show,
       List<JellyfinEpisode> episodes,
       FribbEntry fribbEntry,
-      AniListAnimeDetails details) {
-    Optional<MediaItem> existing =
-        resolveExistingMediaItem(
-            "anilist", String.valueOf(fribbEntry.anilistId()), "anime", show.year());
+      Map<Integer, AniListAnimeDetails> anilistDetailsById) {
+    Optional<MediaItem> existing = resolveExistingAnime(fribbEntry, show.year());
 
     MediaItem mediaItem;
     boolean created;
@@ -832,7 +826,7 @@ public class JellyfinSyncService {
         resolveRootFolder(show.path(), "anime").ifPresent(folder -> mediaItem.rootFolder = folder);
       }
     } else {
-      mediaItem = createAnime(show, fribbEntry, details);
+      mediaItem = createAnime(show, fribbEntry, anilistDetailsById);
       created = true;
     }
 
@@ -842,12 +836,46 @@ public class JellyfinSyncService {
   }
 
   private MediaItem createAnime(
-      JellyfinShow jellyfinShow, FribbEntry fribbEntry, AniListAnimeDetails details) {
+      JellyfinShow jellyfinShow,
+      FribbEntry fribbEntry,
+      Map<Integer, AniListAnimeDetails> anilistDetailsById) {
     LibraryRootFolder rootFolder = resolveRootFolder(jellyfinShow.path(), "anime").orElse(null);
     Anime anime =
         animeService.createFromJellyfin(
-            jellyfinShow.name(), jellyfinShow.year(), fribbEntry, details, rootFolder);
+            jellyfinShow.name(), jellyfinShow.year(), fribbEntry, anilistDetailsById, rootFolder);
     return anime.mediaItem;
+  }
+
+  /**
+   * An {@link Anime} is now a whole franchise (see {@link AnimeSeason}), not one AniList cour, so
+   * dedup prefers its TMDB TV id — the same stable identity {@link #alreadySyncedAsShow} uses —
+   * over the specific AniList id this one Jellyfin show happened to match, which might be any one
+   * of the franchise's several seasons. Falls back to the AniList id when Fribb has no TMDB TV id
+   * for this entry at all.
+   */
+  private Optional<MediaItem> resolveExistingAnime(FribbEntry fribbEntry, Integer year) {
+    Integer tmdbTvId = fribbEntry.themoviedbId() != null ? fribbEntry.themoviedbId().tv() : null;
+    if (tmdbTvId != null) {
+      Optional<MediaItem> byTmdb =
+          resolveExistingMediaItem(TMDB_PLUGIN_SLUG, String.valueOf(tmdbTvId), "anime", year);
+      if (byTmdb.isPresent()) {
+        return byTmdb;
+      }
+    }
+    return resolveExistingMediaItem(
+        "anilist", String.valueOf(fribbEntry.anilistId()), "anime", year);
+  }
+
+  /** {@code entry}'s own AniList id plus every sibling season's — see {@link AnimeSeason}'s doc. */
+  private List<Integer> seasonChainAnilistIds(FribbEntry entry) {
+    Integer tmdbTvId = entry.themoviedbId() != null ? entry.themoviedbId().tv() : null;
+    if (tmdbTvId == null) {
+      return List.of(entry.anilistId());
+    }
+    List<FribbEntry> siblings = fribbMappingProvider.seasonsForTmdbTvId(tmdbTvId);
+    return siblings.isEmpty()
+        ? List.of(entry.anilistId())
+        : siblings.stream().map(FribbEntry::anilistId).toList();
   }
 
   /**
@@ -946,10 +974,7 @@ public class JellyfinSyncService {
       if (jellyfinEpisode.episodeNumber() == null || jellyfinEpisode.path() == null) {
         continue;
       }
-      Optional<AnimeEpisode> episode =
-          AnimeEpisode.<AnimeEpisode>find(
-                  "anime = ?1 and episodeNumber = ?2", anime, jellyfinEpisode.episodeNumber())
-              .firstResultOptional();
+      Optional<AnimeEpisode> episode = resolveAnimeEpisode(anime, jellyfinEpisode);
       if (episode.isEmpty()) {
         continue;
       }
@@ -972,6 +997,36 @@ public class JellyfinSyncService {
       linked++;
     }
     return linked;
+  }
+
+  /**
+   * Season-scoped join first — Jellyfin's own (season, episode) numbers against the matching {@link
+   * AnimeSeason}, the same join a regular {@link Show}'s episodes already use — since Fribb's
+   * {@code season.tmdb} ordering is meant to agree with however TMDB/Jellyfin itself numbers
+   * seasons. Falls back to a match on {@code absoluteEpisodeNumber} for a library that instead
+   * numbers everything under one flat season, a common alternate convention for long-running anime;
+   * this is also what a purely episode-number join used to do for every anime before seasons
+   * existed, which silently mismatched a multi-season show's second season onward (Jellyfin's own
+   * episode 1 of season 2 colliding with season 1's episode 1).
+   */
+  private Optional<AnimeEpisode> resolveAnimeEpisode(Anime anime, JellyfinEpisode jellyfinEpisode) {
+    if (jellyfinEpisode.seasonNumber() != null) {
+      Optional<AnimeEpisode> bySeason =
+          AnimeEpisode.<AnimeEpisode>find(
+                  "season.anime = ?1 and season.seasonNumber = ?2 and episodeNumber = ?3",
+                  anime,
+                  jellyfinEpisode.seasonNumber(),
+                  jellyfinEpisode.episodeNumber())
+              .firstResultOptional();
+      if (bySeason.isPresent()) {
+        return bySeason;
+      }
+    }
+    return AnimeEpisode.<AnimeEpisode>find(
+            "season.anime = ?1 and absoluteEpisodeNumber = ?2",
+            anime,
+            jellyfinEpisode.episodeNumber())
+        .firstResultOptional();
   }
 
   private record ShowSyncOutcome(String outcome, int episodeFilesLinked) {}
