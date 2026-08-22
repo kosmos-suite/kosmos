@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { Dispatch, SetStateAction, useCallback, useEffect, useState } from "react";
 
 interface UseApiResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
   reload: () => void;
+  /**
+   * Patches `data` in place without a round trip — for when a mutation's own response already
+   * carries the new state (e.g. one row of a list), so refetching the whole list would be wasted
+   * work and would needlessly re-render every other row.
+   */
+  setData: Dispatch<SetStateAction<T | null>>;
 }
 
 /** Runs an async fetcher on mount and whenever `deps` changes, tracking loading/error state. */
@@ -38,5 +44,5 @@ export function useApi<T>(fetcher: () => Promise<T>, deps: unknown[] = []): UseA
 
   const reload = useCallback(() => setReloadToken((t) => t + 1), []);
 
-  return { data, loading, error, reload };
+  return { data, loading, error, reload, setData };
 }

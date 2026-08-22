@@ -31,7 +31,7 @@ function nextRunLabel(job: ScheduledJob): string {
 }
 
 export default function JobsPage() {
-  const { data: jobs, reload } = useApi(() => api.listJobs(), []);
+  const { data: jobs, setData: setJobs } = useApi(() => api.listJobs(), []);
   const [expandedName, setExpandedName] = useState<string | null>(null);
   const [runningName, setRunningName] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
@@ -41,23 +41,38 @@ export default function JobsPage() {
     window.setTimeout(() => setToast((c) => (c === message ? null : c)), 3600);
   }
 
+  // Patches just the one row a mutation touched, from that mutation's own response — every other
+  // row's props stay referentially unchanged, so only the row that actually changed re-renders.
+  function patchJob(name: string, patch: Partial<ScheduledJob>) {
+    setJobs((current) => current?.map((j) => (j.name === name ? { ...j, ...patch } : j)) ?? current);
+  }
+
   async function runNow(job: ScheduledJob) {
     if (runningName) return;
     setRunningName(job.name);
     try {
-      await api.runJobNow(job.name);
-      showToast(`${job.displayName} ran successfully`);
+      const run = await api.runJobNow(job.name);
+      patchJob(job.name, {
+        running: false,
+        lastRunAt: run.startedAt,
+        lastStatus: run.status,
+        lastMessage: run.message,
+      });
+      showToast(
+        run.status === "FAILED"
+          ? `${job.displayName} failed${run.message ? `: ${run.message}` : ""}`
+          : `${job.displayName} ran successfully`,
+      );
     } catch (e) {
       showToast(e instanceof Error ? e.message : "Job run failed");
     } finally {
       setRunningName(null);
-      reload();
     }
   }
 
   async function toggleEnabled(job: ScheduledJob, enabled: boolean) {
-    await api.updateJob(job.name, { enabled, intervalSeconds: job.intervalSeconds });
-    reload();
+    const updated = await api.updateJob(job.name, { enabled, intervalSeconds: job.intervalSeconds });
+    patchJob(job.name, updated);
   }
 
   return (
@@ -84,9 +99,9 @@ export default function JobsPage() {
           onToggleEnabled={(enabled) => toggleEnabled(job, enabled)}
           onRunNow={() => runNow(job)}
           running={runningName === job.name}
-          onSaved={(message) => {
-            showToast(message);
-            reload();
+          onSaved={(updated) => {
+            patchJob(job.name, updated);
+            showToast(`${job.displayName}'s interval saved`);
           }}
         />
       ))}
@@ -118,7 +133,7 @@ function JobRow({
   onToggleEnabled: (enabled: boolean) => void;
   onRunNow: () => void;
   running: boolean;
-  onSaved: (message: string) => void;
+  onSaved: (updated: ScheduledJob) => void;
 }) {
   const health = healthMeta(job);
   const { data: runs, loading: runsLoading } = useApi(
@@ -133,8 +148,8 @@ function JobRow({
     if (!Number.isFinite(parsed) || parsed < 10) return;
     setSaving(true);
     try {
-      await api.updateJob(job.name, { enabled: job.enabled, intervalSeconds: parsed });
-      onSaved(`${job.displayName}'s interval saved`);
+      const updated = await api.updateJob(job.name, { enabled: job.enabled, intervalSeconds: parsed });
+      onSaved(updated);
     } finally {
       setSaving(false);
     }
