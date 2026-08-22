@@ -120,7 +120,9 @@ public class JellyfinClient {
 
     List<JellyfinShow> shows = new ArrayList<>();
     for (JsonNode item : root.path("Items")) {
-      String tmdbId = item.path("ProviderIds").path("Tmdb").asText(null);
+      JsonNode providerIds = item.path("ProviderIds");
+      String tmdbId = providerIds.path("Tmdb").asText(null);
+      String anilistId = providerIds.path("AniList").asText(null);
       Integer year = item.hasNonNull("ProductionYear") ? item.path("ProductionYear").asInt() : null;
       shows.add(
           new JellyfinShow(
@@ -128,9 +130,78 @@ public class JellyfinClient {
               item.path("Name").asText(null),
               year,
               tmdbId,
+              anilistId,
               item.path("Path").asText(null)));
     }
     return shows;
+  }
+
+  /**
+   * A single series by its Jellyfin ItemId — used to re-fetch one item's current state when a user
+   * resolves an {@code UnclassifiedShow}, rather than trusting the snapshot taken when it was first
+   * flagged (which could be stale by the time it's reviewed).
+   */
+  public Optional<JellyfinShow> getShow(String apiKey, String itemId)
+      throws IOException, InterruptedException {
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(URI.create(baseUrl + "/Items?Ids=" + itemId + "&Fields=ProviderIds,Path"))
+            .header("X-Emby-Token", apiKey)
+            .timeout(REQUEST_TIMEOUT)
+            .GET()
+            .build();
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    checkOk(response, "get show");
+    JsonNode root = MAPPER.readTree(response.body());
+    JsonNode item = root.path("Items").isEmpty() ? null : root.path("Items").get(0);
+    if (item == null) {
+      return Optional.empty();
+    }
+    JsonNode providerIds = item.path("ProviderIds");
+    Integer year = item.hasNonNull("ProductionYear") ? item.path("ProductionYear").asInt() : null;
+    return Optional.of(
+        new JellyfinShow(
+            item.path("Id").asText(null),
+            item.path("Name").asText(null),
+            year,
+            providerIds.path("Tmdb").asText(null),
+            providerIds.path("AniList").asText(null),
+            item.path("Path").asText(null)));
+  }
+
+  /**
+   * A single series' episodes via Jellyfin's dedicated {@code /Shows/{id}/Episodes} endpoint —
+   * cheaper than {@link #listEpisodesUnder} when only one series is needed (the {@code
+   * UnclassifiedShow} resolve flow), since it doesn't require scanning the whole library.
+   */
+  public List<JellyfinEpisode> listEpisodesForSeries(String apiKey, String seriesId)
+      throws IOException, InterruptedException {
+    HttpRequest request =
+        HttpRequest.newBuilder()
+            .uri(
+                URI.create(
+                    baseUrl
+                        + "/Shows/"
+                        + seriesId
+                        + "/Episodes?Fields=Path,ParentIndexNumber,IndexNumber"))
+            .header("X-Emby-Token", apiKey)
+            .timeout(REQUEST_TIMEOUT)
+            .GET()
+            .build();
+    HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+    checkOk(response, "list episodes for series");
+    JsonNode root = MAPPER.readTree(response.body());
+
+    List<JellyfinEpisode> episodes = new ArrayList<>();
+    for (JsonNode item : root.path("Items")) {
+      Integer season =
+          item.hasNonNull("ParentIndexNumber") ? item.path("ParentIndexNumber").asInt() : null;
+      Integer episodeNumber =
+          item.hasNonNull("IndexNumber") ? item.path("IndexNumber").asInt() : null;
+      episodes.add(
+          new JellyfinEpisode(seriesId, season, episodeNumber, item.path("Path").asText(null)));
+    }
+    return episodes;
   }
 
   /**

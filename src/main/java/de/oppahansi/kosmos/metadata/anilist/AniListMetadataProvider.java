@@ -13,7 +13,12 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -28,6 +33,20 @@ public class AniListMetadataProvider implements MetadataProvider {
 
   private static final String GRAPHQL_URL = "https://graphql.anilist.co";
   private static final String HTML_TAG = "<[^>]+>";
+
+  /**
+   * AniList's actual current limit is 30 requests/minute (confirmed via its own {@code
+   * X-RateLimit-Limit} response header — down from the historical 90/minute after past abuse); 25
+   * leaves headroom rather than pacing right up against the edge. A single anime lookup never gets
+   * close to this, but a Jellyfin library sync can hit {@link #fetchById} for hundreds of distinct
+   * ids in one run — without pacing, most of those beyond the first ~30 come back 429, which
+   * previously got silently misread as "not found" (see {@link #post}).
+   */
+  private static final int MAX_REQUESTS_PER_WINDOW = 25;
+
+  private static final Duration RATE_LIMIT_WINDOW = Duration.ofSeconds(60);
+
+  private final Deque<Instant> recentRequests = new ArrayDeque<>();
 
   private static final String SEARCH_QUERY =
       """
@@ -61,6 +80,30 @@ public class AniListMetadataProvider implements MetadataProvider {
         }
       }
       """;
+
+  /**
+   * Same fields as {@link #BY_ID_QUERY}, batched via AniList's {@code id_in} filter — see {@link
+   * #fetchByIds}.
+   */
+  private static final String BY_IDS_QUERY =
+      """
+      query ($ids: [Int]) {
+        Page(page: 1, perPage: 50) {
+          media(id_in: $ids, type: ANIME) {
+            id
+            title { romaji english }
+            startDate { year }
+            description(asHtml: false)
+            coverImage { large }
+            status
+            episodes
+          }
+        }
+      }
+      """;
+
+  /** Ids per {@link #fetchByIds} request — comfortably under AniList's page-size cap of 50. */
+  private static final int BATCH_SIZE = 25;
 
   private static final String DETAIL_EXTRAS_QUERY =
       """
@@ -136,7 +179,42 @@ public class AniListMetadataProvider implements MetadataProvider {
             stripHtml(media.description()),
             poster(media),
             media.status(),
-            media.episodes()));
+            media.episodes(),
+            media.startDate() != null ? media.startDate().year() : null));
+  }
+
+  /**
+   * Batched form of {@link #fetchById} for a Jellyfin library sync, where a single run can have
+   * hundreds of distinct Fribb-matched AniList ids to resolve — one request per {@link #BATCH_SIZE}
+   * ids via {@code id_in} instead of one request per id, so a sync's AniList cost is a handful of
+   * requests rather than hundreds racing {@link #MAX_REQUESTS_PER_WINDOW}. Not cached like {@link
+   * #fetchById} — a sync calls this once per distinct id already, so there's nothing to dedupe, and
+   * caching a batch response under its whole id list would never hit again anyway. Ids AniList has
+   * no match for are simply absent from the returned map.
+   */
+  public Map<Integer, AniListAnimeDetails> fetchByIds(List<Integer> ids) {
+    Map<Integer, AniListAnimeDetails> results = new LinkedHashMap<>();
+    for (int start = 0; start < ids.size(); start += BATCH_SIZE) {
+      List<Integer> chunk = ids.subList(start, Math.min(start + BATCH_SIZE, ids.size()));
+      AniListSearchResponse response =
+          post(BY_IDS_QUERY, Map.of("ids", chunk), AniListSearchResponse.class);
+      List<AniListMedia> media =
+          response.data() != null && response.data().Page() != null
+              ? response.data().Page().media()
+              : List.of();
+      for (AniListMedia m : media) {
+        results.put(
+            m.id(),
+            new AniListAnimeDetails(
+                title(m),
+                stripHtml(m.description()),
+                poster(m),
+                m.status(),
+                m.episodes(),
+                m.startDate() != null ? m.startDate().year() : null));
+      }
+    }
+    return results;
   }
 
   /**
@@ -202,7 +280,8 @@ public class AniListMetadataProvider implements MetadataProvider {
         poster(media),
         media.bannerImage(),
         null,
-        "anime");
+        "anime",
+        media.episodes());
   }
 
   private String title(AniListMedia media) {
@@ -221,6 +300,7 @@ public class AniListMetadataProvider implements MetadataProvider {
   }
 
   private <T> T post(String query, Map<String, Object> variables, Class<T> responseType) {
+    awaitRateLimit();
     try {
       String body = objectMapper.writeValueAsString(new GraphQlRequest(query, variables));
       HttpRequest request =
@@ -232,9 +312,46 @@ public class AniListMetadataProvider implements MetadataProvider {
               .build();
       HttpResponse<String> response =
           httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        // An error response body has no `data` field, which would otherwise deserialize as
+        // data() == null — indistinguishable from every caller's own "not found" case.
+        throw new IllegalStateException("AniList returned " + response.statusCode());
+      }
       return objectMapper.readValue(response.body(), responseType);
     } catch (IOException | InterruptedException e) {
       throw new IllegalStateException("AniList request failed", e);
+    }
+  }
+
+  /**
+   * Blocks the calling thread as needed to stay under {@link #MAX_REQUESTS_PER_WINDOW} — a bulk
+   * sync runs on a background job thread anyway, so pacing it here is free; the alternative is
+   * requests failing with 429 further down and getting misread as failures worth retrying rather
+   * than an intentional slowdown.
+   */
+  private synchronized void awaitRateLimit() {
+    Instant now = Instant.now();
+    dropExpired(now);
+    if (recentRequests.size() >= MAX_REQUESTS_PER_WINDOW) {
+      Instant oldest = recentRequests.peekFirst();
+      long waitMs = RATE_LIMIT_WINDOW.minus(Duration.between(oldest, now)).toMillis() + 50;
+      if (waitMs > 0) {
+        try {
+          Thread.sleep(waitMs);
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+          throw new IllegalStateException("Interrupted while pacing AniList requests", e);
+        }
+      }
+      dropExpired(Instant.now());
+    }
+    recentRequests.addLast(Instant.now());
+  }
+
+  private void dropExpired(Instant now) {
+    while (!recentRequests.isEmpty()
+        && Duration.between(recentRequests.peekFirst(), now).compareTo(RATE_LIMIT_WINDOW) > 0) {
+      recentRequests.pollFirst();
     }
   }
 

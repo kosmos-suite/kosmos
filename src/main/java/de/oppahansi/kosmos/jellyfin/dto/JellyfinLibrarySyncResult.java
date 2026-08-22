@@ -6,6 +6,7 @@ package de.oppahansi.kosmos.jellyfin.dto;
  * (per-series, not per-file — a series is "linked" if any new episode file was matched to it).
  * Anime is counted separately from shows even though both come from the same Jellyfin "tvshows"
  * item type — see {@code JellyfinSyncService#resolveAnimeMatch}. episodeFilesLinked covers both.
+ * needsReview is neither a show nor an anime yet — see {@code UnclassifiedShow}.
  */
 public record JellyfinLibrarySyncResult(
     int scanned,
@@ -21,4 +22,5 @@ public record JellyfinLibrarySyncResult(
     int animeLinked,
     int animeCreated,
     int animeAlreadySynced,
-    int episodeFilesLinked) {}
+    int episodeFilesLinked,
+    int needsReview) {}

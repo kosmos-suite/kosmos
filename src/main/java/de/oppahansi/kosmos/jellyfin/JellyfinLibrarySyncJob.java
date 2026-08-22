@@ -49,13 +49,17 @@ public class JellyfinLibrarySyncJob implements JobHandler {
   }
 
   static String summarize(JellyfinLibrarySyncResult result) {
-    return ("Synced: %d movies added, %d already-owned linked, %d series added, %d anime added, %d"
-            + " episode files linked.")
-        .formatted(
-            result.created(),
-            result.linked(),
-            result.showsCreated(),
-            result.animeCreated(),
-            result.episodeFilesLinked());
+    String base =
+        ("Synced: %d movies added, %d already-owned linked, %d series added, %d anime added, %d"
+                + " episode files linked.")
+            .formatted(
+                result.created(),
+                result.linked(),
+                result.showsCreated(),
+                result.animeCreated(),
+                result.episodeFilesLinked());
+    return result.needsReview() > 0
+        ? base + " %d need review.".formatted(result.needsReview())
+        : base;
   }
 }

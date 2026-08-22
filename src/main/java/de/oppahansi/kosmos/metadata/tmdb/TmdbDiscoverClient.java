@@ -136,7 +136,8 @@ public class TmdbDiscoverClient {
                   textOrNull(r, "poster_path"),
                   textOrNull(r, "backdrop_path"),
                   r.path("vote_average").isNumber() ? r.path("vote_average").asDouble() : null,
-                  "movie"));
+                  "movie",
+                  null));
         } else if ("tv".equals(mediaType)) {
           out.add(
               new MetadataSearchResult(
@@ -147,7 +148,8 @@ public class TmdbDiscoverClient {
                   textOrNull(r, "poster_path"),
                   textOrNull(r, "backdrop_path"),
                   null,
-                  "tv"));
+                  "tv",
+                  null));
         }
         // "person" results and anything else are skipped — not a title Kosmos can show a card for.
       }

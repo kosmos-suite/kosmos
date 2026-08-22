@@ -21,7 +21,8 @@ final class TmdbMappers {
         movie.posterPath(),
         movie.backdropPath(),
         movie.voteAverage(),
-        "movie");
+        "movie",
+        null);
   }
 
   static MetadataSearchResult toSearchResult(TmdbTvShow show) {
@@ -33,7 +34,8 @@ final class TmdbMappers {
         show.posterPath(),
         show.backdropPath(),
         null,
-        "tv");
+        "tv",
+        null);
   }
 
   static Integer extractYear(String releaseDate) {

@@ -334,3 +334,27 @@ CREATE TABLE anime_episode (
     runtime_minutes         INTEGER,
     still_path              VARCHAR(500)
 );
+
+-- A Jellyfin "tvshows" item JellyfinSyncService couldn't confidently route to show or anime: some
+-- signal pointed at anime (Jellyfin's own AniList ProviderId, or a Fribb/TMDB reverse match) but
+-- AniList itself returned nothing for that id, so there's nothing to enrich an Anime row from and
+-- no proof the match is even real. Sits outside media_item entirely — neither a Show nor an Anime
+-- gets created until a user resolves it (JellyfinSyncService#resolveAsShow/resolveAsAnime), so it
+-- never pollutes either collection while pending.
+CREATE TABLE unclassified_show (
+    id                 VARCHAR(36) PRIMARY KEY,
+    jellyfin_server_id VARCHAR(36) NOT NULL REFERENCES jellyfin_server(id),
+    jellyfin_item_id   VARCHAR(200) NOT NULL,
+    name               VARCHAR(500) NOT NULL,
+    year               INTEGER,
+    tmdb_id            VARCHAR(200) NOT NULL,
+    anilist_id         VARCHAR(200),
+    path               VARCHAR(1000) NOT NULL,
+    reason             VARCHAR(40) NOT NULL,
+    -- [{"seasonNumber":1,"episodeCount":12}, ...] snapshotted from Jellyfin's own scanned episode
+    -- files at flag time — lets the review screen show a season/episode breakdown without a live
+    -- Jellyfin call per row, and gives the sync's own classifier a signal to narrow matches on.
+    seasons_json       VARCHAR(2000),
+    detected_at        TIMESTAMP NOT NULL,
+    UNIQUE (jellyfin_server_id, jellyfin_item_id)
+);

@@ -22,6 +22,7 @@ import jakarta.transaction.Transactional;
 import jakarta.ws.rs.BadRequestException;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,6 +40,15 @@ public class AnimeService {
 
   public List<Anime> listAll() {
     return Anime.listAll();
+  }
+
+  /**
+   * Passthrough to {@link AniListMetadataProvider#fetchByIds} — {@code JellyfinSyncService} batches
+   * every Fribb-matched anime id from a whole sync run through here up front, rather than each
+   * {@link #createFromJellyfin} call triggering its own AniList request.
+   */
+  public Map<Integer, AniListAnimeDetails> fetchAniListDetails(List<Integer> anilistIds) {
+    return aniListMetadataProvider.fetchByIds(anilistIds);
   }
 
   public Optional<Anime> findById(UUID id) {
@@ -107,18 +117,19 @@ public class AnimeService {
    * from a server-reported title/year/root-folder and an already-resolved {@link FribbEntry} (found
    * by reverse Fribb lookup on the Jellyfin item's TMDB id) rather than a user-submitted request,
    * and with no quality profile assigned — matches Jellyfin-synced movies/shows, which are also
-   * unmonitored until the user assigns one. Unlike {@link #create}, the AniList fetch failing still
-   * fails this call (same reasoning as there): the caller's per-item transaction just gets retried
-   * next sync, consistent with how a movie/show's own fetch failure is handled.
+   * unmonitored until the user assigns one. {@code details} is pre-fetched by the caller via {@code
+   * AniListMetadataProvider#fetchByIds} — a whole sync's AniList lookups are batched up front
+   * rather than one {@link AniListMetadataProvider#fetchById} call per anime, which is what let a
+   * large library outrun AniList's rate limit and silently drop titles.
    */
   @Transactional
   public Anime createFromJellyfin(
-      String title, Integer year, FribbEntry fribbEntry, LibraryRootFolder rootFolder) {
+      String title,
+      Integer year,
+      FribbEntry fribbEntry,
+      AniListAnimeDetails details,
+      LibraryRootFolder rootFolder) {
     String anilistId = String.valueOf(fribbEntry.anilistId());
-    AniListAnimeDetails details =
-        aniListMetadataProvider
-            .fetchById(anilistId)
-            .orElseThrow(() -> new BadRequestException("AniList entry not found: " + anilistId));
 
     MediaItem mediaItem = new MediaItem();
     mediaItem.contentType = "anime";

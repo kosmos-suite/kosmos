@@ -19,6 +19,7 @@ public record MetadataSearchItem(
     String backdropPath,
     Double voteAverage,
     String mediaType,
+    Integer episodeCount,
     boolean inLibrary,
     boolean partiallyAvailable) {
 
@@ -38,6 +39,7 @@ public record MetadataSearchItem(
         r.backdropPath(),
         r.voteAverage(),
         r.mediaType(),
+        r.episodeCount(),
         false,
         false);
   }

@@ -63,6 +63,7 @@ public class SimilarEnrichmentService {
                   item.backdropPath(),
                   item.voteAverage(),
                   item.mediaType(),
+                  item.episodeCount(),
                   true,
                   partialIds.contains(mediaItemId));
             })

@@ -76,6 +76,7 @@ public class MetadataSearchService {
         r.backdropPath(),
         r.voteAverage(),
         r.mediaType(),
+        r.episodeCount(),
         mediaItemId != null,
         mediaItemId != null && partialIds.contains(mediaItemId));
   }

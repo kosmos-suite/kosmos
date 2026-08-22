@@ -1,5 +1,6 @@
 package de.oppahansi.kosmos.metadata.tmdb;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import de.oppahansi.kosmos.metadata.MetadataProvider;
 import de.oppahansi.kosmos.metadata.dto.MediaDetailExtras;
@@ -105,6 +106,34 @@ public class TmdbMetadataProvider implements MetadataProvider {
   }
 
   /**
+   * Recovery path for {@code JellyfinSyncService#enrichFromTmdb} when Jellyfin's own reported TMDB
+   * id turns out not to corroborate an independently-known year. TMDB's {@code year} query param
+   * ranks a same-year match first but doesn't strictly filter to it — a same-titled movie from a
+   * different year can still come back — so results are filtered to an exact year match here rather
+   * than trusting the top result blindly.
+   */
+  @CacheResult(cacheName = "tmdb-movie-search-by-year")
+  public Optional<MetadataSearchResult> searchMovieByTitleAndYear(String title, int year) {
+    if (apiKey.isEmpty()) {
+      return Optional.empty();
+    }
+    try {
+      String encodedQuery = URLEncoder.encode(title, StandardCharsets.UTF_8);
+      String url =
+          "%s?api_key=%s&query=%s&year=%d"
+              .formatted(SEARCH_URL, apiKey.orElseThrow(), encodedQuery, year);
+      HttpRequest request = HttpRequest.newBuilder().uri(URI.create(url)).GET().build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      return parse(response.body()).stream()
+          .filter(r -> r.year() != null && r.year() == year)
+          .findFirst();
+    } catch (Exception e) {
+      return Optional.empty();
+    }
+  }
+
+  /**
    * TMDB's search endpoint doesn't return runtime — only {@code /movie/{id}} does — so this is a
    * second call, made once at movie-creation time to populate {@link
    * de.oppahansi.kosmos.media.Movie#runtimeMinutes} for the size-gate quality check ({@code
@@ -194,6 +223,49 @@ public class TmdbMetadataProvider implements MetadataProvider {
           TmdbMappers.toSearchResult(objectMapper.readValue(response.body(), TmdbTvShow.class)));
     } catch (Exception e) {
       return Optional.empty();
+    }
+  }
+
+  /**
+   * Whether TMDB tags this TV id with the literal {@code "anime"} keyword — distinct from the
+   * {@code Animation} genre, which TMDB applies to Western cartoons just as much as anime (see
+   * {@code JellyfinSyncService#classifyAnimeMatch}'s own doc for why genre alone isn't trustworthy:
+   * e.g. Black Lagoon's genre list leads with "Action & Adventure", Animation only shows up further
+   * down). Keywords are community-tagged and can be missing for obscure titles, so absence here
+   * means "no signal either way", never "confirmed not anime" — callers only use a {@code true} to
+   * rescue an otherwise-ambiguous match, never to reject one.
+   */
+  @CacheResult(cacheName = "tmdb-tv-anime-keyword")
+  public boolean showHasAnimeKeyword(String tmdbId) {
+    if (apiKey.isEmpty()) {
+      return false;
+    }
+    try {
+      HttpRequest request =
+          HttpRequest.newBuilder()
+              .uri(
+                  URI.create(
+                      TV_URL
+                          + tmdbId
+                          + "?api_key="
+                          + apiKey.orElseThrow()
+                          + "&append_to_response=keywords"))
+              .GET()
+              .build();
+      HttpResponse<String> response =
+          httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response.statusCode() != 200) {
+        return false;
+      }
+      JsonNode root = objectMapper.readTree(response.body());
+      for (JsonNode kw : root.path("keywords").path("results")) {
+        if ("anime".equalsIgnoreCase(kw.path("name").asText(""))) {
+          return true;
+        }
+      }
+      return false;
+    } catch (Exception e) {
+      return false;
     }
   }
 
